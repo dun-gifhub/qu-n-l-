@@ -51,6 +51,77 @@ function createInitialEmptyState(): DBState {
   };
 }
 
+function ensureDefaultAdmin(state: DBState): DBState {
+  if (!state.users) {
+    state.users = [];
+  }
+
+  // Load Admin credentials from Environment Variables (with fallback defaults)
+  const envEmail = process.env.ADMIN_EMAIL ? process.env.ADMIN_EMAIL.trim().toLowerCase() : '';
+  const adminEmail = envEmail || 'admin@devicemonitor.com';
+  const adminPassword = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : 'admin123';
+  const adminName = process.env.ADMIN_NAME ? process.env.ADMIN_NAME.trim() : 'Quản Trị Viên (Admin)';
+  const adminPhone = process.env.ADMIN_PHONE ? process.env.ADMIN_PHONE.trim() : '0901234567';
+  const adminSchool = process.env.ADMIN_SCHOOL ? process.env.ADMIN_SCHOOL.trim() : 'THPT Chuyên Lê Hồng Phong';
+
+  const nowIso = new Date().toISOString();
+  let existingAdmin = state.users.find(
+    (u) => u.email.toLowerCase() === adminEmail || (u.role === 'ADMIN' && (!envEmail || u.email.toLowerCase() === envEmail))
+  );
+
+  if (!existingAdmin) {
+    // If no admin exists with the env/default email, create one
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(adminPassword, salt);
+    const newAdmin = {
+      id: 'usr_admin_' + Date.now().toString(36),
+      name: adminName,
+      email: adminEmail,
+      passwordHash,
+      role: 'ADMIN' as const,
+      approvalStatus: 'APPROVED' as const,
+      schoolName: adminSchool,
+      phone: adminPhone,
+      approvedBy: 'Cấu hình Environment',
+      approvedAt: nowIso,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    state.users.unshift(newAdmin);
+    writeLocalDB(state);
+  } else if (process.env.ADMIN_EMAIL || process.env.ADMIN_PASSWORD || process.env.ADMIN_NAME) {
+    // Sync existing admin with provided environment variables
+    let modified = false;
+    if (envEmail && existingAdmin.email.toLowerCase() !== envEmail) {
+      existingAdmin.email = envEmail;
+      modified = true;
+    }
+    if (process.env.ADMIN_PASSWORD) {
+      const isMatch = bcrypt.compareSync(adminPassword, existingAdmin.passwordHash);
+      if (!isMatch) {
+        const salt = bcrypt.genSaltSync(10);
+        existingAdmin.passwordHash = bcrypt.hashSync(adminPassword, salt);
+        modified = true;
+      }
+    }
+    if (process.env.ADMIN_NAME && existingAdmin.name !== adminName) {
+      existingAdmin.name = adminName;
+      modified = true;
+    }
+    if (existingAdmin.role !== 'ADMIN') {
+      existingAdmin.role = 'ADMIN';
+      existingAdmin.approvalStatus = 'APPROVED';
+      modified = true;
+    }
+    if (modified) {
+      existingAdmin.updatedAt = nowIso;
+      writeLocalDB(state);
+    }
+  }
+
+  return state;
+}
+
 export async function initDatabase(): Promise<{ isPostgres: boolean }> {
   const dbUrl = process.env.DATABASE_URL;
 
@@ -162,7 +233,12 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
   }
 
   if (!fs.existsSync(DATA_FILE)) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(createInitialEmptyState(), null, 2), 'utf-8');
+    const empty = createInitialEmptyState();
+    ensureDefaultAdmin(empty);
+    fs.writeFileSync(DATA_FILE, JSON.stringify(empty, null, 2), 'utf-8');
+  } else {
+    const current = readLocalDB();
+    ensureDefaultAdmin(current);
   }
 
   return { isPostgres: isPostgresConnected };
@@ -171,13 +247,14 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
 function readLocalDB(): DBState {
   if (!fs.existsSync(DATA_FILE)) {
     const empty = createInitialEmptyState();
+    ensureDefaultAdmin(empty);
     fs.writeFileSync(DATA_FILE, JSON.stringify(empty, null, 2), 'utf-8');
     return empty;
   }
   try {
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
     const parsed = JSON.parse(raw);
-    return {
+    const state: DBState = {
       users: parsed.users || [],
       devices: parsed.devices || [],
       locations: parsed.locations || [],
@@ -187,8 +264,11 @@ function readLocalDB(): DBState {
       appUsages: parsed.appUsages || [],
       webHistory: parsed.webHistory || [],
     };
+    return ensureDefaultAdmin(state);
   } catch {
-    return createInitialEmptyState();
+    const empty = createInitialEmptyState();
+    ensureDefaultAdmin(empty);
+    return empty;
   }
 }
 

@@ -4,10 +4,10 @@ import { requireAuth, requireApproved, AuthenticatedRequest } from '../middlewar
 
 const router = Router();
 
-// GET /api/activity - Aggregated activity feed
-router.get('/', async (req: any, res: Response): Promise<any> => {
+// GET /api/activity - Aggregated activity feed (bắt buộc đăng nhập)
+router.get('/', requireAuth, requireApproved, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user!.userId;
     const activities = await dbService.getActivitiesForUser(userId);
     return res.json({
       success: true,

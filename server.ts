@@ -11,6 +11,7 @@ import devicesRouter from './server/src/routes/devices.ts';
 import activityRouter from './server/src/routes/activity.ts';
 import healthRouter from './server/src/routes/health.ts';
 import usersRouter from './server/src/routes/users.ts';
+import notificationsRouter from './server/src/routes/notifications.ts';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ async function startServer() {
   app.use('/api/users', usersRouter);
   app.use('/api/devices', devicesRouter);
   app.use('/api/activity', activityRouter);
+  app.use('/api/notifications', notificationsRouter);
 
   // Serve Frontend
   if (!isProduction) {

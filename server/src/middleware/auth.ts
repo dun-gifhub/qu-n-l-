@@ -79,6 +79,38 @@ export function requireApproved(req: AuthenticatedRequest, res: Response, next: 
   next();
 }
 
+export async function optionalAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  let token: string | undefined;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7).trim();
+  } else if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as AuthUserPayload;
+      const freshUser = await dbService.findUserById(decoded.userId);
+      if (freshUser) {
+        req.user = {
+          userId: freshUser.id,
+          email: freshUser.email,
+          name: freshUser.name,
+          role: freshUser.role || 'PARENT',
+          schoolName: freshUser.schoolName,
+          className: freshUser.className,
+          approvalStatus: freshUser.approvalStatus || 'APPROVED',
+        };
+      }
+    } catch {
+      // Ignore invalid token in optionalAuth
+    }
+  }
+  next();
+}
+
 export function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user || req.user.role !== 'ADMIN') {
     return res.status(403).json({

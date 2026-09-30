@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { useTheme } from '../../context/ThemeContext.tsx';
 import { api } from '../../services/api.ts';
+import { RealtimeToastContainer } from '../Notifications/RealtimeToastContainer.tsx';
 import {
   LayoutDashboard,
   Smartphone,
@@ -288,6 +289,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {children}
         </main>
       </div>
+
+      {/* Global Realtime Push Notification Toasts */}
+      <RealtimeToastContainer navigate={navigate} />
     </div>
   );
 };

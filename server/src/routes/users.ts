@@ -157,10 +157,10 @@ router.patch('/:id/approval', requireAdmin, async (req: AuthenticatedRequest, re
   }
 });
 
-// PATCH /api/users/:id - Admin updates user details (role, schoolName, className, studentName, etc.)
+// PATCH /api/users/:id - Admin updates user details (role, schoolName, className, studentName, password, etc.)
 router.patch('/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
-    const { name, role, schoolName, className, studentName, phone, approvalStatus } = req.body;
+    const { name, role, schoolName, className, studentName, phone, approvalStatus, password, newPassword } = req.body;
     const updates: Partial<UserRecord> = {};
 
     if (name && typeof name === 'string') updates.name = name.trim();
@@ -173,6 +173,19 @@ router.patch('/:id', requireAdmin, async (req: AuthenticatedRequest, res: Respon
       updates.approvalStatus = approvalStatus as ApprovalStatus;
       updates.approvedBy = req.user!.name;
       updates.approvedAt = new Date().toISOString();
+    }
+
+    const targetPassword = newPassword || password;
+    if (targetPassword) {
+      const pwd = String(targetPassword).trim();
+      if (pwd.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mật khẩu phải chứa ít nhất 6 ký tự',
+        });
+      }
+      const salt = await bcrypt.genSalt(10);
+      updates.passwordHash = await bcrypt.hash(pwd, salt);
     }
 
     const updated = await dbService.updateUser(req.params.id, updates);
@@ -193,6 +206,47 @@ router.patch('/:id', requireAdmin, async (req: AuthenticatedRequest, res: Respon
     return res.status(500).json({
       success: false,
       message: 'Lỗi cập nhật tài khoản',
+    });
+  }
+});
+
+// PATCH /api/users/:id/password - Admin directly resets or changes password for any user or admin
+router.patch('/:id/password', requireAdmin, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const { newPassword, password } = req.body;
+    const targetPassword = newPassword || password;
+    if (!targetPassword || String(targetPassword).trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp mật khẩu mới có ít nhất 6 ký tự',
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(String(targetPassword).trim(), salt);
+
+    const updated = await dbService.updateUser(req.params.id, { passwordHash });
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản để đặt lại mật khẩu',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Đã đổi mật khẩu thành công cho tài khoản ${updated.name} (${updated.email})`,
+      data: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi đổi mật khẩu tài khoản',
     });
   }
 });

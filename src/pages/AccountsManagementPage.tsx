@@ -18,6 +18,10 @@ import {
   UserCheck,
   X,
   ArrowRight,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Lock,
 } from 'lucide-react';
 
 interface AccountsManagementPageProps {
@@ -52,6 +56,41 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
   const [editSchool, setEditSchool] = useState('');
   const [editClass, setEditClass] = useState('');
   const [editStudentName, setEditStudentName] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+
+  // Password Reset Modal (Admin)
+  const [passwordModalUser, setPasswordModalUser] = useState<User | null>(null);
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const openPasswordModal = (u: User) => {
+    setPasswordModalUser(u);
+    setNewPasswordInput('');
+    setShowPasswordText(false);
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordModalUser) return;
+    if (!newPasswordInput.trim() || newPasswordInput.trim().length < 6) {
+      showToast('Mật khẩu mới phải có tối thiểu 6 ký tự');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    const res = await api.resetUserPassword(passwordModalUser.id, newPasswordInput.trim());
+    setIsUpdatingPassword(false);
+
+    if (res.success) {
+      showToast(res.message || `Đã đổi mật khẩu thành công cho ${passwordModalUser.name}`);
+      setPasswordModalUser(null);
+      setNewPasswordInput('');
+      loadData();
+    } else {
+      showToast(res.message || 'Lỗi cập nhật mật khẩu');
+    }
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -121,6 +160,7 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
     setEditSchool(u.schoolName || '');
     setEditClass(u.className || '');
     setEditStudentName(u.studentName || '');
+    setEditPassword('');
   };
 
   const handleSaveEditUser = async (e: React.FormEvent) => {
@@ -131,10 +171,12 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
       schoolName: editSchool.trim(),
       className: editClass.trim(),
       studentName: editStudentName.trim(),
+      password: editPassword.trim() || undefined,
     });
     if (res.success) {
-      showToast('Đã cập nhật thông tin phân quyền và trường học');
+      showToast('Đã cập nhật thông tin tài khoản và mật khẩu thành công');
       setEditingUser(null);
+      setEditPassword('');
       loadData();
     }
   };
@@ -214,6 +256,39 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
           )}
         </div>
       </div>
+
+      {/* Admin Password & Security Quick Card */}
+      {isAdmin && (
+        <div className="p-4.5 rounded-2xl bg-gradient-to-r from-indigo-900/90 via-indigo-950 to-slate-900 border border-indigo-700/50 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-xs">
+              <KeyRound className="w-5 h-5 text-indigo-100" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm text-white">Quản Lý Mật Khẩu (MK) Admin & Toàn Hệ Thống</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Phân Quyền Admin
+                </span>
+              </div>
+              <p className="text-xs text-indigo-200 mt-0.5">
+                Admin có quyền đổi mật khẩu cho chính mình hoặc đặt lại mật khẩu cho bất kỳ tài khoản Giáo viên / Phụ huynh nào.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                if (currentUser) openPasswordModal(currentUser);
+              }}
+              className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs whitespace-nowrap"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Đổi mật khẩu Admin của tôi</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {feedbackMsg && (
         <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-medium flex items-center gap-2">
@@ -498,6 +573,13 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
                             </button>
                           )}
                           <button
+                            onClick={() => openPasswordModal(u)}
+                            className="p-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 cursor-pointer"
+                            title="Đổi / Đặt lại mật khẩu tài khoản"
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             onClick={() => openEditUser(u)}
                             className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                             title="Chỉnh sửa trường/lớp/vai trò"
@@ -738,6 +820,23 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
                 </div>
               )}
 
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Đổi Mật Khẩu (Để trống nếu giữ nguyên)</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-normal">Tối thiểu 6 ký tự</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="Nhập mật khẩu mới nếu muốn đổi..."
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono"
+                />
+              </div>
+
               <div className="pt-2 flex gap-2">
                 <button
                   type="button"
@@ -748,9 +847,122 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-xs"
                 >
                   Lưu thay đổi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Dedicated Reset / Change Password Modal (Admin) */}
+      {passwordModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                    Đặt Lại Mật Khẩu (MK)
+                  </h3>
+                  <div className="text-[11px] text-slate-500 font-mono truncate max-w-[240px]">
+                    {passwordModalUser.email}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setPasswordModalUser(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleResetPasswordSubmit} className="p-6 space-y-4">
+              <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-xs text-indigo-950 dark:text-indigo-200">
+                <div className="font-semibold mb-1">
+                  Đang đổi mật khẩu cho: <strong className="text-indigo-600 dark:text-indigo-400">{passwordModalUser.name}</strong>
+                </div>
+                <div className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80">
+                  Vai trò: <span className="font-mono">{getRoleName(passwordModalUser.role)}</span> · Tài khoản sẽ sử dụng mật khẩu mới này để đăng nhập ngay lập tức.
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Mật khẩu mới
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showPasswordText ? 'text' : 'password'}
+                    required
+                    placeholder="Nhập ít nhất 6 ký tự..."
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordText(!showPasswordText)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {showPasswordText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Password Suggestions */}
+              <div>
+                <div className="text-[11px] font-semibold text-slate-500 mb-1.5">
+                  Mật khẩu gợi ý (Bấm để điền nhanh):
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['admin123', 'Admin@2026', '12345678', 'School@2026'].map((sample) => (
+                    <button
+                      key={sample}
+                      type="button"
+                      onClick={() => setNewPasswordInput(sample)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-950/60 border border-slate-200 dark:border-slate-700 text-[11px] font-mono font-medium text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition cursor-pointer"
+                    >
+                      {sample}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = 'Dm#' + Math.random().toString(36).substring(2, 8).toUpperCase() + '!';
+                      setNewPasswordInput(rand);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition cursor-pointer"
+                  >
+                    🎲 Tạo ngẫu nhiên
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPasswordModalUser(null)}
+                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>{isUpdatingPassword ? 'Đang cập nhật...' : 'Xác nhận đổi MK'}</span>
                 </button>
               </div>
             </form>

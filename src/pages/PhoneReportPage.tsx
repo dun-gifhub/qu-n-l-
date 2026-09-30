@@ -90,7 +90,10 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
   });
 
   const [serverUrl, setServerUrl] = useState<string>(() => {
-    return localStorage.getItem('reporter_server_url') || DEFAULT_SERVER_URL;
+    return (
+      localStorage.getItem('reporter_server_url') ||
+      (typeof window !== 'undefined' && window.location?.origin ? window.location.origin : DEFAULT_SERVER_URL)
+    );
   });
 
   const [isReporting, setIsReporting] = useState<boolean>(false);

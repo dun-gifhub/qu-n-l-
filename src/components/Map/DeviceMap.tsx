@@ -197,24 +197,46 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
         const lng = d.longitude!;
         bounds.push([lat, lng]);
 
-        const isOnline = d.status === 'ONLINE';
-        const inClass = Boolean(d.inClassAlert);
         const isUninstalled = Boolean(d.isUninstalled);
-        const isNoNet = Boolean(d.isNoNetwork || d.networkType === 'NONE');
+        const inClass = Boolean(d.inClassAlert);
+        const isNoNet = Boolean(d.isNoNetwork || d.networkType === 'NONE' || d.status === 'OFFLINE');
+        const isOnline = d.status === 'ONLINE' && !isNoNet && !isUninstalled;
+        const isUsingDevice = isOnline && (
+          inClass ||
+          Boolean(d.currentApp && d.currentApp !== 'Màn hình chính' && d.currentApp !== 'Khóa màn hình' && d.currentApp !== 'Tắt màn hình')
+        );
 
-        // Color coding: Red if inClassAlert or uninstalled; Orange if noNet; Green if online; Gray if offline
-        const pinColor = isUninstalled
-          ? '#dc2626'
-          : inClass
-          ? '#e11d48'
-          : isNoNet
-          ? '#ea580c'
-          : isOnline
-          ? '#16a34a'
-          : '#64748b';
+        // Required Color Coding:
+        // 🟢 Đang trực tuyến / Kết nối bình thường
+        // 🟡 Đang sử dụng thiết bị
+        // 🔴 Mất kết nối / Đã gỡ ứng dụng
+        let pinColor = '#16a34a'; // 🟢 Green
+        let badgeEmoji = '🟢';
+        let statusBadgeText = 'Trực tuyến';
+        let statusBg = '#dcfce7';
+        let statusColor = '#166534';
+
+        if (isUninstalled) {
+          pinColor = '#dc2626'; // 🔴 Red
+          badgeEmoji = '🔴';
+          statusBadgeText = 'ĐÃ GỠ ỨNG DỤNG';
+          statusBg = '#fee2e2';
+          statusColor = '#991b1b';
+        } else if (isNoNet) {
+          pinColor = '#dc2626'; // 🔴 Red
+          badgeEmoji = '🔴';
+          statusBadgeText = 'MẤT KẾT NỐI MẠNG';
+          statusBg = '#fee2e2';
+          statusColor = '#991b1b';
+        } else if (isUsingDevice) {
+          pinColor = '#eab308'; // 🟡 Yellow
+          badgeEmoji = '🟡';
+          statusBadgeText = d.inClassAlert ? 'DÙNG TRONG GIỜ' : 'ĐANG SỬ DỤNG';
+          statusBg = '#fef9c3';
+          statusColor = '#854d0e';
+        }
 
         const pulseClass = isOnline ? 'pulse-marker-online' : '';
-        const badgeEmoji = isUninstalled ? '⚠️' : inClass ? '🚨' : isNoNet ? '🔴' : isOnline ? '🟢' : '⚪';
 
         const iconHtml = `
           <div style="position: relative; display: flex; align-items: center; justify-content: center;">
@@ -281,26 +303,8 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
                   ${d.schoolName || 'Chưa cập nhật trường'} ${d.className ? `· Lớp ${d.className}` : ''}
                 </div>
               </div>
-              <span style="font-size: 10px; padding: 2px 6px; border-radius: 9999px; font-weight: 700; background: ${
-                isUninstalled
-                  ? '#fee2e2; color: #991b1b;'
-                  : inClass
-                  ? '#ffe4e6; color: #9f1239;'
-                  : isOnline
-                  ? '#dcfce7; color: #166534;'
-                  : '#f1f5f9; color: #475569;'
-              }">
-                ${
-                  isUninstalled
-                    ? 'GỠ APP'
-                    : inClass
-                    ? 'DÙNG TRONG GIỜ'
-                    : isNoNet
-                    ? 'MẤT MẠNG'
-                    : isOnline
-                    ? 'ONLINE'
-                    : 'OFFLINE'
-                }
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 9999px; font-weight: 700; background: ${statusBg}; color: ${statusColor};">
+                ${statusBadgeText}
               </span>
             </div>
 
@@ -379,6 +383,24 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
       className="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm dark:border-slate-800"
       style={{ height }}
     >
+      {/* Status Legend Overlay */}
+      <div className="absolute top-3 left-3 z-[500] hidden sm:flex items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-md text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-1">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+          <span>Trực tuyến</span>
+        </div>
+        <span className="text-slate-300 dark:text-slate-600">|</span>
+        <div className="flex items-center gap-1">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+          <span>Đang sử dụng</span>
+        </div>
+        <span className="text-slate-300 dark:text-slate-600">|</span>
+        <div className="flex items-center gap-1">
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+          <span>Mất mạng / Gỡ app</span>
+        </div>
+      </div>
+
       {/* Top Google Maps Layer Switcher */}
       <div className="absolute top-3 right-3 z-[500] flex items-center gap-1.5">
         <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-md text-xs font-semibold flex items-center gap-1.5">

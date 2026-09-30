@@ -1,0 +1,35 @@
+name: student_device_monitor
+description: "Ung dung theo doi dinh vi va trang thai thiet bi hoc sinh"
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Dinh vi GPS do chinh xac cao & tiet kiem pin
+  geolocator: ^12.0.0
+  # Kiem tra ket noi Wifi/4G/Offline
+  connectivity_plus: ^6.0.3
+  # Theo doi muc pin & trang thai sac
+  battery_plus: ^6.0.1
+  # Goi API HTTP ve Server Render
+  http: ^1.2.1
+  # Chay ngam khong bi he dieu hanh Android kill
+  flutter_background_service: ^5.0.6
+  # Luu tru thong tin hoc sinh & cau hinh tren may
+  shared_preferences: ^2.2.3
+  # Thong bao tren thanh trang thai
+  flutter_local_notifications: ^17.1.2
+  # Lay thong tin he dieu hanh va model may
+  device_info_plus: ^10.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

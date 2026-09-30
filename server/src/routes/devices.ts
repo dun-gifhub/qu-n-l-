@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { dbService } from '../db/db.ts';
-import { requireAuth, requireApproved, AuthenticatedRequest } from '../middleware/auth.ts';
+import { requireAuth, requireApproved, optionalAuth, AuthenticatedRequest } from '../middleware/auth.ts';
+import { notifyDeviceEvent } from '../services/realtime.ts';
 import {
   DeviceRecord,
   DeviceLocationRecord,
@@ -12,18 +13,22 @@ import {
 } from '../types/index.ts';
 
 const router = Router();
+router.use(optionalAuth);
 
-// Telemetry and report routes: allow without requiring admin token
-router.use(async (req: any, _res: Response, next: any) => {
-  // Always allow direct phone report and GET routes
-  if (req.method === 'POST' && (req.path === '/report' || req.path.endsWith('/report'))) {
+// Telemetry and report routes: allow without requiring admin token; ALL OTHER ROUTES REQUIRE LOGIN
+router.use(async (req: any, res: Response, next: any) => {
+  // 1. Always allow direct phone report and uninstall beacon from student phones
+  if (
+    req.method === 'POST' &&
+    (req.path === '/report' ||
+      req.path.endsWith('/report') ||
+      req.path === '/uninstall' ||
+      req.path.endsWith('/uninstall'))
+  ) {
     return next();
   }
-  if (req.method === 'GET') {
-    return next();
-  }
 
-  // Telemetry routes allow either JWT Bearer token OR X-Device-Uuid / deviceUuid
+  // 2. Mobile telemetry routes allow X-Device-Uuid / deviceUuid
   const isTelemetryPost =
     req.method === 'POST' &&
     (req.path.endsWith('/location') || req.path.endsWith('/heartbeat') || req.path.endsWith('/usage'));
@@ -41,7 +46,10 @@ router.use(async (req: any, _res: Response, next: any) => {
     }
   }
 
-  return next();
+  // 3. All viewing, map, status, history and management routes: BẮT BUỘC ĐĂNG NHẬP
+  return requireAuth(req, res, () => {
+    return requireApproved(req, res, next);
+  });
 });
 
 // Helper to check device access
@@ -119,6 +127,19 @@ router.post('/report', async (req: any, res: Response): Promise<any> => {
       isNoNetwork: Boolean(isNoNetwork),
     });
 
+    // Realtime notification broadcast
+    if (isUninstalled) {
+      notifyDeviceEvent(device, 'APP_UNINSTALLED');
+    } else if (isNoNetwork || networkType === 'NONE') {
+      notifyDeviceEvent(device, 'NO_NETWORK');
+    } else if (device.inClassAlert) {
+      notifyDeviceEvent(device, 'IN_CLASS_USAGE');
+    } else if (networkType === 'WIFI') {
+      notifyDeviceEvent(device, 'WIFI_CONNECTED');
+    } else {
+      notifyDeviceEvent(device, 'DEVICE_ACTIVE');
+    }
+
     return res.status(200).json({
       success: true,
       message: isUninstalled
@@ -146,6 +167,7 @@ router.post('/uninstall', async (req: any, res: Response): Promise<any> => {
       studentName,
       isUninstalled: true,
     });
+    notifyDeviceEvent(dev, 'APP_UNINSTALLED');
     return res.json({
       success: true,
       message: 'Đã ghi nhận trạng thái gỡ cài đặt',
@@ -160,10 +182,10 @@ router.post('/uninstall', async (req: any, res: Response): Promise<any> => {
   }
 });
 
-// GET /api/devices - List accessible devices
-router.get('/', async (req: any, res: Response): Promise<any> => {
+// GET /api/devices - List accessible devices (bắt buộc đăng nhập)
+router.get('/', requireAuth, requireApproved, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
-    const devices = await dbService.getAccessibleDevices(req.user?.userId);
+    const devices = await dbService.getAccessibleDevices(req.user!.userId);
     return res.json({
       success: true,
       data: devices,
@@ -177,8 +199,8 @@ router.get('/', async (req: any, res: Response): Promise<any> => {
   }
 });
 
-// POST /api/devices - Register/Add new student device
-router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+// POST /api/devices - Register/Add new student device (bắt buộc đăng nhập)
+router.post('/', requireAuth, requireApproved, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
     const {
       name,

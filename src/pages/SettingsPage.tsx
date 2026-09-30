@@ -7,6 +7,9 @@ import {
   Database,
   CheckCircle2,
   AlertCircle,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -19,6 +22,7 @@ export const SettingsPage: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(
     null
   );
@@ -188,20 +192,41 @@ export const SettingsPage: React.FC = () => {
           )}
 
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <h3 className="text-xs font-bold text-slate-500 mb-3">
-              Đổi Mật Khẩu (Để trống nếu không thay đổi)
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {user?.role === 'ADMIN'
+                    ? 'Đổi Mật Khẩu Quản Trị Viên (Admin)'
+                    : 'Đổi Mật Khẩu (Để trống nếu không thay đổi)'}
+                </h3>
+                {user?.role === 'ADMIN' && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                    Quyền Admin
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                <span>{showPassword ? 'Ẩn ký tự' : 'Hiện ký tự'}</span>
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
-                  Mật khẩu hiện tại
+                  Mật khẩu hiện tại {user?.role === 'ADMIN' && '(Có thể bỏ qua)'}
                 </label>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono"
                 />
               </div>
               <div>
@@ -209,11 +234,11 @@ export const SettingsPage: React.FC = () => {
                   Mật khẩu mới
                 </label>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Tối thiểu 6 ký tự"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono"
                 />
               </div>
               <div>
@@ -221,11 +246,11 @@ export const SettingsPage: React.FC = () => {
                   Xác nhận mật khẩu mới
                 </label>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono"
                 />
               </div>
             </div>

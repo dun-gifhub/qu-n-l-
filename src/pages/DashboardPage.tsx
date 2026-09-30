@@ -54,6 +54,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [showQr, setShowQr] = useState(false);
   const [tick, setTick] = useState(0);
 
+  const reportUrl = typeof window !== 'undefined' && window.location?.origin
+    ? `${window.location.origin}/report`
+    : 'https://qu-n-l-s1k1.onrender.com/report';
+
   // Filters
   const [selectedSchool, setSelectedSchool] = useState<string>('ALL');
   const [selectedGrade, setSelectedGrade] = useState<string>('ALL');
@@ -102,7 +106,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, []);
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(RENDER_REPORT_URL).then(() => {
+    navigator.clipboard.writeText(reportUrl).then(() => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
     });
@@ -259,7 +263,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <span>Link Kết Nối Điện Thoại Học Sinh (Live Tracker)</span>
             </div>
             <h2 className="text-lg md:text-xl font-extrabold tracking-tight">
-              Đồng bộ dữ liệu báo cáo qua cổng Render: {RENDER_REPORT_URL}
+              Đồng bộ dữ liệu báo cáo: {reportUrl}
             </h2>
             <p className="text-xs md:text-sm text-indigo-200/90 leading-relaxed">
               Mở camera quét mã QR hoặc mở link dưới đây trên điện thoại học sinh. Tọa độ vệ tinh Google Maps, mức pin và trạng thái mạng sẽ tự động làm mới về màn hình máy chủ mỗi giây mà không cần cài đặt phức tạp.
@@ -267,7 +271,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
             <div className="flex flex-wrap items-center gap-2 pt-2">
               <div className="px-3.5 py-2 rounded-xl bg-slate-950/80 border border-indigo-500/30 text-xs font-mono font-bold text-emerald-400 truncate max-w-full">
-                {RENDER_REPORT_URL}
+                {reportUrl}
               </div>
               <button
                 onClick={handleCopyLink}
@@ -307,7 +311,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <div className="p-3 bg-white rounded-2xl shadow-xl border border-indigo-200 text-center">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(
-                  RENDER_REPORT_URL
+                  reportUrl
                 )}`}
                 alt="QR Code Báo Cáo"
                 className="w-28 h-28 mx-auto rounded-lg"

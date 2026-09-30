@@ -70,6 +70,12 @@ export const api = {
 
   getMe: () => request<User>('/auth/me'),
 
+  getAdminInfo: () =>
+    request<{ adminEmail: string; isConfiguredViaEnv: boolean; defaultPasswordHint: string }>('/auth/admin-info'),
+
+  forgotPassword: (body: { email: string; newPassword: string; phone?: string }) =>
+    request<null>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(body) }),
+
   updateProfile: (body: {
     name?: string;
     schoolName?: string;
@@ -111,11 +117,19 @@ export const api = {
       studentName?: string;
       phone?: string;
       approvalStatus?: ApprovalStatus;
+      password?: string;
+      newPassword?: string;
     }
   ) =>
     request<User>(`/users/${userId}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
+    }),
+
+  resetUserPassword: (userId: string, newPassword: string) =>
+    request<User>(`/users/${userId}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ newPassword }),
     }),
 
   deleteUserByAdmin: (userId: string) =>

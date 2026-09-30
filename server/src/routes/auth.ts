@@ -132,6 +132,20 @@ router.post('/register', async (req, res): Promise<any> => {
   }
 });
 
+// GET /api/auth/admin-info - Public info about configured admin email for login UI
+router.get('/admin-info', (_req, res) => {
+  const adminEmail = process.env.ADMIN_EMAIL ? process.env.ADMIN_EMAIL.trim().toLowerCase() : 'admin@devicemonitor.com';
+  const hasEnvPassword = Boolean(process.env.ADMIN_PASSWORD);
+  return res.json({
+    success: true,
+    data: {
+      adminEmail,
+      isConfiguredViaEnv: Boolean(process.env.ADMIN_EMAIL || process.env.ADMIN_PASSWORD),
+      defaultPasswordHint: hasEnvPassword ? 'Được bảo mật bởi biến môi trường ADMIN_PASSWORD' : 'admin123',
+    },
+  });
+});
+
 // POST /api/auth/login
 router.post('/login', async (req, res): Promise<any> => {
   try {
@@ -145,21 +159,54 @@ router.post('/login', async (req, res): Promise<any> => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await dbService.findUserByEmail(normalizedEmail);
+    let user = await dbService.findUserByEmail(normalizedEmail);
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Email hoặc mật khẩu không chính xác',
-      });
-    }
+    // Check if logging in as Admin using Environment Variables credentials
+    const envAdminEmail = (process.env.ADMIN_EMAIL || 'admin@devicemonitor.com').trim().toLowerCase();
+    const envAdminPassword = (process.env.ADMIN_PASSWORD || 'admin123').trim();
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Email hoặc mật khẩu không chính xác',
-      });
+    if (normalizedEmail === envAdminEmail && password === envAdminPassword) {
+      if (!user) {
+        // Ensure user is created in database
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(envAdminPassword, salt);
+        const nowIso = new Date().toISOString();
+        const createdAdmin = {
+          id: 'usr_admin_' + Date.now().toString(36),
+          name: process.env.ADMIN_NAME?.trim() || 'Quản Trị Viên (Admin)',
+          email: envAdminEmail,
+          passwordHash,
+          role: 'ADMIN' as UserRole,
+          approvalStatus: 'APPROVED' as const,
+          schoolName: process.env.ADMIN_SCHOOL?.trim() || 'THPT Chuyên Lê Hồng Phong',
+          phone: process.env.ADMIN_PHONE?.trim() || '0901234567',
+          approvedBy: 'Hệ thống Environment',
+          approvedAt: nowIso,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+        await dbService.createUser(createdAdmin);
+        user = createdAdmin;
+      } else if (user.role !== 'ADMIN') {
+        await dbService.updateUser(user.id, { role: 'ADMIN', approvalStatus: 'APPROVED' });
+        user.role = 'ADMIN';
+        user.approvalStatus = 'APPROVED';
+      }
+    } else {
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Email hoặc mật khẩu không chính xác',
+        });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({
+          success: false,
+          message: 'Email hoặc mật khẩu không chính xác',
+        });
+      }
     }
 
     const token = generateToken({
@@ -202,6 +249,56 @@ router.post('/login', async (req, res): Promise<any> => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi máy chủ khi đăng nhập',
+    });
+  }
+});
+
+// POST /api/auth/forgot-password - Reset password for user
+router.post('/forgot-password', async (req, res): Promise<any> => {
+  try {
+    const { email, newPassword, phone } = req.body;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp email tài khoản cần lấy lại mật khẩu.',
+      });
+    }
+
+    const normEmail = email.trim().toLowerCase();
+    const user = await dbService.findUserByEmail(normEmail);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản với email này trong hệ thống.',
+      });
+    }
+
+    if (phone && user.phone && user.phone.replace(/\D/g, '') !== String(phone).replace(/\D/g, '')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số điện thoại xác minh không khớp với số đăng ký của tài khoản.',
+      });
+    }
+
+    if (!newPassword || String(newPassword).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu mới phải có ít nhất 6 ký tự.',
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(String(newPassword).trim(), salt);
+    await dbService.updateUser(user.id, { passwordHash });
+
+    return res.json({
+      success: true,
+      message: `Đã đặt lại mật khẩu thành công cho tài khoản ${user.name}! Bạn có thể đăng nhập ngay với mật khẩu mới.`,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi xử lý yêu cầu quên mật khẩu.',
     });
   }
 });
@@ -266,20 +363,22 @@ router.patch('/me', requireAuth, async (req: AuthenticatedRequest, res: Response
     }
 
     if (newPassword) {
-      if (!currentPassword) {
+      if (user.role !== 'ADMIN' && !currentPassword) {
         return res.status(400).json({
           success: false,
           message: 'Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu',
         });
       }
-      const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
-      if (!isMatch) {
-        return res.status(400).json({
-          success: false,
-          message: 'Mật khẩu hiện tại không chính xác',
-        });
+      if (currentPassword) {
+        const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isMatch) {
+          return res.status(400).json({
+            success: false,
+            message: 'Mật khẩu hiện tại không chính xác',
+          });
+        }
       }
-      if (newPassword.length < 6) {
+      if (String(newPassword).length < 6) {
         return res.status(400).json({
           success: false,
           message: 'Mật khẩu mới phải có ít nhất 6 ký tự',
