@@ -11,6 +11,7 @@ import {
   ActivityEvent,
   AppUsageItem,
   WebVisitItem,
+  PhoneContact,
   ApprovalStatus,
   UserRole,
   PlatformType,
@@ -327,9 +328,15 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
     studentName: d.studentName || owner?.studentName || d.name,
     schoolName: d.schoolName || owner?.schoolName || 'Chưa cập nhật trường',
     grade: d.grade || owner?.grade || '',
-    className: d.className || owner?.className || '',
-    studentId: d.studentId || owner?.childStudentId || '',
     parentPhone: d.parentPhone || owner?.phone || '',
+    phoneContacts: d.phoneContacts || (d.parentPhone ? [{
+      id: 'con_' + d.id + '_default',
+      name: owner?.name && owner?.name !== 'Chưa rõ' ? owner?.name : 'Phụ huynh chính',
+      phone: d.parentPhone,
+      relationship: 'Phụ huynh',
+      isEmergencyAlert: true,
+      createdAt: d.createdAt || new Date().toISOString(),
+    }] : []),
     ownerName: owner?.name || 'Chưa rõ',
     ownerEmail: owner?.email || '',
     ownerRole: owner?.role || 'PARENT',
@@ -879,6 +886,139 @@ export const dbService = {
     state.activities = state.activities.filter(a => a.deviceId !== id);
     state.appUsages = state.appUsages.filter(a => a.deviceId !== id);
     state.webHistory = state.webHistory.filter(w => w.deviceId !== id);
+    writeLocalDB(state);
+    return true;
+  },
+
+  // PHONE CONTACTS & SDT MANAGEMENT
+  async getDeviceContacts(deviceId: string, requestingUserId: string): Promise<PhoneContact[] | null> {
+    const state = readLocalDB();
+    const user = state.users.find(u => u.id === requestingUserId);
+    const dev = state.devices.find(d => d.id === deviceId);
+    if (!dev || !user) return null;
+    const enriched = enrichDevice(dev, state);
+    if (!canUserAccessDevice(user, enriched)) return null;
+
+    let contacts = dev.phoneContacts || [];
+    if (contacts.length === 0 && dev.parentPhone) {
+      contacts = [
+        {
+          id: 'con_' + dev.id + '_default',
+          name: dev.ownerName && dev.ownerName !== 'Chưa rõ' ? dev.ownerName : 'Phụ huynh chính',
+          phone: dev.parentPhone,
+          relationship: 'Phụ huynh',
+          isEmergencyAlert: true,
+          createdAt: dev.createdAt || new Date().toISOString(),
+        },
+      ];
+      dev.phoneContacts = contacts;
+      writeLocalDB(state);
+    }
+    return contacts;
+  },
+
+  async addDeviceContact(
+    deviceId: string,
+    requestingUserId: string,
+    contactData: { name: string; phone: string; relationship?: string; isEmergencyAlert?: boolean; notes?: string }
+  ): Promise<PhoneContact[] | null> {
+    const state = readLocalDB();
+    const user = state.users.find(u => u.id === requestingUserId);
+    const dev = state.devices.find(d => d.id === deviceId);
+    if (!dev || !user) return null;
+    const enriched = enrichDevice(dev, state);
+    if (!canUserAccessDevice(user, enriched)) return null;
+
+    const newContact: PhoneContact = {
+      id: 'con_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      name: contactData.name.trim() || 'Người liên hệ',
+      phone: contactData.phone.trim(),
+      relationship: contactData.relationship?.trim() || 'Phụ huynh',
+      isEmergencyAlert: contactData.isEmergencyAlert ?? true,
+      notes: contactData.notes?.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!dev.phoneContacts) dev.phoneContacts = [];
+    dev.phoneContacts.push(newContact);
+    if (!dev.parentPhone) dev.parentPhone = newContact.phone;
+
+    state.activities.unshift({
+      id: 'act_' + Date.now(),
+      deviceId: dev.id,
+      deviceName: dev.name,
+      platform: dev.platform,
+      studentName: dev.studentName,
+      schoolName: dev.schoolName,
+      className: dev.className,
+      type: 'DEVICE_ACTIVE',
+      description: `Thêm số điện thoại mới: ${newContact.name} (${newContact.phone} - ${newContact.relationship})`,
+      timestamp: new Date().toISOString(),
+    });
+
+    writeLocalDB(state);
+    return dev.phoneContacts;
+  },
+
+  async deleteDeviceContact(deviceId: string, contactId: string, requestingUserId: string): Promise<PhoneContact[] | null> {
+    const state = readLocalDB();
+    const user = state.users.find(u => u.id === requestingUserId);
+    const dev = state.devices.find(d => d.id === deviceId);
+    if (!dev || !user) return null;
+    const enriched = enrichDevice(dev, state);
+    if (!canUserAccessDevice(user, enriched)) return null;
+
+    if (!dev.phoneContacts) dev.phoneContacts = [];
+    const removedContact = dev.phoneContacts.find(c => c.id === contactId);
+    dev.phoneContacts = dev.phoneContacts.filter(c => c.id !== contactId);
+
+    // If removed was the main parentPhone, update to the next available contact or empty
+    if (removedContact && dev.parentPhone && dev.parentPhone.replace(/\D/g, '') === removedContact.phone.replace(/\D/g, '')) {
+      dev.parentPhone = dev.phoneContacts.length > 0 ? dev.phoneContacts[0].phone : '';
+    }
+
+    state.activities.unshift({
+      id: 'act_' + Date.now(),
+      deviceId: dev.id,
+      deviceName: dev.name,
+      platform: dev.platform,
+      studentName: dev.studentName,
+      schoolName: dev.schoolName,
+      className: dev.className,
+      type: 'DEVICE_ACTIVE',
+      description: `Đã xoá số điện thoại ${removedContact ? `${removedContact.name} (${removedContact.phone})` : contactId} khỏi danh sách SĐT`,
+      timestamp: new Date().toISOString(),
+    });
+
+    writeLocalDB(state);
+    return dev.phoneContacts;
+  },
+
+  async clearDeviceContacts(deviceId: string, requestingUserId: string): Promise<boolean> {
+    const state = readLocalDB();
+    const user = state.users.find(u => u.id === requestingUserId);
+    const dev = state.devices.find(d => d.id === deviceId);
+    if (!dev || !user) return false;
+    const enriched = enrichDevice(dev, state);
+    if (!canUserAccessDevice(user, enriched)) return false;
+
+    const count = dev.phoneContacts?.length || 0;
+    dev.phoneContacts = [];
+    dev.parentPhone = '';
+
+    state.activities.unshift({
+      id: 'act_' + Date.now(),
+      deviceId: dev.id,
+      deviceName: dev.name,
+      platform: dev.platform,
+      studentName: dev.studentName,
+      schoolName: dev.schoolName,
+      className: dev.className,
+      type: 'DEVICE_ACTIVE',
+      description: `Đã xoá toàn bộ danh sách số điện thoại (${count} SĐT) của thiết bị ${dev.name}`,
+      timestamp: new Date().toISOString(),
+    });
+
     writeLocalDB(state);
     return true;
   },

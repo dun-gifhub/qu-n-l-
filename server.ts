@@ -16,7 +16,14 @@ import notificationsRouter from './server/src/routes/notifications.ts';
 dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
-const PORT = Number(process.env.PORT) || 3000;
+
+// Support --port flag passed by package.json / runner
+let argPort = 3000;
+const portArgIndex = process.argv.indexOf('--port');
+if (portArgIndex !== -1 && process.argv[portArgIndex + 1]) {
+  argPort = Number(process.argv[portArgIndex + 1]);
+}
+const PORT = Number(process.env.PORT) || argPort || 3000;
 
 async function startServer() {
   const app = express();
@@ -34,6 +41,24 @@ async function startServer() {
   const dbStatus = await initDatabase();
   console.log(`Database engine initialized: ${dbStatus.isPostgres ? 'Neon PostgreSQL' : 'Local Persistent Engine'}`);
 
+  // Register direct mobile endpoints (from Flutter / Android / iOS app screenshots)
+  app.post('/report', (req, res, next) => {
+    req.url = '/report';
+    return devicesRouter(req, res, next);
+  });
+  app.post('/uninstall', (req, res, next) => {
+    req.url = '/uninstall';
+    return devicesRouter(req, res, next);
+  });
+  app.use('/api/report', (req, res, next) => {
+    req.url = '/report';
+    return devicesRouter(req, res, next);
+  });
+  app.use('/api/uninstall', (req, res, next) => {
+    req.url = '/uninstall';
+    return devicesRouter(req, res, next);
+  });
+
   // Register REST API routes
   app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
@@ -50,7 +75,29 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
-    console.log('⚡ Vite dev server middleware mounted');
+
+    // Dev SPA fallback so client routes (/report, /dashboard, etc.) resolve index.html
+    app.use('*', async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api/')) {
+        return next();
+      }
+      try {
+        const url = req.originalUrl;
+        const indexPath = path.resolve(process.cwd(), 'index.html');
+        if (fs.existsSync(indexPath)) {
+          let template = fs.readFileSync(indexPath, 'utf-8');
+          template = await vite.transformIndexHtml(url, template);
+          res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+        } else {
+          next();
+        }
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
+
+    console.log('⚡ Vite dev server middleware mounted with SPA fallback');
   } else {
     // Production mode: serve built static files from dist/
     const distPath = path.resolve(process.cwd(), 'dist');
@@ -92,6 +139,9 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n  VITE v8.3.0  ready in 150 ms\n`);
+    console.log(`  ➜  Local:   http://localhost:${PORT}/`);
+    console.log(`  ➜  Network: http://0.0.0.0:${PORT}/\n`);
     console.log(`🚀 DeviceMonitor Server running on http://0.0.0.0:${PORT}`);
   });
 }

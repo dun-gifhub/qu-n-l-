@@ -53,6 +53,16 @@ export interface WebVisitItem {
   riskLevel: RiskLevel;
 }
 
+export interface PhoneContact {
+  id: string;
+  name: string;
+  phone: string;
+  relationship?: string;
+  isEmergencyAlert?: boolean;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface Device {
   id: string;
   userId: string;
@@ -67,6 +77,7 @@ export interface Device {
   grade?: string;
   className?: string;
   parentPhone?: string;
+  phoneContacts?: PhoneContact[];
   ownerName?: string;
   ownerEmail?: string;
   ownerRole?: UserRole;
@@ -137,6 +148,7 @@ export interface ActivityEvent {
     | 'POLICY_UPDATED'
     | 'UNINSTALLED'
     | 'NO_NETWORK'
+    | 'DEVICE_ACTIVE'
     | 'IN_CLASS_ALERT';
   description: string;
   timestamp: string;

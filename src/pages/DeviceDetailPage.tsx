@@ -6,6 +6,7 @@ import {
   ActivityEvent,
   AppUsageItem,
   WebVisitItem,
+  PhoneContact,
 } from '../types/index.ts';
 import { DeviceMap } from '../components/Map/DeviceMap.tsx';
 import {
@@ -26,6 +27,15 @@ import {
   Globe,
   Lock,
   Unlock,
+  Phone,
+  PhoneCall,
+  PhoneOff,
+  Plus,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  ShieldCheck,
+  UserPlus,
 } from 'lucide-react';
 
 interface DeviceDetailPageProps {
@@ -46,8 +56,20 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [appUsages, setAppUsages] = useState<AppUsageItem[]>([]);
   const [webHistory, setWebHistory] = useState<WebVisitItem[]>([]);
+  const [contacts, setContacts] = useState<PhoneContact[]>([]);
+  const [isContactsLoading, setIsContactsLoading] = useState(false);
+  const [isAddingContact, setIsAddingContact] = useState(false);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [newContactRel, setNewContactRel] = useState('Phụ huynh');
+  const [newContactAlert, setNewContactAlert] = useState(true);
+  const [contactFeedback, setContactFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isDeletingAllContacts, setIsDeletingAllContacts] = useState(false);
+  const [confirmClearContactsOpen, setConfirmClearContactsOpen] = useState(false);
+  const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<
-    'status' | 'usage' | 'location' | 'history' | 'activity' | 'api'
+    'status' | 'contacts' | 'usage' | 'location' | 'history' | 'activity' | 'api'
   >((initialTab as any) || 'status');
   const [historyRange, setHistoryRange] = useState<'today' | '7days' | '30days'>('today');
   const [isLoading, setIsLoading] = useState(true);

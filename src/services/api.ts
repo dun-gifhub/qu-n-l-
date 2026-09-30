@@ -9,6 +9,7 @@ import {
   WebVisitItem,
   UserRole,
   ApprovalStatus,
+  PhoneContact,
 } from '../types/index.ts';
 
 const API_BASE = '/api';
@@ -255,4 +256,27 @@ export const api = {
     deviceId?: string;
     studentName?: string;
   }) => request<Device>('/devices/uninstall', { method: 'POST', body: JSON.stringify(body) }),
+
+  // Phone Contacts Management
+  getDeviceContacts: (deviceId: string) =>
+    request<PhoneContact[]>(`/devices/${deviceId}/contacts`),
+
+  addDeviceContact: (
+    deviceId: string,
+    body: { name: string; phone: string; relationship?: string; isEmergencyAlert?: boolean; notes?: string }
+  ) =>
+    request<PhoneContact[]>(`/devices/${deviceId}/contacts`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  deleteDeviceContact: (deviceId: string, contactId: string) =>
+    request<PhoneContact[]>(`/devices/${deviceId}/contacts/${contactId}`, {
+      method: 'DELETE',
+    }),
+
+  clearAllDeviceContacts: (deviceId: string) =>
+    request<PhoneContact[]>(`/devices/${deviceId}/contacts`, {
+      method: 'DELETE',
+    }),
 };

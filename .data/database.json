@@ -1,10 +1,155 @@
 {
-  "users": [],
-  "devices": [],
-  "locations": [],
-  "statuses": [],
-  "sessions": [],
-  "activities": [],
+  "users": [
+    {
+      "id": "usr_admin_muo6qxdp",
+      "name": "Quản Trị Viên (Admin)",
+      "email": "admin@devicemonitor.com",
+      "passwordHash": "$2b$10$ejbcuzt3SlYfEbcunc88uONtqHApCvIXgjRCpfiztlM4Mbfq7kMru",
+      "role": "ADMIN",
+      "approvalStatus": "APPROVED",
+      "schoolName": "THPT Chuyên Lê Hồng Phong",
+      "phone": "0901234567",
+      "approvedBy": "Cấu hình Environment",
+      "approvedAt": "2026-09-30T14:13:22.329Z",
+      "createdAt": "2026-09-30T14:13:22.329Z",
+      "updatedAt": "2026-09-30T14:13:22.329Z"
+    }
+  ],
+  "devices": [
+    {
+      "id": "dev_ssss_gphone",
+      "userId": "usr_admin_muo6qxdp",
+      "deviceUuid": "DEV-GPHONE-ARM64",
+      "name": "Google sdk_gphone64_arm64",
+      "platform": "Android",
+      "studentName": "ssss",
+      "studentId": "HS1001",
+      "schoolName": "THPT Chuyên Lê Hồng Phong",
+      "grade": "Khối 10",
+      "className": "10A1",
+      "parentPhone": "0901234567",
+      "currentApp": "Dùng giờ học (Đang mở sáng màn hình)",
+      "currentWebsite": "DeviceMonitor",
+      "screenTimeMinutes": 447,
+      "blockedApps": [],
+      "blockedWebsites": [],
+      "status": "ONLINE",
+      "batteryLevel": 100,
+      "charging": false,
+      "networkType": "WIFI",
+      "locationPermission": true,
+      "locationSharing": true,
+      "latitude": 39.237255,
+      "longitude": -123.150032,
+      "accuracy": 10,
+      "isUninstalled": false,
+      "isNoNetwork": false,
+      "lastSeen": "2026-09-30T14:15:00.000Z",
+      "createdAt": "2026-09-30T14:00:00.000Z",
+      "updatedAt": "2026-09-30T14:15:00.000Z"
+    },
+    {
+      "id": "dev_1790777799114_0ye8",
+      "userId": "usr_default",
+      "deviceUuid": "DEV-OC01RK",
+      "name": "Google sdk_gphone64_arm64",
+      "platform": "Android",
+      "studentName": "ssss",
+      "studentId": "",
+      "schoolName": "THPT Chuyên Lê Hồng Phong",
+      "grade": "Khối 10",
+      "className": "10A1",
+      "parentPhone": "",
+      "currentApp": "Dùng giờ học (Đang mở sáng màn hình)",
+      "currentWebsite": "DeviceMonitor",
+      "screenTimeMinutes": 5,
+      "blockedApps": [],
+      "blockedWebsites": [],
+      "status": "ONLINE",
+      "batteryLevel": 100,
+      "charging": false,
+      "networkType": "WIFI",
+      "locationPermission": true,
+      "locationSharing": true,
+      "latitude": 39.237255,
+      "longitude": -123.150032,
+      "accuracy": 10,
+      "isUninstalled": false,
+      "lastSeen": "2026-09-30T14:16:39.114Z",
+      "createdAt": "2026-09-30T14:16:39.114Z",
+      "updatedAt": "2026-09-30T14:16:39.114Z"
+    }
+  ],
+  "locations": [
+    {
+      "id": "loc_1790777799115_4u0s",
+      "deviceId": "dev_1790777799114_0ye8",
+      "latitude": 39.237255,
+      "longitude": -123.150032,
+      "accuracy": 10,
+      "timestamp": "2026-09-30T14:16:39.114Z",
+      "createdAt": "2026-09-30T14:16:39.114Z"
+    },
+    {
+      "id": "loc_init_1",
+      "deviceId": "dev_ssss_gphone",
+      "latitude": 39.237255,
+      "longitude": -123.150032,
+      "accuracy": 10,
+      "timestamp": "2026-09-30T14:15:00.000Z",
+      "createdAt": "2026-09-30T14:15:00.000Z"
+    }
+  ],
+  "statuses": [
+    {
+      "id": "stat_1790777799115_0ljc",
+      "deviceId": "dev_1790777799114_0ye8",
+      "batteryLevel": 100,
+      "charging": false,
+      "networkType": "WIFI",
+      "locationPermission": true,
+      "locationSharing": true,
+      "status": "ONLINE",
+      "timestamp": "2026-09-30T14:16:39.114Z"
+    },
+    {
+      "id": "stat_init_1",
+      "deviceId": "dev_ssss_gphone",
+      "batteryLevel": 100,
+      "charging": false,
+      "networkType": "WIFI",
+      "locationPermission": true,
+      "locationSharing": true,
+      "status": "ONLINE",
+      "timestamp": "2026-09-30T14:15:00.000Z"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "sess_1790777681218",
+      "userId": "usr_admin_muo6qxdp",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfYWRtaW5fbXVvNnF4ZHAiLCJlbWFpbCI6ImFkbWluQGRldmljZW1vbml0b3IuY29tIiwibmFtZSI6IlF14bqjbiBUcuG7iyBWacOqbiAoQWRtaW4pIiwicm9sZSI6IkFETUlOIiwic2Nob29sTmFtZSI6IlRIUFQgQ2h1ecOqbiBMw6ogSOG7k25nIFBob25nIiwiYXBwcm92YWxTdGF0dXMiOiJBUFBST1ZFRCIsImlhdCI6MTc5MDc3NzY4MSwiZXhwIjoxNzkxMzgyNDgxfQ.NnH5F7EELDZTQjurS3BUQ0-1eZsN5MeVZY8AisOUE1U",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "ipAddress": "127.0.0.1",
+      "expiresAt": "2026-10-07T14:14:41.218Z",
+      "createdAt": "2026-09-30T14:14:41.218Z"
+    }
+  ],
+  "activities": [
+    {
+      "id": "act_1790777799115",
+      "deviceId": "dev_1790777799114_0ye8",
+      "deviceName": "Google sdk_gphone64_arm64",
+      "platform": "Android",
+      "studentName": "ssss",
+      "schoolName": "THPT Chuyên Lê Hồng Phong",
+      "grade": "Khối 10",
+      "className": "10A1",
+      "type": "ONLINE",
+      "description": "Thiết bị \"Google sdk_gphone64_arm64\" đã kết nối và bắt đầu báo cáo vào hệ thống",
+      "timestamp": "2026-09-30T14:16:39.114Z"
+    }
+  ],
   "appUsages": [],
   "webHistory": []
 }

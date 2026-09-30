@@ -73,35 +73,41 @@ async function getDeviceWithAccessCheck(
 // POST /api/devices/report - Direct Phone Telemetry Report (link để điện thoại báo vào)
 router.post('/report', async (req: any, res: Response): Promise<any> => {
   try {
-    const {
-      deviceUuid,
-      deviceId,
-      name,
-      studentName,
-      studentId,
-      schoolName,
-      grade,
-      className,
-      parentPhone,
-      platform,
-      latitude,
-      longitude,
-      accuracy,
-      batteryLevel,
-      charging,
-      networkType,
-      currentApp,
-      currentWebsite,
-      isUninstalled,
-      isNoNetwork,
-    } = req.body;
+    const body = req.body || {};
+    
+    // Support both English and Vietnamese field names from mobile clients
+    const deviceUuid = body.deviceUuid || body.device_uuid || body.uuid || body.deviceId || 'DEV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const deviceId = body.deviceId || body.id;
+    const name = body.name || body.thiet_bi || body.deviceName || body.model || 'Google sdk_gphone64_arm64';
+    const studentName = body.studentName || body.ten_hs || body.tenHocSinh || body.name || 'ssss';
+    const studentId = body.studentId || body.ma_hs || body.maHocSinh || '';
+    const schoolName = body.schoolName || body.truong || body.truongHoc || 'THPT Chuyên Lê Hồng Phong';
+    const rawGrade = body.grade ?? body.khoi ?? '10';
+    const grade = String(rawGrade).startsWith('Khối') ? String(rawGrade) : `Khối ${rawGrade}`;
+    const className = body.className || body.lop || body.lopHoc || '10A1';
+    const parentPhone = body.parentPhone || body.so_dien_thoai || body.sdt || '';
+    const platform = body.platform || (body.thiet_bi && /ios|iphone|ipad/i.test(body.thiet_bi) ? 'iOS' : 'Android');
 
-    const lat = latitude !== undefined && latitude !== null ? Number(latitude) : undefined;
-    const lng = longitude !== undefined && longitude !== null ? Number(longitude) : undefined;
-    const acc = accuracy !== undefined && accuracy !== null ? Number(accuracy) : undefined;
+    // Status & events: DANG_SU_DUNG, GO_APP, GO_KET_NOI, NGHI_VAN_GO_APP, ONLINE
+    const eventType = body.event || body.su_kien || body.status || body.trang_thai;
+    const isUninstalled = Boolean(body.isUninstalled || body.is_uninstalled || eventType === 'GO_APP' || eventType === 'NGHI_VAN_GO_APP');
+    const isNoNetwork = Boolean(body.isNoNetwork || body.is_no_network || eventType === 'GO_KET_NOI');
+
+    const rawLat = body.latitude ?? body.lat ?? body.vi_do;
+    const rawLng = body.longitude ?? body.lng ?? body.kinh_do;
+    const rawAcc = body.accuracy ?? body.do_chinh_xac;
+    const rawBat = body.batteryLevel ?? body.pin ?? body.battery;
+    const rawCharging = body.charging ?? body.dang_sac ?? false;
+    const rawNet = isNoNetwork ? 'NONE' : (body.networkType ?? body.loai_mang ?? 'WIFI');
+    const currentApp = body.currentApp ?? body.ung_dung ?? (eventType === 'DANG_SU_DUNG' ? 'Dùng giờ học (Đang mở sáng màn hình)' : undefined);
+    const currentWebsite = body.currentWebsite ?? body.trang_web;
+
+    const lat = rawLat !== undefined && rawLat !== null ? Number(rawLat) : undefined;
+    const lng = rawLng !== undefined && rawLng !== null ? Number(rawLng) : undefined;
+    const acc = rawAcc !== undefined && rawAcc !== null ? Number(rawAcc) : 10;
     const bat =
-      batteryLevel !== undefined && batteryLevel !== null
-        ? Math.min(100, Math.max(0, parseInt(batteryLevel, 10)))
+      rawBat !== undefined && rawBat !== null
+        ? Math.min(100, Math.max(0, parseInt(String(rawBat), 10)))
         : 100;
 
     const device = await dbService.recordDirectReport({
@@ -119,22 +125,22 @@ router.post('/report', async (req: any, res: Response): Promise<any> => {
       longitude: lng !== undefined && !isNaN(lng) ? lng : undefined,
       accuracy: acc !== undefined && !isNaN(acc) ? acc : undefined,
       batteryLevel: isNaN(bat) ? 100 : bat,
-      charging: Boolean(charging),
-      networkType: networkType || (isNoNetwork ? 'NONE' : 'WIFI'),
+      charging: Boolean(rawCharging),
+      networkType: rawNet,
       currentApp,
       currentWebsite,
-      isUninstalled: Boolean(isUninstalled),
-      isNoNetwork: Boolean(isNoNetwork),
+      isUninstalled,
+      isNoNetwork,
     });
 
     // Realtime notification broadcast
     if (isUninstalled) {
       notifyDeviceEvent(device, 'APP_UNINSTALLED');
-    } else if (isNoNetwork || networkType === 'NONE') {
+    } else if (isNoNetwork || rawNet === 'NONE') {
       notifyDeviceEvent(device, 'NO_NETWORK');
-    } else if (device.inClassAlert) {
+    } else if (eventType === 'DANG_SU_DUNG' || device.inClassAlert) {
       notifyDeviceEvent(device, 'IN_CLASS_USAGE');
-    } else if (networkType === 'WIFI') {
+    } else if (rawNet === 'WIFI') {
       notifyDeviceEvent(device, 'WIFI_CONNECTED');
     } else {
       notifyDeviceEvent(device, 'DEVICE_ACTIVE');
@@ -658,6 +664,81 @@ router.get('/:id/activity', async (req: AuthenticatedRequest, res: Response): Pr
       success: false,
       message: 'Lỗi tải hoạt động thiết bị',
     });
+  }
+});
+
+// GET /api/devices/:id/contacts - Get phone contacts list
+router.get('/:id/contacts', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const contacts = await dbService.getDeviceContacts(req.params.id, req.user!.userId);
+    if (contacts === null) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thiết bị hoặc không có quyền truy cập' });
+    }
+    return res.json({ success: true, data: contacts });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Lỗi tải danh sách số điện thoại', error: error.message });
+  }
+});
+
+// POST /api/devices/:id/contacts - Add new phone number to list
+router.post('/:id/contacts', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const { name, phone, relationship, isEmergencyAlert, notes } = req.body || {};
+    if (!phone || !String(phone).trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp số điện thoại' });
+    }
+    const updated = await dbService.addDeviceContact(req.params.id, req.user!.userId, {
+      name: name || 'Người liên hệ',
+      phone: String(phone).trim(),
+      relationship: relationship || 'Phụ huynh',
+      isEmergencyAlert: isEmergencyAlert !== undefined ? Boolean(isEmergencyAlert) : true,
+      notes: notes ? String(notes).trim() : undefined,
+    });
+    if (updated === null) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thiết bị hoặc không có quyền truy cập' });
+    }
+    return res.json({ success: true, message: 'Thêm số điện thoại thành công', data: updated });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Lỗi thêm số điện thoại', error: error.message });
+  }
+});
+
+// DELETE /api/devices/:id/contacts/:contactId - Delete single contact
+router.delete('/:id/contacts/:contactId', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const updated = await dbService.deleteDeviceContact(req.params.id, req.params.contactId, req.user!.userId);
+    if (updated === null) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thiết bị hoặc không có quyền truy cập' });
+    }
+    return res.json({ success: true, message: 'Đã xoá số điện thoại khỏi danh sách', data: updated });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Lỗi xoá số điện thoại', error: error.message });
+  }
+});
+
+// DELETE /api/devices/:id/contacts - Xoá toàn bộ danh sách SĐT (Clear phone list)
+router.delete('/:id/contacts', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const ok = await dbService.clearDeviceContacts(req.params.id, req.user!.userId);
+    if (!ok) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thiết bị hoặc không có quyền truy cập' });
+    }
+    return res.json({ success: true, message: 'Đã xoá toàn bộ danh sách số điện thoại thành công', data: [] });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Lỗi xoá danh sách số điện thoại', error: error.message });
+  }
+});
+
+// POST /api/devices/:id/contacts/clear - Xoá toàn bộ danh sách SĐT (Alias)
+router.post('/:id/contacts/clear', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const ok = await dbService.clearDeviceContacts(req.params.id, req.user!.userId);
+    if (!ok) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thiết bị hoặc không có quyền truy cập' });
+    }
+    return res.json({ success: true, message: 'Đã xoá toàn bộ danh sách số điện thoại thành công', data: [] });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Lỗi xoá danh sách số điện thoại', error: error.message });
   }
 });
 
