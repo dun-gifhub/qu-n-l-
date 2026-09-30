@@ -189,6 +189,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
             </div>
           </form>
 
+          <div className="mt-4 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-xs">
+            <div className="flex items-center justify-between text-indigo-700 dark:text-indigo-300 font-semibold mb-1">
+              <span>Tài khoản Quản trị viên (Admin):</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@devicemonitor.com');
+                  setPassword('admin123');
+                }}
+                className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-800 dark:hover:text-indigo-200 cursor-pointer"
+              >
+                Điền nhanh
+              </button>
+            </div>
+            <div className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">
+              admin@devicemonitor.com &bull; admin123
+            </div>
+          </div>
+
           <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center text-xs text-slate-400">
             Hệ thống quản lý thiết bị học sinh &bull; Phân quyền trường học & phụ huynh
           </div>
