@@ -1,0 +1,90 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum DeviceStatusEnum {
+  ONLINE
+  IDLE
+  OFFLINE
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  devices      Device[]
+  sessions     Session[]
+
+  @@map("users")
+}
+
+model Device {
+  id           String           @id @default(uuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  deviceUuid   String           @unique
+  platform     String           // "iOS" | "Android" | "Tablet"
+  osVersion    String?
+  appVersion   String?
+  lastSeen     DateTime         @default(now())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  locations    DeviceLocation[]
+  statuses     DeviceStatus[]
+
+  @@index([userId])
+  @@map("devices")
+}
+
+model DeviceLocation {
+  id        String   @id @default(uuid())
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([deviceId, timestamp(sort: Desc)])
+  @@map("device_locations")
+}
+
+model DeviceStatus {
+  id                 String           @id @default(uuid())
+  deviceId           String
+  device             Device           @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  batteryLevel       Int              @default(100)
+  charging           Boolean          @default(false)
+  networkType        String           @default("WIFI")
+  locationPermission Boolean          @default(true)
+  locationSharing    Boolean          @default(true)
+  status             DeviceStatusEnum @default(ONLINE)
+  timestamp          DateTime         @default(now())
+
+  @@index([deviceId, timestamp(sort: Desc)])
+  @@map("device_statuses")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}

@@ -1,0 +1,6 @@
+{
+  "name": "DeviceMonitor - Quản Lý & Định Vị Thiết Bị",
+  "description": "Nền tảng quản lý tập trung, theo dõi trạng thái, pin, mạng và vị trí GPS của thiết bị kết nối Neon PostgreSQL.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
