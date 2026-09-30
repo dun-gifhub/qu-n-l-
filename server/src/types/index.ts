@@ -1,14 +1,54 @@
 export type PlatformType = 'iOS' | 'Android' | 'Tablet';
 export type DeviceStatusType = 'ONLINE' | 'IDLE' | 'OFFLINE';
 export type NetworkType = 'WIFI' | '4G' | '5G' | 'ETHERNET' | 'UNKNOWN';
+export type UserRole = 'ADMIN' | 'TEACHER' | 'PARENT';
+export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type UsageCategory = 'EDUCATION' | 'SOCIAL' | 'GAME' | 'ENTERTAINMENT' | 'UTILITY' | 'OTHER';
+export type RiskLevel = 'SAFE' | 'WARNING' | 'RESTRICTED';
 
 export interface UserRecord {
   id: string;
   name: string;
   email: string;
   passwordHash: string;
+  role: UserRole;
+  approvalStatus: ApprovalStatus;
+  schoolName?: string;
+  className?: string;
+  studentName?: string;
+  phone?: string;
+  approvedBy?: string;
+  approvedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AppUsageItem {
+  id: string;
+  deviceId: string;
+  appName: string;
+  packageName: string;
+  category: UsageCategory;
+  icon: string;
+  durationMinutes: number;
+  lastUsed: string;
+  isRunning: boolean;
+  isBlocked: boolean;
+  riskLevel: RiskLevel;
+}
+
+export interface WebVisitItem {
+  id: string;
+  deviceId: string;
+  url: string;
+  domain: string;
+  pageTitle: string;
+  category: UsageCategory;
+  durationMinutes: number;
+  visitCount: number;
+  timestamp: string;
+  isBlocked: boolean;
+  riskLevel: RiskLevel;
 }
 
 export interface DeviceRecord {
@@ -19,6 +59,17 @@ export interface DeviceRecord {
   platform: PlatformType;
   osVersion?: string;
   appVersion?: string;
+  studentName?: string;
+  schoolName?: string;
+  className?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  ownerRole?: UserRole;
+  currentApp?: string;
+  currentWebsite?: string;
+  screenTimeMinutes?: number;
+  blockedApps?: string[];
+  blockedWebsites?: string[];
   lastSeen: string;
   createdAt: string;
   updatedAt: string;
@@ -70,7 +121,20 @@ export interface ActivityEvent {
   deviceId: string;
   deviceName: string;
   platform: PlatformType;
-  type: 'ONLINE' | 'OFFLINE' | 'IDLE' | 'LOCATION_UPDATE' | 'BATTERY_LOW' | 'CHARGING_STARTED' | 'CHARGING_STOPPED';
+  studentName?: string;
+  schoolName?: string;
+  className?: string;
+  type:
+    | 'ONLINE'
+    | 'OFFLINE'
+    | 'IDLE'
+    | 'LOCATION_UPDATE'
+    | 'BATTERY_LOW'
+    | 'CHARGING_STARTED'
+    | 'CHARGING_STOPPED'
+    | 'APP_OPENED'
+    | 'WEB_VISITED'
+    | 'POLICY_UPDATED';
   description: string;
   timestamp: string;
   metadata?: Record<string, any>;
@@ -80,4 +144,8 @@ export interface AuthUserPayload {
   userId: string;
   email: string;
   name: string;
+  role: UserRole;
+  schoolName?: string;
+  className?: string;
+  approvalStatus: ApprovalStatus;
 }

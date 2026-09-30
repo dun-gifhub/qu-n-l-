@@ -8,7 +8,6 @@ import {
   MapPin,
   Activity,
   Settings,
-  User as UserIcon,
   LogOut,
   Menu,
   X,
@@ -17,6 +16,8 @@ import {
   Radio,
   Database,
   Play,
+  Globe,
+  Users,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -33,10 +34,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   navigate,
   onOpenSimulator,
 }) => {
-  const { user, logout } = useAuth();
+  const { user, login, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dbStatus, setDbStatus] = useState<{ type: string; status: string } | null>(null);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
   useEffect(() => {
     api.checkHealth().then((res) => {
@@ -46,12 +49,39 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     });
   }, []);
 
+  useEffect(() => {
+    if (user?.role === 'ADMIN') {
+      api.getUsers().then((res) => {
+        if (res.success && res.data) {
+          setPendingCount(res.data.filter((u) => u.approvalStatus === 'PENDING').length);
+        }
+      });
+    } else {
+      setPendingCount(0);
+    }
+  }, [user, activePath]);
+
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Thiết bị', path: '/devices', icon: Smartphone },
+    {
+      label: user?.role === 'PARENT' ? 'Thiết bị của con' : 'Thiết bị học sinh',
+      path: '/devices',
+      icon: Smartphone,
+    },
+    { label: 'Giám sát App & Web', path: '/app-usage', icon: Globe },
+    ...(user?.role === 'ADMIN' || user?.role === 'TEACHER'
+      ? [
+          {
+            label: user.role === 'ADMIN' ? 'Duyệt & Quản lý TK' : 'Trường & Lớp học',
+            path: '/accounts',
+            icon: Users,
+            badge: user.role === 'ADMIN' && pendingCount > 0 ? pendingCount : undefined,
+          },
+        ]
+      : []),
     { label: 'Bản đồ vị trí', path: '/map', icon: MapPin },
-    { label: 'Hoạt động', path: '/activity', icon: Activity },
-    { label: 'Cài đặt & API', path: '/settings', icon: Settings },
+    { label: 'Nhật ký hoạt động', path: '/activity', icon: Activity },
+    { label: 'Cài đặt tài khoản', path: '/settings', icon: Settings },
   ];
 
   const handleNavClick = (path: string) => {
@@ -64,16 +94,32 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     navigate('/');
   };
 
+  const handleQuickRoleSwitch = async (email: string) => {
+    setIsSwitchingRole(true);
+    const res = await login(email, '123456');
+    setIsSwitchingRole(false);
+    if (res.success) {
+      navigate('/dashboard');
+    }
+  };
+
+  const roleBadgeLabel =
+    user?.role === 'ADMIN'
+      ? 'Admin Tối Thượng'
+      : user?.role === 'TEACHER'
+      ? 'Giáo Viên Chủ Nhiệm'
+      : 'Phụ Huynh Học Sinh';
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs">
+      <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-500/20">
-            <Radio className="w-4 h-4 animate-pulse" />
+          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold">
+            <Radio className="w-4 h-4" />
           </div>
           <span className="font-bold text-slate-900 dark:text-slate-100 tracking-tight text-base">
-            Device<span className="text-indigo-600 dark:text-indigo-400">Monitor</span>
+            DeviceMonitor
           </span>
         </div>
 
@@ -110,92 +156,134 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         />
       )}
 
-      {/* Sidebar (Desktop fixed, Mobile drawer) */}
+      {/* Sidebar */}
       <aside
         className={`fixed md:sticky top-0 left-0 bottom-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div>
-          {/* Logo & Brand */}
+          {/* Brand */}
           <div
             className="h-16 flex items-center gap-3 px-6 border-b border-slate-100 dark:border-slate-800/80 cursor-pointer"
             onClick={() => handleNavClick('/dashboard')}
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/25">
-              <Radio className="w-5 h-5 animate-pulse" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
+              <Radio className="w-5 h-5" />
             </div>
-            <div>
-              <span className="font-extrabold text-slate-900 dark:text-white tracking-tight text-lg">
-                Device<span className="text-indigo-600 dark:text-indigo-400">Monitor</span>
+            <div className="min-w-0">
+              <span className="font-extrabold text-slate-900 dark:text-white tracking-tight text-lg block leading-none">
+                DeviceMonitor
               </span>
-              <span className="block text-[10px] uppercase font-bold tracking-wider text-slate-400 -mt-0.5">
-                IoT & Telemetry
+              <span className="block text-[11px] font-medium text-indigo-600 dark:text-indigo-400 mt-1 truncate">
+                {roleBadgeLabel}
               </span>
+            </div>
+          </div>
+
+          {/* Current Role Context Summary */}
+          <div className="px-4 pt-3">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 text-xs space-y-1">
+              <div className="font-bold text-slate-900 dark:text-white truncate">
+                {user?.name}
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                {user?.role === 'ADMIN'
+                  ? 'Quyền tối thượng · Giám sát toàn hệ thống'
+                  : user?.role === 'TEACHER'
+                  ? `Trường: ${user.schoolName || 'Chưa gán'}`
+                  : `Con: ${user?.studentName || 'Học sinh'}`}
+              </div>
             </div>
           </div>
 
           {/* Nav Items */}
           <div className="p-4 space-y-1">
-            <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Quản trị
-            </div>
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activePath === item.path || (item.path !== '/dashboard' && activePath.startsWith(item.path));
+              const isActive =
+                activePath === item.path ||
+                (item.path !== '/dashboard' && activePath.startsWith(item.path));
               return (
                 <button
                   key={item.path}
                   onClick={() => handleNavClick(item.path)}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/30'
+                      ? 'bg-indigo-600 text-white'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
+                  <span className="flex items-center gap-3 truncate">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </span>
+                  {item.badge !== undefined && (
+                    <span
+                      className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold ${
+                        isActive
+                          ? 'bg-white text-indigo-600'
+                          : 'bg-amber-500 text-white'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
 
-          {/* Quick simulator banner */}
-          {onOpenSimulator && (
-            <div className="px-4 py-2">
-              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100/60 dark:from-indigo-950/40 dark:to-slate-900 border border-indigo-200/60 dark:border-indigo-800/50">
-                <div className="flex items-center gap-2 mb-1 text-xs font-bold text-indigo-900 dark:text-indigo-300">
-                  <Play className="w-3.5 h-3.5 fill-indigo-600 text-indigo-600 dark:fill-indigo-400 dark:text-indigo-400" />
-                  <span>Mô phỏng Mobile</span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-2.5">
-                  Bơm tọa độ GPS và pin để kiểm tra live map.
-                </p>
+          {/* Quick Role Switcher for testing the 3 positions */}
+          <div className="px-4 py-2">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 space-y-2">
+              <div className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                Chuyển nhanh 3 vị trí:
+              </div>
+              <div className="grid grid-cols-1 gap-1.5">
                 <button
-                  onClick={onOpenSimulator}
-                  className="w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-xs transition"
+                  type="button"
+                  disabled={isSwitchingRole || user?.email === 'admin@devicemonitor.vn'}
+                  onClick={() => handleQuickRoleSwitch('admin@devicemonitor.vn')}
+                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-semibold text-left transition cursor-pointer truncate ${
+                    user?.email === 'admin@devicemonitor.vn'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-500'
+                  }`}
                 >
-                  Mở Simulator
+                  1. Admin Tối Thượng (Tất cả quyền)
+                </button>
+                <button
+                  type="button"
+                  disabled={isSwitchingRole || user?.email === 'gv.lan@lehongphong.edu.vn'}
+                  onClick={() => handleQuickRoleSwitch('gv.lan@lehongphong.edu.vn')}
+                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-semibold text-left transition cursor-pointer truncate ${
+                    user?.email === 'gv.lan@lehongphong.edu.vn'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-500'
+                  }`}
+                >
+                  2. Giáo Viên CN (Trường LHP)
+                </button>
+                <button
+                  type="button"
+                  disabled={isSwitchingRole || user?.email === 'ph.minh@gmail.com'}
+                  onClick={() => handleQuickRoleSwitch('ph.minh@gmail.com')}
+                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-semibold text-left transition cursor-pointer truncate ${
+                    user?.email === 'ph.minh@gmail.com'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-500'
+                  }`}
+                >
+                  3. Phụ Huynh (Chỉ xem con mình)
                 </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* User Info & Footer */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
-          {/* DB Indicator */}
-          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-[11px] text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50">
-            <span className="flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5 text-emerald-500" />
-              <span>DB:</span>
-            </span>
-            <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">
-              {dbStatus?.type || 'Neon PostgreSQL'}
-            </span>
-          </div>
-
-          {/* User profile row */}
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
@@ -214,7 +302,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <button
               onClick={handleLogout}
               title="Đăng xuất"
-              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -225,25 +313,38 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Desktop Top Navbar */}
-        <header className="hidden md:flex items-center justify-between h-16 px-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Hệ thống hoạt động bình thường
+        <header className="hidden md:flex items-center justify-between h-16 px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20">
+          <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
+            <span className="font-bold text-slate-900 dark:text-white">
+              {roleBadgeLabel}
             </span>
-            <span className="text-xs text-slate-400">
-              REST API Mobile Ready
+            <span>·</span>
+            <span>
+              {user?.role === 'ADMIN'
+                ? 'Theo dõi toàn bộ tài khoản & duyệt Giáo viên / Phụ huynh'
+                : user?.role === 'TEACHER'
+                ? `Theo dõi học sinh trường ${user?.schoolName || ''}`
+                : `Quản lý điện thoại con: ${user?.studentName || 'Học sinh'}`}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
+            {user?.role === 'ADMIN' && pendingCount > 0 && (
+              <button
+                onClick={() => navigate('/accounts')}
+                className="py-1.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold cursor-pointer whitespace-nowrap"
+              >
+                {pendingCount} tài khoản chờ Admin duyệt
+              </button>
+            )}
+
             {onOpenSimulator && (
               <button
                 onClick={onOpenSimulator}
-                className="py-1.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-xs font-semibold flex items-center gap-1.5 border border-indigo-200 dark:border-indigo-800 transition shadow-xs cursor-pointer"
+                className="py-1.5 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 text-xs font-semibold flex items-center gap-1.5 border border-indigo-200 dark:border-indigo-800 transition cursor-pointer whitespace-nowrap"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Mô phỏng Mobile App</span>
+                <span>Mô phỏng Điện thoại Học sinh</span>
               </button>
             )}
 
@@ -253,18 +354,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               title={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-
-            <button
-              onClick={() => navigate('/settings')}
-              className="flex items-center gap-2 p-1.5 pr-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition cursor-pointer"
-            >
-              <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
-                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                {user?.name?.split(' ').slice(-1)[0] || 'Tài khoản'}
-              </span>
             </button>
           </div>
         </header>

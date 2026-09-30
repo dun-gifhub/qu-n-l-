@@ -1,6 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, ApiResponse } from '../types/index.ts';
+import { User, ApiResponse, UserRole } from '../types/index.ts';
 import { api } from '../services/api.ts';
+
+interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  role: UserRole;
+  schoolName: string;
+  className?: string;
+  studentName?: string;
+  phone?: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -8,9 +20,17 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<ApiResponse<{ token: string; user: User }>>;
-  register: (name: string, email: string, password: string, confirmPassword: string) => Promise<ApiResponse<User>>;
+  register: (payload: RegisterPayload) => Promise<ApiResponse<User>>;
   logout: () => Promise<void>;
-  updateProfile: (data: { name?: string; currentPassword?: string; newPassword?: string }) => Promise<ApiResponse<User>>;
+  updateProfile: (data: {
+    name?: string;
+    schoolName?: string;
+    className?: string;
+    studentName?: string;
+    phone?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => Promise<ApiResponse<User>>;
   refreshUser: () => Promise<void>;
 }
 
@@ -34,7 +54,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.success && res.data) {
         setUser(res.data);
       } else {
-        // Token invalid or expired
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);
@@ -64,8 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res;
   };
 
-  const register = async (name: string, email: string, password: string, confirmPassword: string) => {
-    return await api.register({ name, email, password, confirmPassword });
+  const register = async (payload: RegisterPayload) => {
+    return await api.register(payload);
   };
 
   const logout = async () => {
@@ -80,7 +99,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateProfile = async (data: { name?: string; currentPassword?: string; newPassword?: string }) => {
+  const updateProfile = async (data: {
+    name?: string;
+    schoolName?: string;
+    className?: string;
+    studentName?: string;
+    phone?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }) => {
     const res = await api.updateProfile(data);
     if (res.success && res.data) {
       setUser(res.data);

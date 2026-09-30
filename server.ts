@@ -10,6 +10,7 @@ import authRouter from './server/src/routes/auth.ts';
 import devicesRouter from './server/src/routes/devices.ts';
 import activityRouter from './server/src/routes/activity.ts';
 import healthRouter from './server/src/routes/health.ts';
+import usersRouter from './server/src/routes/users.ts';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ async function startServer() {
   // Register REST API routes
   app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/users', usersRouter);
   app.use('/api/devices', devicesRouter);
   app.use('/api/activity', activityRouter);
 

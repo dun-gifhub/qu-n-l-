@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
-import { Device, DeviceLocation, ActivityEvent } from '../types/index.ts';
+import {
+  Device,
+  DeviceLocation,
+  ActivityEvent,
+  AppUsageItem,
+  WebVisitItem,
+} from '../types/index.ts';
 import { DeviceMap } from '../components/Map/DeviceMap.tsx';
 import {
   Smartphone,
@@ -8,19 +14,18 @@ import {
   Zap,
   Wifi,
   MapPin,
-  Calendar,
-  Clock,
   ArrowLeft,
   Trash2,
   Edit2,
   RefreshCw,
-  Share2,
-  Shield,
   Layers,
   Code2,
   Play,
   Check,
   Copy,
+  Globe,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 
 interface DeviceDetailPageProps {
@@ -39,34 +44,47 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   const [device, setDevice] = useState<Device | null>(null);
   const [history, setHistory] = useState<DeviceLocation[]>([]);
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
-  const [activeTab, setActiveTab] = useState<'status' | 'location' | 'history' | 'activity' | 'api'>(
-    initialTab as any || 'status'
-  );
+  const [appUsages, setAppUsages] = useState<AppUsageItem[]>([]);
+  const [webHistory, setWebHistory] = useState<WebVisitItem[]>([]);
+  const [activeTab, setActiveTab] = useState<
+    'status' | 'usage' | 'location' | 'history' | 'activity' | 'api'
+  >((initialTab as any) || 'status');
   const [historyRange, setHistoryRange] = useState<'today' | '7days' | '30days'>('today');
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
+  const [editStudentName, setEditStudentName] = useState('');
+  const [editSchoolName, setEditSchoolName] = useState('');
+  const [editClassName, setEditClassName] = useState('');
   const [copiedCurl, setCopiedCurl] = useState(false);
 
   const loadDeviceData = async () => {
     setIsLoading(true);
     try {
-      const [devRes, histRes, actRes] = await Promise.all([
+      const [devRes, histRes, actRes, usageRes] = await Promise.all([
         api.getDeviceById(deviceId),
         api.getLocationHistory(deviceId, historyRange),
         api.getDeviceActivity(deviceId),
+        api.getDeviceUsage(deviceId),
       ]);
 
       if (devRes.success && devRes.data) {
         setDevice(devRes.data);
         setEditName(devRes.data.name);
+        setEditStudentName(devRes.data.studentName || '');
+        setEditSchoolName(devRes.data.schoolName || '');
+        setEditClassName(devRes.data.className || '');
       }
       if (histRes.success && histRes.data) {
         setHistory(histRes.data);
       }
       if (actRes.success && actRes.data) {
         setActivities(actRes.data);
+      }
+      if (usageRes.success && usageRes.data) {
+        setAppUsages(usageRes.data.appUsages);
+        setWebHistory(usageRes.data.webHistory);
       }
     } finally {
       setIsLoading(false);
@@ -77,20 +95,37 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
     loadDeviceData();
   }, [deviceId, historyRange]);
 
-  const handleUpdateName = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab as any);
+    }
+  }, [initialTab]);
+
+  const handleUpdateInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName.trim()) return;
-    const res = await api.updateDevice(deviceId, { name: editName.trim() });
+    const res = await api.updateDevice(deviceId, {
+      name: editName.trim(),
+      studentName: editStudentName.trim(),
+      schoolName: editSchoolName.trim(),
+      className: editClassName.trim(),
+    });
     if (res.success && res.data) {
       setDevice(res.data);
       setIsEditing(false);
     }
   };
 
-  const handleDeleteDevice = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa thiết bị này khỏi tài khoản?')) {
-      return;
+  const handleToggleBlock = async (targetType: 'APP' | 'WEB', targetName: string) => {
+    const res = await api.toggleBlockItem(deviceId, { targetType, targetName });
+    if (res.success && res.data) {
+      setDevice(res.data.device);
+      setAppUsages(res.data.appUsages);
+      setWebHistory(res.data.webHistory);
     }
+  };
+
+  const handleDeleteDevice = async () => {
     setIsDeleting(true);
     const res = await api.deleteDevice(deviceId);
     setIsDeleting(false);
@@ -103,7 +138,7 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
     return (
       <div className="py-24 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
         <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
-        <span>Đang tải thông tin thiết bị...</span>
+        <span>Đang tải thông tin thiết bị học sinh...</span>
       </div>
     );
   }
@@ -112,7 +147,7 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
     return (
       <div className="py-20 text-center space-y-4">
         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
-          Không tìm thấy thiết bị này
+          Không tìm thấy thiết bị này hoặc bạn không có quyền truy cập
         </h2>
         <button
           onClick={() => navigate('/devices')}
@@ -127,14 +162,14 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   const isOnline = device.status === 'ONLINE';
   const isIdle = device.status === 'IDLE';
 
-  const curlLocationExample = `curl -X POST https://your-server.onrender.com/api/devices/${device.id}/location \\
+  const curlLocationExample = `curl -X POST https://your-server.onrender.com/api/devices/${device.id}/usage \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_AUTH_TOKEN" \\
   -d '{
-    "latitude": 10.7769,
-    "longitude": 106.7009,
-    "accuracy": 5.0,
-    "timestamp": "${new Date().toISOString()}"
+    "appName": "TikTok",
+    "appCategory": "SOCIAL",
+    "durationMinutes": 15,
+    "websiteUrl": "https://www.tiktok.com"
   }'`;
 
   const copyToClipboard = (text: string) => {
@@ -150,55 +185,26 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/devices')}
-            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition cursor-pointer"
             title="Quay lại danh sách thiết bị"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-2xl">
-                {device.platform === 'iOS' ? '🍎' : device.platform === 'Android' ? '🤖' : '📱'}
-              </span>
-              {isEditing ? (
-                <form onSubmit={handleUpdateName} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-900 dark:text-white"
-                  />
-                  <button
-                    type="submit"
-                    className="px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-xs font-semibold"
-                  >
-                    Lưu
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-2 py-1 text-xs text-slate-400 hover:text-slate-200"
-                  >
-                    Hủy
-                  </button>
-                </form>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                    {device.name}
-                  </h1>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                    title="Đổi tên thiết bị"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
+              <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {device.studentName || device.name}
+              </h1>
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                title="Chỉnh sửa thông tin học sinh & trường"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <p className="text-xs text-slate-400 font-mono mt-0.5">
-              UUID: {device.deviceUuid}
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Trường: <strong>{device.schoolName}</strong> · Lớp: <strong>{device.className || 'Chưa rõ'}</strong> · Thiết bị: {device.name} ({device.platform})
             </p>
           </div>
         </div>
@@ -207,10 +213,10 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => onOpenSimulator(device.id)}
-            className="py-2 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-semibold text-xs flex items-center gap-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition cursor-pointer"
+            className="py-2 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-semibold text-xs flex items-center gap-1.5 hover:bg-indigo-100 transition cursor-pointer whitespace-nowrap"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            <span>Mô phỏng Telemetry</span>
+            <span>Mô phỏng Điện thoại</span>
           </button>
           <button
             onClick={loadDeviceData}
@@ -231,10 +237,78 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </div>
       </div>
 
+      {/* Inline Edit Form */}
+      {isEditing && (
+        <form
+          onSubmit={handleUpdateInfo}
+          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
+        >
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              Họ tên học sinh
+            </label>
+            <input
+              type="text"
+              value={editStudentName}
+              onChange={(e) => setEditStudentName(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              Trường học (Đồng bộ GVCN)
+            </label>
+            <input
+              type="text"
+              value={editSchoolName}
+              onChange={(e) => setEditSchoolName(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              Lớp / Tên máy
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={editClassName}
+                onChange={(e) => setEditClassName(e.target.value)}
+                placeholder="Lớp"
+                className="w-20 px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+              />
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Tên máy"
+                className="flex-1 px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 py-2 px-3 bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+            >
+              Lưu
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="py-2 px-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs cursor-pointer"
+            >
+              Hủy
+            </button>
+          </div>
+        </form>
+      )}
+
       {/* Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto gap-2">
         {[
-          { key: 'status', label: 'Trạng thái & Thông tin' },
+          { key: 'status', label: 'Trạng thái & Học sinh' },
+          { key: 'usage', label: `Sử dụng App & Web (${appUsages.length + webHistory.length})` },
           { key: 'location', label: 'Vị trí hiện tại' },
           { key: 'history', label: 'Lịch sử vị trí' },
           { key: 'activity', label: 'Nhật ký hoạt động' },
@@ -254,98 +328,109 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         ))}
       </div>
 
-      {/* Tab 1: Status & Specs */}
+      {/* Tab 1: Status & Student Info */}
       {activeTab === 'status' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Box 1: Hardware & System Info */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span>Thông Tin Phần Cứng</span>
+            {/* Box 1: Student & Hardware Info */}
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                Thông Tin Học Sinh & Thiết Bị
               </h3>
 
               <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Tên thiết bị</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{device.name}</span>
+                  <span className="text-slate-400">Họ và tên học sinh</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {device.studentName || device.name}
+                  </span>
                 </div>
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Nền tảng (Platform)</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{device.platform}</span>
+                  <span className="text-slate-400">Trường đăng ký</span>
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                    {device.schoolName || 'Chưa cập nhật'}
+                  </span>
                 </div>
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Phiên bản OS</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{device.osVersion || 'Chưa cung cấp'}</span>
+                  <span className="text-slate-400">Lớp học</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {device.className || 'Chưa cập nhật'}
+                  </span>
                 </div>
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Phiên bản App</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{device.appVersion || '1.0.0'}</span>
+                  <span className="text-slate-400">Phụ huynh quản lý</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {device.ownerName} ({device.ownerEmail})
+                  </span>
+                </div>
+                <div className="py-2.5 flex justify-between">
+                  <span className="text-slate-400">Tên thiết bị & Nền tảng</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {device.name} · {device.platform} {device.osVersion || ''}
+                  </span>
                 </div>
                 <div className="py-2.5 flex justify-between items-center">
-                  <span className="text-slate-400">Device ID / UUID</span>
-                  <span className="font-mono text-[11px] text-indigo-600 dark:text-indigo-400 font-bold">{device.deviceUuid}</span>
+                  <span className="text-slate-400">Mã định danh UUID</span>
+                  <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold">
+                    {device.deviceUuid}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Box 2: Live Telemetry Status */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+            {/* Box 2: Live Telemetry & App/Web Status */}
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  <span>Trạng Thái Hoạt Động</span>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                  Trạng Thái Điện Thoại Thời Gian Thực
                 </h3>
                 <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${
+                  className={`text-xs font-bold ${
                     isOnline
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                      ? 'text-emerald-600 dark:text-emerald-400'
                       : isIdle
-                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-slate-500'
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
                   {device.status || 'OFFLINE'}
                 </span>
               </div>
 
               <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                 <div className="py-2.5 flex justify-between items-center">
-                  <span className="text-slate-400">Mức Pin</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <Battery className="w-4 h-4 text-emerald-500" />
-                    {device.batteryLevel ?? 100}%
+                  <span className="text-slate-400">Ứng dụng đang mở hiện tại</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {device.currentApp || 'Màn hình chính'}
+                  </span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="text-slate-400">Website vừa truy cập</span>
+                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                    {device.currentWebsite || 'google.com'}
+                  </span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="text-slate-400">Thời gian sáng màn hình hôm nay</span>
+                  <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
+                    {device.screenTimeMinutes ?? 0} phút
+                  </span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="text-slate-400">Mức Pin & Nguồn sạc</span>
+                  <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
+                    {device.batteryLevel ?? 100}% {device.charging ? '· Đang cắm sạc' : ''}
                   </span>
                 </div>
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Đang sạc</span>
+                  <span className="text-slate-400">Kết nối mạng</span>
                   <span className="font-semibold text-slate-800 dark:text-slate-200">
-                    {device.charging ? '⚡ Có (Đang nạp năng lượng)' : 'Không'}
-                  </span>
-                </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Kiểu kết nối mạng</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                    <Wifi className="w-3.5 h-3.5 text-indigo-500" />
                     {device.networkType || 'WIFI'}
                   </span>
                 </div>
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Quyền truy cập vị trí</span>
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                    {device.locationPermission ? '✓ Đã cấp quyền' : 'Chưa cấp'}
-                  </span>
-                </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Chia sẻ vị trí</span>
-                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                    {device.locationSharing ? 'Đang bật' : 'Đang tắt'}
-                  </span>
-                </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Last Seen</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300">
+                  <span className="text-slate-400">Cập nhật lần cuối</span>
+                  <span className="font-mono tabular-nums text-slate-700 dark:text-slate-300">
                     {device.lastSeen ? new Date(device.lastSeen).toLocaleString('vi-VN') : 'Chưa có'}
                   </span>
                 </div>
@@ -354,36 +439,160 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
           </div>
 
           {/* Quick Map Preview */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-            <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-500" />
-              <span>Vị Trí Mới Nhất</span>
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+            <h3 className="font-bold text-base text-slate-900 dark:text-white">
+              Vị Trí GPS Mới Nhất Của Học Sinh
             </h3>
             <DeviceMap selectedDevice={device} height="320px" />
           </div>
         </div>
       )}
 
-      {/* Tab 2: Location Map */}
+      {/* Tab 2: App & Web Usage Management */}
+      {activeTab === 'usage' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* App Usage List */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                Ứng Dụng Đã Sử Dụng Trên Điện Thoại ({appUsages.length})
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Phụ huynh & Giáo viên có thể chặn ứng dụng giải trí/game trong giờ học
+              </p>
+            </div>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {appUsages.map((app) => (
+                <div
+                  key={app.id}
+                  className="px-6 py-4 flex items-center justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-slate-900 dark:text-white">
+                      {app.appName}
+                      {app.isRunning && !app.isBlocked && (
+                        <span className="ml-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          · Đang mở
+                        </span>
+                      )}
+                      {app.isBlocked && (
+                        <span className="ml-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                          · Đã bị chặn
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">
+                      Thời lượng: {app.durationMinutes} phút · Gói: {app.packageName}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleToggleBlock('APP', app.appName)}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                      app.isBlocked
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60'
+                    }`}
+                  >
+                    {app.isBlocked ? (
+                      <>
+                        <Unlock className="w-3.5 h-3.5" />
+                        <span>Mở khóa</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Chặn App</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Web History List */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                Lịch Sử Truy Cập Website ({webHistory.length})
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Danh sách tên miền và trang web học sinh đã mở trên trình duyệt
+              </p>
+            </div>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {webHistory.map((web) => (
+                <div
+                  key={web.id}
+                  className="px-6 py-4 flex items-center justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm text-indigo-600 dark:text-indigo-400 font-mono">
+                      {web.domain}
+                      {web.isBlocked && (
+                        <span className="ml-2 text-xs font-sans font-semibold text-rose-600 dark:text-rose-400">
+                          · Đã chặn
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-slate-800 dark:text-slate-200 truncate mt-0.5">
+                      {web.pageTitle}
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">
+                      {web.visitCount} lần truy cập · {web.durationMinutes} phút
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleToggleBlock('WEB', web.domain)}
+                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                      web.isBlocked
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60'
+                    }`}
+                  >
+                    {web.isBlocked ? (
+                      <>
+                        <Unlock className="w-3.5 h-3.5" />
+                        <span>Bỏ chặn</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Chặn Web</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Location Map */}
       {activeTab === 'location' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
             <div className="flex items-center gap-6">
               <div>
                 <span className="text-slate-400 block">Vĩ độ (Latitude)</span>
-                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
                   {typeof device.latitude === 'number' ? device.latitude.toFixed(5) : 'Chưa có'}
                 </span>
               </div>
               <div>
                 <span className="text-slate-400 block">Kinh độ (Longitude)</span>
-                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
                   {typeof device.longitude === 'number' ? device.longitude.toFixed(5) : 'Chưa có'}
                 </span>
               </div>
               <div>
                 <span className="text-slate-400 block">Độ chính xác (Accuracy)</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                <span className="font-mono tabular-nums font-semibold text-slate-800 dark:text-slate-200">
                   {device.accuracy ? `±${device.accuracy}m` : 'Tiêu chuẩn'}
                 </span>
               </div>
@@ -401,7 +610,7 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </div>
       )}
 
-      {/* Tab 3: Location History */}
+      {/* Tab 4: Location History */}
       {activeTab === 'history' && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -413,8 +622,8 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                   onClick={() => setHistoryRange(r)}
                   className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer ${
                     historyRange === r
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   {r === 'today' && 'Hôm nay'}
@@ -424,17 +633,15 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
               ))}
             </div>
 
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-400 font-mono tabular-nums">
               Tổng số điểm ghi nhận: <strong>{history.length}</strong>
             </span>
           </div>
 
-          {/* History Map with trajectory Polyline */}
           <DeviceMap historyLocations={history} height="360px" />
 
-          {/* History Data Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-xs">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                 Bảng Lịch Sử Tọa Độ GPS
               </h3>
@@ -455,10 +662,10 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                       <th className="py-3 px-6">Độ chính xác</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono tabular-nums">
                     {history.map((h, i) => (
                       <tr key={h.id || i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                        <td className="py-3 px-6 font-sans text-slate-700 dark:text-slate-300">
+                        <td className="py-3 px-6 text-slate-700 dark:text-slate-300">
                           {new Date(h.timestamp).toLocaleString('vi-VN')}
                         </td>
                         <td className="py-3 px-6 text-slate-900 dark:text-slate-100">
@@ -480,12 +687,11 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </div>
       )}
 
-      {/* Tab 4: Activity Log */}
+      {/* Tab 5: Activity Log */}
       {activeTab === 'activity' && (
-        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-          <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-            <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <span>Nhật Ký Hoạt Động Của Thiết Bị</span>
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+          <h3 className="font-bold text-base text-slate-900 dark:text-white">
+            Nhật Ký Hoạt Động Của Thiết Bị Học Sinh
           </h3>
 
           {activities.length === 0 ? (
@@ -493,28 +699,23 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
               Chưa có sự kiện hoạt động nào cho thiết bị này.
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {activities.map((act) => (
                 <div
                   key={act.id}
-                  className="flex items-start gap-4 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-xs"
+                  className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 text-xs flex items-start justify-between gap-4"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
-                    ⚡
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900 dark:text-white">
-                        {act.type}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-mono">
-                        {new Date(act.timestamp).toLocaleString('vi-VN')}
-                      </span>
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-white">
+                      {act.type}
                     </div>
                     <p className="text-slate-600 dark:text-slate-300 mt-1">
                       {act.description}
                     </p>
                   </div>
+                  <span className="text-[11px] text-slate-400 font-mono tabular-nums shrink-0">
+                    {new Date(act.timestamp).toLocaleString('vi-VN')}
+                  </span>
                 </div>
               ))}
             </div>
@@ -522,60 +723,31 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </div>
       )}
 
-      {/* Tab 5: Mobile App REST API Documentation */}
+      {/* Tab 6: Mobile App REST API Documentation */}
       {activeTab === 'api' && (
-        <div className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                  <Code2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>REST API Cho Mobile Developer</span>
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Mã cURL mẫu để tích hợp ứng dụng iOS (Swift) hoặc Android (Kotlin) gửi tọa độ lên máy chủ
-                </p>
-              </div>
-
-              <button
-                onClick={() => copyToClipboard(curlLocationExample)}
-                className="py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-              >
-                {copiedCurl ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedCurl ? 'Đã sao chép' : 'Sao chép cURL'}</span>
-              </button>
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                REST API Gửi Telemetry App, Web & GPS
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Mã cURL tích hợp ứng dụng trên điện thoại học sinh gửi thông tin App đang mở và Website truy cập
+              </p>
             </div>
 
-            <pre className="p-4 rounded-2xl bg-slate-950 text-slate-200 text-xs overflow-x-auto font-mono leading-relaxed border border-slate-800">
-              {curlLocationExample}
-            </pre>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-2">
-                <span className="font-bold text-slate-900 dark:text-white block">
-                  1. Gửi Heartbeat & Pin
-                </span>
-                <p className="text-slate-500 dark:text-slate-400">
-                  <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded font-mono">POST /api/devices/{device.id}/heartbeat</code>
-                </p>
-                <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                  Payload: <code className="font-mono text-indigo-500">{`{ "batteryLevel": 85, "charging": false, "networkType": "WIFI", "status": "ONLINE" }`}</code>
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-2">
-                <span className="font-bold text-slate-900 dark:text-white block">
-                  2. Xác thực Token (Bearer)
-                </span>
-                <p className="text-slate-500 dark:text-slate-400">
-                  Header: <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded font-mono">Authorization: Bearer &lt;JWT&gt;</code>
-                </p>
-                <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                  Hoặc sử dụng Device UUID độc nhất để đăng ký thiết bị mới.
-                </p>
-              </div>
-            </div>
+            <button
+              onClick={() => copyToClipboard(curlLocationExample)}
+              className="py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            >
+              {copiedCurl ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedCurl ? 'Đã sao chép' : 'Sao chép cURL'}</span>
+            </button>
           </div>
+
+          <pre className="p-4 rounded-xl bg-slate-950 text-slate-200 text-xs overflow-x-auto font-mono leading-relaxed border border-slate-800">
+            {curlLocationExample}
+          </pre>
         </div>
       )}
     </div>
