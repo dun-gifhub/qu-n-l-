@@ -18,13 +18,12 @@ import {
 interface DevicesPageProps {
   navigate: (path: string) => void;
   onOpenAddDevice: () => void;
-  onOpenSimulator: (deviceId?: string) => void;
+  onOpenSimulator?: (deviceId?: string) => void;
 }
 
 export const DevicesPage: React.FC<DevicesPageProps> = ({
   navigate,
   onOpenAddDevice,
-  onOpenSimulator,
 }) => {
   const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
@@ -65,18 +64,10 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {user?.role === 'PARENT'
-              ? `Thiết Bị Của Con (${devices.length})`
-              : user?.role === 'TEACHER'
-              ? `Thiết Bị Học Sinh Trường ${user.schoolName} (${devices.length})`
-              : `Toàn Bộ Thiết Bị Học Sinh (${devices.length})`}
+            Danh Sách Thiết Bị Học Sinh ({devices.length})
           </h1>
           <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {user?.role === 'PARENT'
-              ? 'Phụ huynh chỉ xem và quản lý các thiết bị thuộc về con của mình'
-              : user?.role === 'TEACHER'
-              ? 'Giáo viên chủ nhiệm theo dõi tất cả các học sinh đăng ký cùng trường'
-              : 'Admin tối thượng theo dõi tất cả thiết bị của mọi trường học và phụ huynh'}
+            Theo dõi tất cả thiết bị di động đang kết nối và báo cáo về Neon PostgreSQL
           </p>
         </div>
 
@@ -90,11 +81,18 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
+            onClick={() => navigate('/report')}
+            className="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>📱 Mở Link Điện Thoại</span>
+          </button>
+          <button
             onClick={onOpenAddDevice}
             className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            <span>Thêm thiết bị học sinh</span>
+            <span>Thêm thiết bị mới</span>
           </button>
         </div>
       </div>
@@ -235,11 +233,11 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
 
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => onOpenSimulator(device.id)}
-                      className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-lg text-xs cursor-pointer"
-                      title="Mô phỏng điện thoại học sinh"
+                      onClick={() => navigate('/report')}
+                      className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-lg text-xs cursor-pointer"
+                      title="Mở link báo cáo điện thoại"
                     >
-                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <Smartphone className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => navigate(`/devices/${device.id}/usage`)}

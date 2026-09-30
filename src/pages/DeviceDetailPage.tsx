@@ -31,7 +31,7 @@ import {
 interface DeviceDetailPageProps {
   deviceId: string;
   navigate: (path: string) => void;
-  onOpenSimulator: (deviceId: string) => void;
+  onOpenSimulator?: (deviceId: string) => void;
   initialTab?: string;
 }
 
@@ -212,11 +212,11 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => onOpenSimulator(device.id)}
-            className="py-2 px-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-semibold text-xs flex items-center gap-1.5 hover:bg-indigo-100 transition cursor-pointer whitespace-nowrap"
+            onClick={() => navigate('/report')}
+            className="py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center gap-1.5 hover:bg-emerald-100 transition cursor-pointer whitespace-nowrap"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>Mô phỏng Điện thoại</span>
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Mở Báo Cáo Trên ĐT</span>
           </button>
           <button
             onClick={loadDeviceData}
@@ -599,10 +599,10 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
             </div>
 
             <button
-              onClick={() => onOpenSimulator(device.id)}
-              className="py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition cursor-pointer"
+              onClick={() => navigate('/report')}
+              className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition cursor-pointer text-xs"
             >
-              + Gửi tọa độ mới
+              📱 Mở Báo Cáo Trên ĐT
             </button>
           </div>
 

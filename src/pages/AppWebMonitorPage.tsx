@@ -20,12 +20,11 @@ import {
 
 interface AppWebMonitorPageProps {
   navigate: (path: string) => void;
-  onOpenSimulator: (deviceId?: string) => void;
+  onOpenSimulator?: (deviceId?: string) => void;
 }
 
 export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
   navigate,
-  onOpenSimulator,
 }) => {
   const { user } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
@@ -199,11 +198,11 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
             <RefreshCw className={`w-4 h-4 ${isUsageLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
-            onClick={() => onOpenSimulator(selectedDeviceId)}
-            className="py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer whitespace-nowrap"
+            onClick={() => navigate('/report')}
+            className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer whitespace-nowrap"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>Mô phỏng Điện thoại Con</span>
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Link Điện Thoại Báo Vào</span>
           </button>
         </div>
       </div>

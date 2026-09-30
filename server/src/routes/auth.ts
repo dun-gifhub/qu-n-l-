@@ -88,18 +88,26 @@ router.post('/register', async (req, res): Promise<any> => {
     const passwordHash = await bcrypt.hash(password, salt);
     const userId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
 
-    // Teacher and Parent accounts require Admin approval
+    // First registered account in the system becomes Admin Tối Thượng automatically
+    const allUsers = await dbService.getAllUsers();
+    const isFirstUser = allUsers.length === 0;
+
+    const finalRole: UserRole = isFirstUser ? 'ADMIN' : selectedRole;
+    const finalApproval = isFirstUser ? 'APPROVED' : 'PENDING';
+
     const newUser: UserRecord = {
       id: userId,
       name: name.trim(),
       email: normalizedEmail,
       passwordHash,
-      role: selectedRole,
-      approvalStatus: 'PENDING',
+      role: finalRole,
+      approvalStatus: finalApproval,
       schoolName: schoolName.trim(),
       className: className ? String(className).trim() : undefined,
       studentName: studentName ? String(studentName).trim() : undefined,
       phone: phone ? String(phone).trim() : undefined,
+      approvedBy: isFirstUser ? 'Hệ thống (Admin khởi tạo)' : undefined,
+      approvedAt: isFirstUser ? new Date().toISOString() : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -108,10 +116,11 @@ router.post('/register', async (req, res): Promise<any> => {
 
     return res.status(201).json({
       success: true,
-      message:
-        selectedRole === 'TEACHER'
-          ? 'Đăng ký tài khoản Giáo viên thành công! Tài khoản của bạn đang chờ Admin phê duyệt.'
-          : 'Đăng ký tài khoản Phụ huynh thành công! Tài khoản của bạn đang chờ Admin phê duyệt.',
+      message: isFirstUser
+        ? 'Đăng ký thành công! Đây là tài khoản Quản trị viên (Admin tối thượng) đầu tiên của hệ thống.'
+        : selectedRole === 'TEACHER'
+        ? 'Đăng ký tài khoản Giáo viên thành công! Tài khoản của bạn đang chờ Admin phê duyệt.'
+        : 'Đăng ký tài khoản Phụ huynh thành công! Tài khoản của bạn đang chờ Admin phê duyệt.',
       data: formatSafeUser(newUser),
     });
   } catch (error) {

@@ -6,10 +6,10 @@ import { MapPin, RefreshCw, Smartphone, Play, Radio, Battery, Wifi } from 'lucid
 
 interface MapOverviewPageProps {
   navigate: (path: string) => void;
-  onOpenSimulator: (deviceId?: string) => void;
+  onOpenSimulator?: (deviceId?: string) => void;
 }
 
-export const MapOverviewPage: React.FC<MapOverviewPageProps> = ({ navigate, onOpenSimulator }) => {
+export const MapOverviewPage: React.FC<MapOverviewPageProps> = ({ navigate }) => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,11 +50,11 @@ export const MapOverviewPage: React.FC<MapOverviewPageProps> = ({ navigate, onOp
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
-            onClick={() => onOpenSimulator(selectedDevice?.id)}
-            className="py-2.5 px-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-semibold text-xs flex items-center gap-1.5 hover:bg-indigo-100 transition cursor-pointer"
+            onClick={() => navigate('/report')}
+            className="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>Mô phỏng GPS</span>
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Mở Báo Cáo Trên ĐT</span>
           </button>
         </div>
       </div>

@@ -13,6 +13,8 @@ import {
   WebVisitItem,
   ApprovalStatus,
   UserRole,
+  PlatformType,
+  NetworkType,
 } from '../types/index.ts';
 
 interface DBState {
@@ -36,613 +38,16 @@ export function normalizeSchoolName(school?: string): string {
   return (school || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
-function createInitialSeedState(): DBState {
-  const now = new Date();
-  const isoNow = now.toISOString();
-  const minAgo = (m: number) => new Date(now.getTime() - m * 60000).toISOString();
-  const passwordHash = bcrypt.hashSync('123456', 10);
-
-  const users: UserRecord[] = [
-    {
-      id: 'usr_admin_supreme',
-      name: 'Quản Trị Viên Tối Thượng (Admin)',
-      email: 'admin@devicemonitor.vn',
-      passwordHash,
-      role: 'ADMIN',
-      approvalStatus: 'APPROVED',
-      schoolName: 'Toàn Hệ Thống Giáo Dục',
-      phone: '0901234567',
-      createdAt: minAgo(10000),
-      updatedAt: isoNow,
-    },
-    {
-      id: 'usr_teacher_lhp',
-      name: 'Cô Nguyễn Thị Lan (GVCN)',
-      email: 'gv.lan@lehongphong.edu.vn',
-      passwordHash,
-      role: 'TEACHER',
-      approvalStatus: 'APPROVED',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A1',
-      phone: '0912345678',
-      approvedBy: 'Quản Trị Viên Tối Thượng (Admin)',
-      approvedAt: minAgo(5000),
-      createdAt: minAgo(6000),
-      updatedAt: isoNow,
-    },
-    {
-      id: 'usr_teacher_nd_pending',
-      name: 'Thầy Trần Văn Hùng (GVCN)',
-      email: 'gv.hung@nguyendu.edu.vn',
-      passwordHash,
-      role: 'TEACHER',
-      approvalStatus: 'PENDING',
-      schoolName: 'THCS Nguyễn Du',
-      className: '8A2',
-      phone: '0987654321',
-      createdAt: minAgo(180),
-      updatedAt: minAgo(180),
-    },
-    {
-      id: 'usr_parent_minh',
-      name: 'PH Nguyễn Hoàng Minh',
-      email: 'ph.minh@gmail.com',
-      passwordHash,
-      role: 'PARENT',
-      approvalStatus: 'APPROVED',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A1',
-      studentName: 'Nguyễn Minh Khôi, Nguyễn Ngọc Ánh',
-      phone: '0933445566',
-      approvedBy: 'Quản Trị Viên Tối Thượng (Admin)',
-      approvedAt: minAgo(4000),
-      createdAt: minAgo(4500),
-      updatedAt: isoNow,
-    },
-    {
-      id: 'usr_parent_tuan',
-      name: 'PH Trần Anh Tuấn',
-      email: 'ph.tuan@gmail.com',
-      passwordHash,
-      role: 'PARENT',
-      approvalStatus: 'APPROVED',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A2',
-      studentName: 'Trần Quốc Bảo',
-      phone: '0944556677',
-      approvedBy: 'Quản Trị Viên Tối Thượng (Admin)',
-      approvedAt: minAgo(3200),
-      createdAt: minAgo(3500),
-      updatedAt: isoNow,
-    },
-    {
-      id: 'usr_parent_hoa_pending',
-      name: 'PH Lê Thị Thanh Hoa',
-      email: 'ph.hoa@gmail.com',
-      passwordHash,
-      role: 'PARENT',
-      approvalStatus: 'PENDING',
-      schoolName: 'THCS Nguyễn Du',
-      className: '8A2',
-      studentName: 'Lê Hoàng Nam',
-      phone: '0977889900',
-      createdAt: minAgo(95),
-      updatedAt: minAgo(95),
-    },
-  ];
-
-  const devices: DeviceRecord[] = [
-    {
-      id: 'dev_student_khoi',
-      userId: 'usr_parent_minh',
-      name: 'iPhone 15 Pro - Minh Khôi',
-      deviceUuid: 'DEV-KHOI-10A1-LHP',
-      platform: 'iOS',
-      osVersion: 'iOS 18.1',
-      appVersion: '2.1.0',
-      studentName: 'Nguyễn Minh Khôi',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A1',
-      currentApp: 'TikTok',
-      currentWebsite: 'tiktok.com/@studywithme',
-      screenTimeMinutes: 145,
-      blockedApps: ['Liên Quân Mobile'],
-      blockedWebsites: ['roblox.com'],
-      lastSeen: minAgo(2),
-      createdAt: minAgo(4000),
-      updatedAt: minAgo(2),
-    },
-    {
-      id: 'dev_student_anh',
-      userId: 'usr_parent_minh',
-      name: 'iPad Air 5 - Ngọc Ánh',
-      deviceUuid: 'DEV-ANH-10A1-LHP',
-      platform: 'Tablet',
-      osVersion: 'iPadOS 18.0',
-      appVersion: '2.1.0',
-      studentName: 'Nguyễn Ngọc Ánh',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A1',
-      currentApp: 'Google Classroom',
-      currentWebsite: 'hocmai.vn/khoa-hoc-toan-10',
-      screenTimeMinutes: 92,
-      blockedApps: [],
-      blockedWebsites: [],
-      lastSeen: minAgo(5),
-      createdAt: minAgo(3900),
-      updatedAt: minAgo(5),
-    },
-    {
-      id: 'dev_student_bao',
-      userId: 'usr_parent_tuan',
-      name: 'Samsung Galaxy S24 - Quốc Bảo',
-      deviceUuid: 'DEV-BAO-10A2-LHP',
-      platform: 'Android',
-      osVersion: 'Android 14',
-      appVersion: '2.1.0',
-      studentName: 'Trần Quốc Bảo',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A2',
-      currentApp: 'Liên Quân Mobile',
-      currentWebsite: 'lienquan.garena.vn',
-      screenTimeMinutes: 210,
-      blockedApps: [],
-      blockedWebsites: [],
-      lastSeen: minAgo(1),
-      createdAt: minAgo(3000),
-      updatedAt: minAgo(1),
-    },
-    {
-      id: 'dev_student_nam',
-      userId: 'usr_parent_hoa_pending',
-      name: 'Xiaomi Redmi Note 13 - Hoàng Nam',
-      deviceUuid: 'DEV-NAM-8A2-ND',
-      platform: 'Android',
-      osVersion: 'Android 14',
-      appVersion: '2.0.5',
-      studentName: 'Lê Hoàng Nam',
-      schoolName: 'THCS Nguyễn Du',
-      className: '8A2',
-      currentApp: 'YouTube',
-      currentWebsite: 'youtube.com/watch?v=english-grade-8',
-      screenTimeMinutes: 118,
-      blockedApps: ['Free Fire'],
-      blockedWebsites: [],
-      lastSeen: minAgo(14),
-      createdAt: minAgo(2000),
-      updatedAt: minAgo(14),
-    },
-  ];
-
-  const statuses: DeviceStatusRecord[] = [
-    {
-      id: 'stat_seed_1',
-      deviceId: 'dev_student_khoi',
-      batteryLevel: 78,
-      charging: false,
-      networkType: '5G',
-      locationPermission: true,
-      locationSharing: true,
-      status: 'ONLINE',
-      timestamp: minAgo(2),
-    },
-    {
-      id: 'stat_seed_2',
-      deviceId: 'dev_student_anh',
-      batteryLevel: 92,
-      charging: true,
-      networkType: 'WIFI',
-      locationPermission: true,
-      locationSharing: true,
-      status: 'ONLINE',
-      timestamp: minAgo(5),
-    },
-    {
-      id: 'stat_seed_3',
-      deviceId: 'dev_student_bao',
-      batteryLevel: 34,
-      charging: false,
-      networkType: '4G',
-      locationPermission: true,
-      locationSharing: true,
-      status: 'ONLINE',
-      timestamp: minAgo(1),
-    },
-    {
-      id: 'stat_seed_4',
-      deviceId: 'dev_student_nam',
-      batteryLevel: 64,
-      charging: false,
-      networkType: 'WIFI',
-      locationPermission: true,
-      locationSharing: true,
-      status: 'IDLE',
-      timestamp: minAgo(14),
-    },
-  ];
-
-  const locations: DeviceLocationRecord[] = [
-    {
-      id: 'loc_seed_1',
-      deviceId: 'dev_student_khoi',
-      latitude: 10.7638,
-      longitude: 106.6822,
-      accuracy: 4.5,
-      timestamp: minAgo(2),
-      createdAt: minAgo(2),
-    },
-    {
-      id: 'loc_seed_1b',
-      deviceId: 'dev_student_khoi',
-      latitude: 10.7625,
-      longitude: 106.6810,
-      accuracy: 5.0,
-      timestamp: minAgo(45),
-      createdAt: minAgo(45),
-    },
-    {
-      id: 'loc_seed_2',
-      deviceId: 'dev_student_anh',
-      latitude: 10.7642,
-      longitude: 106.6825,
-      accuracy: 3.8,
-      timestamp: minAgo(5),
-      createdAt: minAgo(5),
-    },
-    {
-      id: 'loc_seed_3',
-      deviceId: 'dev_student_bao',
-      latitude: 10.7651,
-      longitude: 106.6818,
-      accuracy: 6.2,
-      timestamp: minAgo(1),
-      createdAt: minAgo(1),
-    },
-    {
-      id: 'loc_seed_4',
-      deviceId: 'dev_student_nam',
-      latitude: 10.7732,
-      longitude: 106.6945,
-      accuracy: 5.0,
-      timestamp: minAgo(14),
-      createdAt: minAgo(14),
-    },
-  ];
-
-  const appUsages: AppUsageItem[] = [
-    // Minh Khôi
-    {
-      id: 'app_khoi_1',
-      deviceId: 'dev_student_khoi',
-      appName: 'TikTok',
-      packageName: 'com.zhiliaoapp.musically',
-      category: 'SOCIAL',
-      icon: '🎵',
-      durationMinutes: 58,
-      lastUsed: minAgo(2),
-      isRunning: true,
-      isBlocked: false,
-      riskLevel: 'WARNING',
-    },
-    {
-      id: 'app_khoi_2',
-      deviceId: 'dev_student_khoi',
-      appName: 'Google Classroom',
-      packageName: 'com.google.android.apps.classroom',
-      category: 'EDUCATION',
-      icon: '📚',
-      durationMinutes: 42,
-      lastUsed: minAgo(30),
-      isRunning: false,
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    {
-      id: 'app_khoi_3',
-      deviceId: 'dev_student_khoi',
-      appName: 'Zalo',
-      packageName: 'com.zing.zalo',
-      category: 'SOCIAL',
-      icon: '💬',
-      durationMinutes: 25,
-      lastUsed: minAgo(18),
-      isRunning: true,
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    {
-      id: 'app_khoi_4',
-      deviceId: 'dev_student_khoi',
-      appName: 'Liên Quân Mobile',
-      packageName: 'com.garena.game.kgvn',
-      category: 'GAME',
-      icon: '🎮',
-      durationMinutes: 20,
-      lastUsed: minAgo(120),
-      isRunning: false,
-      isBlocked: true,
-      riskLevel: 'RESTRICTED',
-    },
-    // Ngọc Ánh
-    {
-      id: 'app_anh_1',
-      deviceId: 'dev_student_anh',
-      appName: 'Google Classroom',
-      packageName: 'com.google.android.apps.classroom',
-      category: 'EDUCATION',
-      icon: '📚',
-      durationMinutes: 50,
-      lastUsed: minAgo(5),
-      isRunning: true,
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    {
-      id: 'app_anh_2',
-      deviceId: 'dev_student_anh',
-      appName: 'Duolingo',
-      packageName: 'com.duolingo',
-      category: 'EDUCATION',
-      icon: '🦉',
-      durationMinutes: 27,
-      lastUsed: minAgo(25),
-      isRunning: false,
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    {
-      id: 'app_anh_3',
-      deviceId: 'dev_student_anh',
-      appName: 'YouTube',
-      packageName: 'com.google.android.youtube',
-      category: 'ENTERTAINMENT',
-      icon: '▶️',
-      durationMinutes: 15,
-      lastUsed: minAgo(60),
-      isRunning: false,
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    // Quốc Bảo
-    {
-      id: 'app_bao_1',
-      deviceId: 'dev_student_bao',
-      appName: 'Liên Quân Mobile',
-      packageName: 'com.garena.game.kgvn',
-      category: 'GAME',
-      icon: '🎮',
-      durationMinutes: 115,
-      lastUsed: minAgo(1),
-      isRunning: true,
-      isBlocked: false,
-      riskLevel: 'WARNING',
-    },
-    {
-      id: 'app_bao_2',
-      deviceId: 'dev_student_bao',
-      appName: 'Discord',
-      packageName: 'com.discord',
-      category: 'SOCIAL',
-      icon: '🎧',
-      durationMinutes: 55,
-      lastUsed: minAgo(10),
-      isRunning: true,
-      isBlocked: false,
-      riskLevel: 'WARNING',
-    },
-    {
-      id: 'app_bao_3',
-      deviceId: 'dev_student_bao',
-      appName: 'VietJack Học Tập',
-      packageName: 'com.vietjack.app',
-      category: 'EDUCATION',
-      icon: '📖',
-      durationMinutes: 40,
-      lastUsed: minAgo(90),
-      isRunning: false,
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    // Hoàng Nam
-    {
-      id: 'app_nam_1',
-      deviceId: 'dev_student_nam',
-      appName: 'YouTube',
-      packageName: 'com.google.android.youtube',
-      category: 'ENTERTAINMENT',
-      icon: '▶️',
-      durationMinutes: 68,
-      lastUsed: minAgo(14),
-      isRunning: true,
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    {
-      id: 'app_nam_2',
-      deviceId: 'dev_student_nam',
-      appName: 'Free Fire',
-      packageName: 'com.dts.freefireth',
-      category: 'GAME',
-      icon: '🔥',
-      durationMinutes: 50,
-      lastUsed: minAgo(180),
-      isRunning: false,
-      isBlocked: true,
-      riskLevel: 'RESTRICTED',
-    },
-  ];
-
-  const webHistory: WebVisitItem[] = [
-    // Minh Khôi
-    {
-      id: 'web_khoi_1',
-      deviceId: 'dev_student_khoi',
-      url: 'https://www.tiktok.com/@studywithme',
-      domain: 'tiktok.com',
-      pageTitle: 'TikTok - Video xu hướng & giải trí',
-      category: 'SOCIAL',
-      durationMinutes: 35,
-      visitCount: 12,
-      timestamp: minAgo(3),
-      isBlocked: false,
-      riskLevel: 'WARNING',
-    },
-    {
-      id: 'web_khoi_2',
-      deviceId: 'dev_student_khoi',
-      url: 'https://vietjack.com/toan-10-kn/index.jsp',
-      domain: 'vietjack.com',
-      pageTitle: 'Giải bài tập Toán 10 Kết nối tri thức - VietJack',
-      category: 'EDUCATION',
-      durationMinutes: 40,
-      visitCount: 6,
-      timestamp: minAgo(28),
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    {
-      id: 'web_khoi_3',
-      deviceId: 'dev_student_khoi',
-      url: 'https://www.roblox.com/games',
-      domain: 'roblox.com',
-      pageTitle: 'Roblox - Trò chơi trực tuyến',
-      category: 'GAME',
-      durationMinutes: 12,
-      visitCount: 3,
-      timestamp: minAgo(150),
-      isBlocked: true,
-      riskLevel: 'RESTRICTED',
-    },
-    // Ngọc Ánh
-    {
-      id: 'web_anh_1',
-      deviceId: 'dev_student_anh',
-      url: 'https://hocmai.vn/khoa-hoc-toan-10',
-      domain: 'hocmai.vn',
-      pageTitle: 'Học Mãi - Hệ thống giáo dục trực tuyến Việt Nam',
-      category: 'EDUCATION',
-      durationMinutes: 48,
-      visitCount: 8,
-      timestamp: minAgo(5),
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    {
-      id: 'web_anh_2',
-      deviceId: 'dev_student_anh',
-      url: 'https://vi.wikipedia.org/wiki/V%C4%83n_h%E1%BB%8Dc_Vi%E1%BB%87t_Nam',
-      domain: 'vi.wikipedia.org',
-      pageTitle: 'Văn học Việt Nam – Wikipedia tiếng Việt',
-      category: 'EDUCATION',
-      durationMinutes: 22,
-      visitCount: 4,
-      timestamp: minAgo(40),
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-    // Quốc Bảo
-    {
-      id: 'web_bao_1',
-      deviceId: 'dev_student_bao',
-      url: 'https://lienquan.garena.vn/tin-tuc',
-      domain: 'lienquan.garena.vn',
-      pageTitle: 'Cổng thông tin Liên Quân Mobile Garena',
-      category: 'GAME',
-      durationMinutes: 45,
-      visitCount: 15,
-      timestamp: minAgo(2),
-      isBlocked: false,
-      riskLevel: 'WARNING',
-    },
-    {
-      id: 'web_bao_2',
-      deviceId: 'dev_student_bao',
-      url: 'https://www.facebook.com/groups/thptlehongphong',
-      domain: 'facebook.com',
-      pageTitle: 'Hội học sinh THPT Chuyên Lê Hồng Phong - Facebook',
-      category: 'SOCIAL',
-      durationMinutes: 30,
-      visitCount: 9,
-      timestamp: minAgo(35),
-      isBlocked: false,
-      riskLevel: 'WARNING',
-    },
-    // Hoàng Nam
-    {
-      id: 'web_nam_1',
-      deviceId: 'dev_student_nam',
-      url: 'https://www.youtube.com/watch?v=english-grade-8',
-      domain: 'youtube.com',
-      pageTitle: 'Bài giảng Tiếng Anh lớp 8 - Global Success',
-      category: 'EDUCATION',
-      durationMinutes: 52,
-      visitCount: 7,
-      timestamp: minAgo(14),
-      isBlocked: false,
-      riskLevel: 'SAFE',
-    },
-  ];
-
-  const activities: ActivityEvent[] = [
-    {
-      id: 'act_seed_1',
-      deviceId: 'dev_student_bao',
-      deviceName: 'Samsung Galaxy S24 - Quốc Bảo',
-      platform: 'Android',
-      studentName: 'Trần Quốc Bảo',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A2',
-      type: 'APP_OPENED',
-      description: 'Học sinh Trần Quốc Bảo đang mở ứng dụng Liên Quân Mobile (115 phút hôm nay)',
-      timestamp: minAgo(1),
-    },
-    {
-      id: 'act_seed_2',
-      deviceId: 'dev_student_khoi',
-      deviceName: 'iPhone 15 Pro - Minh Khôi',
-      platform: 'iOS',
-      studentName: 'Nguyễn Minh Khôi',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A1',
-      type: 'WEB_VISITED',
-      description: 'Truy cập website tiktok.com/@studywithme trên trình duyệt Safari',
-      timestamp: minAgo(2),
-    },
-    {
-      id: 'act_seed_3',
-      deviceId: 'dev_student_anh',
-      deviceName: 'iPad Air 5 - Ngọc Ánh',
-      platform: 'Tablet',
-      studentName: 'Nguyễn Ngọc Ánh',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A1',
-      type: 'APP_OPENED',
-      description: 'Đang học trực tuyến trên ứng dụng Google Classroom & website hocmai.vn',
-      timestamp: minAgo(5),
-    },
-    {
-      id: 'act_seed_4',
-      deviceId: 'dev_student_khoi',
-      deviceName: 'iPhone 15 Pro - Minh Khôi',
-      platform: 'iOS',
-      studentName: 'Nguyễn Minh Khôi',
-      schoolName: 'THPT Chuyên Lê Hồng Phong',
-      className: '10A1',
-      type: 'POLICY_UPDATED',
-      description: 'Phụ huynh đã bật chặn ứng dụng Liên Quân Mobile và tên miền roblox.com',
-      timestamp: minAgo(20),
-    },
-  ];
-
+function createInitialEmptyState(): DBState {
   return {
-    users,
-    devices,
-    locations,
-    statuses,
+    users: [],
+    devices: [],
+    locations: [],
+    statuses: [],
     sessions: [],
-    activities,
-    appUsages,
-    webHistory,
+    activities: [],
+    appUsages: [],
+    webHistory: [],
   };
 }
 
@@ -654,12 +59,96 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
       pgPool = new Pool({
         connectionString: dbUrl,
         ssl: { rejectUnauthorized: false },
-        connectionTimeoutMillis: 1500,
+        connectionTimeoutMillis: 3000,
       });
 
       const client = await pgPool.connect();
       console.log('Successfully connected to Neon PostgreSQL database.');
       isPostgresConnected = true;
+
+      // Auto-create required tables in Neon PostgreSQL if not exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS devices (
+          id TEXT PRIMARY KEY,
+          "userId" TEXT,
+          "deviceUuid" TEXT,
+          name TEXT NOT NULL,
+          platform TEXT NOT NULL,
+          "osVersion" TEXT,
+          "appVersion" TEXT,
+          "studentName" TEXT,
+          "schoolName" TEXT,
+          "className" TEXT,
+          "ownerName" TEXT,
+          "ownerEmail" TEXT,
+          "currentApp" TEXT,
+          "currentWebsite" TEXT,
+          "screenTimeMinutes" INTEGER DEFAULT 0,
+          "blockedApps" TEXT[] DEFAULT '{}',
+          "blockedWebsites" TEXT[] DEFAULT '{}',
+          status TEXT DEFAULT 'ONLINE',
+          "batteryLevel" INTEGER DEFAULT 100,
+          charging BOOLEAN DEFAULT false,
+          "networkType" TEXT DEFAULT 'WIFI',
+          "locationPermission" BOOLEAN DEFAULT true,
+          "locationSharing" BOOLEAN DEFAULT true,
+          latitude DOUBLE PRECISION,
+          longitude DOUBLE PRECISION,
+          accuracy DOUBLE PRECISION,
+          "lastSeen" TEXT,
+          "createdAt" TEXT,
+          "updatedAt" TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS device_locations (
+          id TEXT PRIMARY KEY,
+          "deviceId" TEXT NOT NULL,
+          latitude DOUBLE PRECISION NOT NULL,
+          longitude DOUBLE PRECISION NOT NULL,
+          accuracy DOUBLE PRECISION,
+          timestamp TEXT,
+          "createdAt" TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS device_statuses (
+          id TEXT PRIMARY KEY,
+          "deviceId" TEXT NOT NULL,
+          "batteryLevel" INTEGER NOT NULL,
+          charging BOOLEAN NOT NULL,
+          "networkType" TEXT NOT NULL,
+          "locationPermission" BOOLEAN DEFAULT true,
+          "locationSharing" BOOLEAN DEFAULT true,
+          status TEXT NOT NULL,
+          timestamp TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS activities (
+          id TEXT PRIMARY KEY,
+          "deviceId" TEXT NOT NULL,
+          "deviceName" TEXT NOT NULL,
+          platform TEXT NOT NULL,
+          "studentName" TEXT,
+          "schoolName" TEXT,
+          "className" TEXT,
+          type TEXT NOT NULL,
+          description TEXT NOT NULL,
+          timestamp TEXT,
+          metadata JSONB
+        );
+      `);
+
+      // Sync existing devices from Neon into local state
+      try {
+        const devRes = await client.query('SELECT * FROM devices');
+        if (devRes.rows && devRes.rows.length > 0) {
+          const state = readLocalDB();
+          state.devices = devRes.rows;
+          writeLocalDB(state);
+        }
+      } catch (err: any) {
+        console.warn('Neon sync warning:', err.message);
+      }
+
       client.release();
     } catch (err) {
       console.warn('⚠️ Could not connect to Neon PostgreSQL, falling back to local persistent store:', (err as Error).message);
@@ -672,45 +161,8 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 
-  let needsSeed = !fs.existsSync(DATA_FILE);
-  if (!needsSeed) {
-    try {
-      const current = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')) as Partial<DBState>;
-      if (!current.users || current.users.length === 0 || !current.users.some(u => u.role === 'ADMIN')) {
-        needsSeed = true;
-      } else {
-        // Ensure new arrays exist on existing local DB
-        let mutated = false;
-        if (!current.appUsages) {
-          current.appUsages = createInitialSeedState().appUsages;
-          mutated = true;
-        }
-        if (!current.webHistory) {
-          current.webHistory = createInitialSeedState().webHistory;
-          mutated = true;
-        }
-        for (const u of current.users) {
-          if (!u.role) {
-            u.role = 'PARENT';
-            mutated = true;
-          }
-          if (!u.approvalStatus) {
-            u.approvalStatus = 'APPROVED';
-            mutated = true;
-          }
-        }
-        if (mutated) {
-          fs.writeFileSync(DATA_FILE, JSON.stringify(current, null, 2), 'utf-8');
-        }
-      }
-    } catch {
-      needsSeed = true;
-    }
-  }
-
-  if (needsSeed) {
-    const seedState = createInitialSeedState();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(seedState, null, 2), 'utf-8');
+  if (!fs.existsSync(DATA_FILE)) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(createInitialEmptyState(), null, 2), 'utf-8');
   }
 
   return { isPostgres: isPostgresConnected };
@@ -718,9 +170,9 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
 
 function readLocalDB(): DBState {
   if (!fs.existsSync(DATA_FILE)) {
-    const seeded = createInitialSeedState();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(seeded, null, 2), 'utf-8');
-    return seeded;
+    const empty = createInitialEmptyState();
+    fs.writeFileSync(DATA_FILE, JSON.stringify(empty, null, 2), 'utf-8');
+    return empty;
   }
   try {
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
@@ -736,12 +188,31 @@ function readLocalDB(): DBState {
       webHistory: parsed.webHistory || [],
     };
   } catch {
-    return createInitialSeedState();
+    return createInitialEmptyState();
   }
 }
 
 function writeLocalDB(state: DBState): void {
   fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2), 'utf-8');
+}
+
+export function isCurrentlyInClassHours(): boolean {
+  const now = new Date();
+  // Vietnam UTC+7
+  const utcHours = now.getUTCHours();
+  const utcMinutes = now.getUTCMinutes();
+  const vnTotalMinutes = (utcHours * 60 + utcMinutes + 7 * 60) % (24 * 60);
+  const vnDay = new Date(now.getTime() + 7 * 3600 * 1000).getUTCDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+
+  // Sunday is weekend (no class)
+  if (vnDay === 0) return false;
+
+  // Morning: 07:00 (420 min) to 11:30 (690 min)
+  if (vnTotalMinutes >= 420 && vnTotalMinutes <= 690) return true;
+  // Afternoon: 13:00 (780 min) to 17:00 (1020 min)
+  if (vnTotalMinutes >= 780 && vnTotalMinutes <= 1020) return true;
+
+  return false;
 }
 
 function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
@@ -760,11 +231,25 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
 
   const totalScreenTime = devApps.reduce((sum, a) => sum + (a.durationMinutes || 0), 0);
 
+  // Time calculation for real-time heartbeat
+  const lastSeenMs = d.lastSeen ? new Date(d.lastSeen).getTime() : 0;
+  const isHeartbeatFresh = (Date.now() - lastSeenMs) <= 30000; // within 30s
+  const isOnlineComputed = !d.isUninstalled && isHeartbeatFresh && d.networkType !== 'NONE';
+  const computedStatus = d.isUninstalled ? 'OFFLINE' : (isOnlineComputed ? 'ONLINE' : 'OFFLINE');
+  const isNoNet = d.networkType === 'NONE' || Boolean(d.isNoNetwork);
+  const inClass = computedStatus === 'ONLINE' && isCurrentlyInClassHours();
+
+  // Suspected uninstalled: if marked uninstalled OR if was online and silent > 60s
+  const isSuspectedUninstalled = Boolean(d.isUninstalled) || (!isHeartbeatFresh && Boolean(d.lastSeen) && (Date.now() - lastSeenMs > 60000) && d.isUninstalled !== false && !isNoNet);
+
   return {
     ...d,
     studentName: d.studentName || owner?.studentName || d.name,
     schoolName: d.schoolName || owner?.schoolName || 'Chưa cập nhật trường',
+    grade: d.grade || owner?.grade || '',
     className: d.className || owner?.className || '',
+    studentId: d.studentId || owner?.childStudentId || '',
+    parentPhone: d.parentPhone || owner?.phone || '',
     ownerName: owner?.name || 'Chưa rõ',
     ownerEmail: owner?.email || '',
     ownerRole: owner?.role || 'PARENT',
@@ -773,7 +258,7 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
     screenTimeMinutes: totalScreenTime > 0 ? totalScreenTime : (d.screenTimeMinutes ?? 0),
     blockedApps: d.blockedApps || devApps.filter(a => a.isBlocked).map(a => a.appName),
     blockedWebsites: d.blockedWebsites || state.webHistory.filter(w => w.deviceId === d.id && w.isBlocked).map(w => w.domain),
-    status: latestStatus?.status || d.status || 'OFFLINE',
+    status: computedStatus,
     batteryLevel: latestStatus?.batteryLevel ?? d.batteryLevel ?? 100,
     charging: latestStatus?.charging ?? d.charging ?? false,
     networkType: latestStatus?.networkType || d.networkType || 'WIFI',
@@ -782,6 +267,10 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
     latitude: latestLoc?.latitude ?? d.latitude,
     longitude: latestLoc?.longitude ?? d.longitude,
     accuracy: latestLoc?.accuracy ?? d.accuracy,
+    isUninstalled: isSuspectedUninstalled,
+    uninstalledAt: d.uninstalledAt,
+    inClassAlert: inClass,
+    isNoNetwork: isNoNet,
   };
 }
 
@@ -793,10 +282,32 @@ export function canUserAccessDevice(user: UserRecord, device: DeviceRecord): boo
     if (device.userId === user.id) return true;
     const teacherSchool = normalizeSchoolName(user.schoolName);
     const deviceSchool = normalizeSchoolName(device.schoolName);
-    return Boolean(teacherSchool && deviceSchool && teacherSchool === deviceSchool);
+    if (!teacherSchool || !deviceSchool || teacherSchool !== deviceSchool) return false;
+
+    // Check grade if teacher has specific grade assigned
+    if (user.grade && device.grade && user.grade.toLowerCase() !== 'tất cả') {
+      if (user.grade.trim().toLowerCase() !== device.grade.trim().toLowerCase()) return false;
+    }
+    // Check class if teacher has specific class assigned
+    if (user.className && device.className && user.className.toLowerCase() !== 'tất cả') {
+      if (user.className.trim().toLowerCase() !== device.className.trim().toLowerCase()) return false;
+    }
+    return true;
   }
   // PARENT: only their own child's devices
-  return device.userId === user.id;
+  if (device.userId === user.id) return true;
+  if (user.phone && device.parentPhone) {
+    const cleanUserPhone = user.phone.replace(/\D/g, '');
+    const cleanDevPhone = device.parentPhone.replace(/\D/g, '');
+    if (cleanUserPhone && cleanDevPhone && cleanUserPhone === cleanDevPhone) return true;
+  }
+  if (user.childStudentId && device.studentId) {
+    if (user.childStudentId.trim().toLowerCase() === device.studentId.trim().toLowerCase()) return true;
+  }
+  if (user.studentName && device.studentName) {
+    if (user.studentName.trim().toLowerCase() === device.studentName.trim().toLowerCase()) return true;
+  }
+  return false;
 }
 
 export const dbService = {
@@ -899,11 +410,20 @@ export const dbService = {
     return true;
   },
 
-  // DEVICES (with Role-Based Access: Admin sees all, Teacher sees same school, Parent sees own children)
-  async getAccessibleDevices(userId: string): Promise<DeviceRecord[]> {
+  // DEVICES
+  async getAllDevices(): Promise<DeviceRecord[]> {
     const state = readLocalDB();
+    return state.devices.map(d => enrichDevice(d, state))
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  },
+
+  async getAccessibleDevices(userId?: string): Promise<DeviceRecord[]> {
+    const state = readLocalDB();
+    if (!userId) {
+      return this.getAllDevices();
+    }
     const user = state.users.find(u => u.id === userId);
-    if (!user) return [];
+    if (!user) return this.getAllDevices();
 
     const enrichedAll = state.devices.map(d => enrichDevice(d, state));
     return enrichedAll
@@ -934,6 +454,227 @@ export const dbService = {
     const state = readLocalDB();
     const found = state.devices.find(d => d.deviceUuid.toLowerCase() === uuid.toLowerCase());
     return found ? enrichDevice(found, state) : null;
+  },
+
+  // Direct Phone Telemetry Report (link để điện thoại báo vào)
+  async recordDirectReport(report: {
+    deviceUuid?: string;
+    deviceId?: string;
+    name?: string;
+    studentName?: string;
+    studentId?: string;
+    schoolName?: string;
+    grade?: string;
+    className?: string;
+    parentPhone?: string;
+    platform?: PlatformType;
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    batteryLevel?: number;
+    charging?: boolean;
+    networkType?: NetworkType;
+    currentApp?: string;
+    currentWebsite?: string;
+    isUninstalled?: boolean;
+    isNoNetwork?: boolean;
+  }): Promise<DeviceRecord> {
+    const state = readLocalDB();
+    const nowIso = new Date().toISOString();
+    const uuid = (report.deviceUuid || report.deviceId || 'DEV-' + Math.random().toString(36).substring(2, 8).toUpperCase()).trim();
+
+    const foundIndex = state.devices.findIndex(
+      (d) => d.deviceUuid.toLowerCase() === uuid.toLowerCase() || (report.deviceId && d.id === report.deviceId)
+    );
+    let device: DeviceRecord;
+
+    if (foundIndex === -1) {
+      const newDevId = report.deviceId || 'dev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+      device = {
+        id: newDevId,
+        userId: 'usr_default',
+        deviceUuid: uuid,
+        name: report.name?.trim() || 'Điện thoại di động',
+        platform: report.platform || 'Android',
+        studentName: report.studentName?.trim() || report.name?.trim() || 'Học sinh',
+        studentId: report.studentId?.trim() || '',
+        schoolName: report.schoolName?.trim() || 'Trường học',
+        grade: report.grade?.trim() || '',
+        className: report.className?.trim() || '',
+        parentPhone: report.parentPhone?.trim() || '',
+        currentApp: report.currentApp || 'Báo cáo GPS',
+        currentWebsite: report.currentWebsite || 'DeviceMonitor',
+        screenTimeMinutes: 5,
+        blockedApps: [],
+        blockedWebsites: [],
+        status: report.isUninstalled ? 'OFFLINE' : 'ONLINE',
+        batteryLevel: report.batteryLevel ?? 100,
+        charging: Boolean(report.charging),
+        networkType: report.networkType || (report.isNoNetwork ? 'NONE' : 'WIFI'),
+        locationPermission: true,
+        locationSharing: true,
+        latitude: report.latitude,
+        longitude: report.longitude,
+        accuracy: report.accuracy,
+        isUninstalled: Boolean(report.isUninstalled),
+        uninstalledAt: report.isUninstalled ? nowIso : undefined,
+        lastSeen: nowIso,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      };
+      state.devices.push(device);
+
+      state.activities.unshift({
+        id: 'act_' + Date.now(),
+        deviceId: device.id,
+        deviceName: device.name,
+        platform: device.platform,
+        studentName: device.studentName,
+        schoolName: device.schoolName,
+        grade: device.grade,
+        className: device.className,
+        type: report.isUninstalled ? 'UNINSTALLED' : 'ONLINE',
+        description: report.isUninstalled
+          ? `⚠️ Thiết bị "${device.name}" của học sinh ${device.studentName} đã gửi tín hiệu gỡ cài đặt / ngừng theo dõi!`
+          : `Thiết bị "${device.name}" đã kết nối và bắt đầu báo cáo vào hệ thống`,
+        timestamp: nowIso,
+      });
+
+      if (pgPool) {
+        pgPool.query(
+          `INSERT INTO devices (id, "userId", "deviceUuid", name, platform, "studentName", "schoolName", "className", "currentApp", "currentWebsite", "batteryLevel", charging, "networkType", latitude, longitude, accuracy, "lastSeen", "createdAt", "updatedAt")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+           ON CONFLICT (id) DO UPDATE SET "lastSeen" = $17, "updatedAt" = $19`,
+          [
+            device.id,
+            device.userId,
+            device.deviceUuid,
+            device.name,
+            device.platform,
+            device.studentName,
+            device.schoolName,
+            device.className,
+            device.currentApp,
+            device.currentWebsite,
+            device.batteryLevel,
+            device.charging,
+            device.networkType,
+            device.latitude,
+            device.longitude,
+            device.accuracy,
+            nowIso,
+            nowIso,
+            nowIso,
+          ]
+        ).catch((e: any) => console.warn('PG device insert error:', e.message));
+      }
+    } else {
+      device = state.devices[foundIndex];
+      if (report.name) device.name = report.name.trim();
+      if (report.studentName) device.studentName = report.studentName.trim();
+      if (report.studentId) device.studentId = report.studentId.trim();
+      if (report.schoolName) device.schoolName = report.schoolName.trim();
+      if (report.grade) device.grade = report.grade.trim();
+      if (report.className) device.className = report.className.trim();
+      if (report.parentPhone) device.parentPhone = report.parentPhone.trim();
+      if (report.platform) device.platform = report.platform;
+      if (report.currentApp) device.currentApp = report.currentApp;
+      if (report.currentWebsite) device.currentWebsite = report.currentWebsite;
+
+      if (report.isUninstalled) {
+        device.isUninstalled = true;
+        device.uninstalledAt = nowIso;
+        device.status = 'OFFLINE';
+        state.activities.unshift({
+          id: 'act_' + Date.now(),
+          deviceId: device.id,
+          deviceName: device.name,
+          platform: device.platform,
+          studentName: device.studentName,
+          schoolName: device.schoolName,
+          grade: device.grade,
+          className: device.className,
+          type: 'UNINSTALLED',
+          description: `⚠️ Học sinh ${device.studentName} (${device.className || 'Chưa rõ lớp'}) đã gỡ app / tắt theo dõi trên điện thoại!`,
+          timestamp: nowIso,
+        });
+      } else {
+        device.isUninstalled = false;
+        device.status = 'ONLINE';
+      }
+
+      if (report.isNoNetwork || report.networkType === 'NONE') {
+        device.isNoNetwork = true;
+        device.networkType = 'NONE';
+        state.activities.unshift({
+          id: 'act_' + Date.now(),
+          deviceId: device.id,
+          deviceName: device.name,
+          platform: device.platform,
+          studentName: device.studentName,
+          schoolName: device.schoolName,
+          grade: device.grade,
+          className: device.className,
+          type: 'NO_NETWORK',
+          description: `🔴 Điện thoại "${device.name}" của học sinh ${device.studentName} đã mất kết nối mạng!`,
+          timestamp: nowIso,
+        });
+      } else if (report.networkType) {
+        device.networkType = report.networkType;
+        device.isNoNetwork = false;
+      }
+
+      device.lastSeen = nowIso;
+      device.updatedAt = nowIso;
+      if (report.batteryLevel !== undefined) device.batteryLevel = report.batteryLevel;
+      if (report.charging !== undefined) device.charging = Boolean(report.charging);
+      if (report.latitude !== undefined && report.longitude !== undefined) {
+        device.latitude = report.latitude;
+        device.longitude = report.longitude;
+        device.accuracy = report.accuracy;
+      }
+    }
+
+    // Record status
+    const statusRecord: DeviceStatusRecord = {
+      id: 'stat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      deviceId: device.id,
+      batteryLevel: report.batteryLevel ?? device.batteryLevel ?? 100,
+      charging: report.charging !== undefined ? Boolean(report.charging) : (device.charging ?? false),
+      networkType: device.networkType || 'WIFI',
+      locationPermission: true,
+      locationSharing: true,
+      status: device.status || 'ONLINE',
+      timestamp: nowIso,
+    };
+    state.statuses.unshift(statusRecord);
+    if (state.statuses.length > 500) state.statuses = state.statuses.slice(0, 500);
+
+    // Record location if coordinates valid
+    if (report.latitude !== undefined && report.longitude !== undefined && !isNaN(report.latitude) && !isNaN(report.longitude)) {
+      const locRecord: DeviceLocationRecord = {
+        id: 'loc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        deviceId: device.id,
+        latitude: report.latitude,
+        longitude: report.longitude,
+        accuracy: report.accuracy,
+        timestamp: nowIso,
+        createdAt: nowIso,
+      };
+      state.locations.unshift(locRecord);
+      if (state.locations.length > 1000) state.locations = state.locations.slice(0, 1000);
+
+      if (pgPool) {
+        pgPool.query(
+          `INSERT INTO device_locations (id, "deviceId", latitude, longitude, accuracy, timestamp, "createdAt")
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [locRecord.id, locRecord.deviceId, locRecord.latitude, locRecord.longitude, locRecord.accuracy, nowIso, nowIso]
+        ).catch((e: any) => console.warn('PG location insert error:', e.message));
+      }
+    }
+
+    writeLocalDB(state);
+    return enrichDevice(device, state);
   },
 
   async createDevice(device: DeviceRecord, initialStatus?: Partial<DeviceStatusRecord>): Promise<DeviceRecord> {
@@ -1461,7 +1202,17 @@ export const dbService = {
   },
 
   // ACTIVITIES
-  async getActivitiesForUser(userId: string, limit = 80): Promise<ActivityEvent[]> {
+  async getAllActivities(limit = 80): Promise<ActivityEvent[]> {
+    const state = readLocalDB();
+    return state.activities
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, limit);
+  },
+
+  async getActivitiesForUser(userId?: string, limit = 80): Promise<ActivityEvent[]> {
+    if (!userId) {
+      return this.getAllActivities(limit);
+    }
     const devices = await this.getAccessibleDevices(userId);
     const deviceIds = new Set(devices.map(d => d.id));
 

@@ -211,4 +211,34 @@ export const api = {
 
   // Activity
   getAllActivity: () => request<ActivityEvent[]>('/activity'),
+
+  // Direct Phone Telemetry Report (link để điện thoại báo vào)
+  reportDeviceTelemetry: (body: {
+    deviceUuid: string;
+    deviceId?: string;
+    name?: string;
+    studentName?: string;
+    studentId?: string;
+    schoolName?: string;
+    grade?: string;
+    className?: string;
+    parentPhone?: string;
+    platform?: 'iOS' | 'Android' | 'Tablet';
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    batteryLevel?: number;
+    charging?: boolean;
+    networkType?: string;
+    currentApp?: string;
+    currentWebsite?: string;
+    isUninstalled?: boolean;
+    isNoNetwork?: boolean;
+  }) => request<Device>('/devices/report', { method: 'POST', body: JSON.stringify(body) }),
+
+  uninstallDeviceTelemetry: (body: {
+    deviceUuid: string;
+    deviceId?: string;
+    studentName?: string;
+  }) => request<Device>('/devices/uninstall', { method: 'POST', body: JSON.stringify(body) }),
 };

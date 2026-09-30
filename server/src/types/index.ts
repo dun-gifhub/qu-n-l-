@@ -1,6 +1,6 @@
 export type PlatformType = 'iOS' | 'Android' | 'Tablet';
 export type DeviceStatusType = 'ONLINE' | 'IDLE' | 'OFFLINE';
-export type NetworkType = 'WIFI' | '4G' | '5G' | 'ETHERNET' | 'UNKNOWN';
+export type NetworkType = 'WIFI' | '4G' | '5G' | 'ETHERNET' | 'UNKNOWN' | 'NONE';
 export type UserRole = 'ADMIN' | 'TEACHER' | 'PARENT';
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type UsageCategory = 'EDUCATION' | 'SOCIAL' | 'GAME' | 'ENTERTAINMENT' | 'UTILITY' | 'OTHER';
@@ -14,8 +14,10 @@ export interface UserRecord {
   role: UserRole;
   approvalStatus: ApprovalStatus;
   schoolName?: string;
+  grade?: string;
   className?: string;
   studentName?: string;
+  childStudentId?: string;
   phone?: string;
   approvedBy?: string;
   approvedAt?: string;
@@ -60,8 +62,11 @@ export interface DeviceRecord {
   osVersion?: string;
   appVersion?: string;
   studentName?: string;
+  studentId?: string;
   schoolName?: string;
+  grade?: string;
   className?: string;
+  parentPhone?: string;
   ownerName?: string;
   ownerEmail?: string;
   ownerRole?: UserRole;
@@ -82,6 +87,10 @@ export interface DeviceRecord {
   accuracy?: number;
   locationPermission?: boolean;
   locationSharing?: boolean;
+  isUninstalled?: boolean;
+  uninstalledAt?: string;
+  inClassAlert?: boolean;
+  isNoNetwork?: boolean;
 }
 
 export interface DeviceLocationRecord {
@@ -123,6 +132,7 @@ export interface ActivityEvent {
   platform: PlatformType;
   studentName?: string;
   schoolName?: string;
+  grade?: string;
   className?: string;
   type:
     | 'ONLINE'
@@ -134,7 +144,10 @@ export interface ActivityEvent {
     | 'CHARGING_STOPPED'
     | 'APP_OPENED'
     | 'WEB_VISITED'
-    | 'POLICY_UPDATED';
+    | 'POLICY_UPDATED'
+    | 'UNINSTALLED'
+    | 'NO_NETWORK'
+    | 'IN_CLASS_ALERT';
   description: string;
   timestamp: string;
   metadata?: Record<string, any>;
@@ -146,6 +159,7 @@ export interface AuthUserPayload {
   name: string;
   role: UserRole;
   schoolName?: string;
+  grade?: string;
   className?: string;
   approvalStatus: ApprovalStatus;
 }
