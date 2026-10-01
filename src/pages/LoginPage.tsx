@@ -263,35 +263,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
               </div>
             </form>
 
-            {/* Quick Demo Access Bar */}
-            <div className="p-3.5 rounded-[18px] bg-[#F5F9FD] border border-[#DCE7F2] text-xs space-y-1.5">
-              <span className="font-extrabold text-[#172B4D] block">
-                🔑 Tài khoản kiểm thử nhanh (Demo):
-              </span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('admin@devicemonitor.com');
-                    setPassword('admin123');
-                  }}
-                  className="px-2.5 py-1 rounded-full bg-white border border-[#DCE7F2] hover:border-[#0057B8] font-bold text-[#172B4D] text-[11px] cursor-pointer"
-                >
-                  Admin: admin@devicemonitor.com
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('0987654321');
-                    setPassword('admin123');
-                  }}
-                  className="px-2.5 py-1 rounded-full bg-white border border-[#DCE7F2] hover:border-[#0057B8] font-bold text-[#172B4D] text-[11px] cursor-pointer"
-                >
-                  Học sinh/PH: 0987654321
-                </button>
-              </div>
-            </div>
-
             {/* Register Link */}
             <div className="pt-4 border-t border-[#DCE7F2] text-center text-xs text-[#60758D]">
               Chưa có tài khoản Giáo viên hoặc Học sinh?{' '}
