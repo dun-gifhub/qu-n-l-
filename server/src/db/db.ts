@@ -131,7 +131,10 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
       pgPool = new Pool({
         connectionString: dbUrl,
         ssl: { rejectUnauthorized: false },
-        connectionTimeoutMillis: 3000,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+        keepAlive: true,
       });
 
       pgPool.on('error', (err) => {
@@ -142,8 +145,26 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
       console.log('Successfully connected to Neon PostgreSQL database.');
       isPostgresConnected = true;
 
-      // Auto-create required tables in Neon PostgreSQL if not exist
+      // 1. Auto-create required tables in Neon PostgreSQL if not exist
       await client.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          "passwordHash" TEXT NOT NULL,
+          role TEXT DEFAULT 'TEACHER',
+          "approvalStatus" TEXT DEFAULT 'APPROVED',
+          "schoolName" TEXT,
+          grade TEXT,
+          "className" TEXT,
+          "studentName" TEXT,
+          phone TEXT,
+          "approvedBy" TEXT,
+          "approvedAt" TEXT,
+          "createdAt" TEXT,
+          "updatedAt" TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS devices (
           id TEXT PRIMARY KEY,
           "userId" TEXT,
@@ -213,6 +234,70 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
         );
       `);
 
+      // 2. CRITICAL MIGRATION: Alter existing tables to add all missing columns and remove blocking constraints
+      await client.query(`
+        -- Add missing columns to devices
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "studentName" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "studentId" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "schoolName" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS grade TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "className" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "parentPhone" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "phoneContacts" JSONB DEFAULT '[]'::jsonb;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "ownerName" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "ownerEmail" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "ownerRole" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "currentApp" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "currentWebsite" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "screenTimeMinutes" INTEGER DEFAULT 0;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "blockedApps" TEXT[] DEFAULT '{}';
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "blockedWebsites" TEXT[] DEFAULT '{}';
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ONLINE';
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "batteryLevel" INTEGER DEFAULT 100;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS charging BOOLEAN DEFAULT false;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "networkType" TEXT DEFAULT 'WIFI';
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "locationPermission" BOOLEAN DEFAULT true;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "locationSharing" BOOLEAN DEFAULT true;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS accuracy DOUBLE PRECISION;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "isUninstalled" BOOLEAN DEFAULT false;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "uninstalledAt" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "inClassAlert" BOOLEAN DEFAULT false;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "isNoNetwork" BOOLEAN DEFAULT false;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "lastSeen" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "createdAt" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "updatedAt" TEXT;
+
+        -- Remove strict foreign key constraints that would block direct phone reports
+        ALTER TABLE devices DROP CONSTRAINT IF EXISTS "devices_userId_fkey";
+        ALTER TABLE devices ALTER COLUMN "userId" DROP NOT NULL;
+        ALTER TABLE device_locations DROP CONSTRAINT IF EXISTS "device_locations_deviceId_fkey";
+        ALTER TABLE device_statuses DROP CONSTRAINT IF EXISTS "device_statuses_deviceId_fkey";
+
+        -- Add missing columns to users
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'TEACHER';
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS "approvalStatus" TEXT DEFAULT 'APPROVED';
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS "schoolName" TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS grade TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS "className" TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS "studentName" TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS "approvedBy" TEXT;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS "approvedAt" TEXT;
+
+        -- Ensure default user exists
+        INSERT INTO users (id, name, email, "passwordHash", role, "approvalStatus", "createdAt", "updatedAt")
+        VALUES ('usr_default', 'Học Sinh / Thiết Bị', 'device@devicemonitor.com', 'nologin', 'PARENT', 'APPROVED', NOW()::text, NOW()::text)
+        ON CONFLICT (id) DO NOTHING;
+
+        -- Create indices for high-speed queries
+        CREATE INDEX IF NOT EXISTS idx_devices_lastseen ON devices ("lastSeen");
+        CREATE INDEX IF NOT EXISTS idx_device_locations_dev_time ON device_locations ("deviceId", timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_device_statuses_dev_time ON device_statuses ("deviceId", timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_activities_time ON activities (timestamp DESC);
+      `);
+
       // Sync existing devices from Neon into local state
       try {
         const devRes = await client.query('SELECT * FROM devices');
@@ -249,13 +334,26 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
   return { isPostgres: isPostgresConnected };
 }
 
+let memoryCache: DBState | null = null;
+let saveDebounceTimer: NodeJS.Timeout | null = null;
+
 function readLocalDB(): DBState {
+  if (memoryCache) {
+    return memoryCache;
+  }
+
   if (!fs.existsSync(DATA_FILE)) {
     const empty = createInitialEmptyState();
     ensureDefaultAdmin(empty);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(empty, null, 2), 'utf-8');
-    return empty;
+    memoryCache = empty;
+    try {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(empty, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Initial file write error:', e);
+    }
+    return memoryCache;
   }
+
   try {
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
     const parsed = JSON.parse(raw);
@@ -269,16 +367,32 @@ function readLocalDB(): DBState {
       appUsages: parsed.appUsages || [],
       webHistory: parsed.webHistory || [],
     };
-    return ensureDefaultAdmin(state);
+    memoryCache = ensureDefaultAdmin(state);
+    return memoryCache;
   } catch {
     const empty = createInitialEmptyState();
     ensureDefaultAdmin(empty);
-    return empty;
+    memoryCache = empty;
+    return memoryCache;
   }
 }
 
 function writeLocalDB(state: DBState): void {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2), 'utf-8');
+  memoryCache = state;
+  if (!saveDebounceTimer) {
+    saveDebounceTimer = setTimeout(() => {
+      saveDebounceTimer = null;
+      try {
+        if (memoryCache) {
+          fs.writeFile(DATA_FILE, JSON.stringify(memoryCache, null, 2), 'utf-8', (err) => {
+            if (err) console.warn('Background database save warning:', err.message);
+          });
+        }
+      } catch (err: any) {
+        console.warn('Save error:', err.message);
+      }
+    }, 250);
+  }
 }
 
 export function isCurrentlyInClassHours(): boolean {
@@ -662,35 +776,6 @@ export const dbService = {
           : `Thiết bị "${device.name}" đã kết nối và bắt đầu báo cáo vào hệ thống`,
         timestamp: nowIso,
       });
-
-      if (pgPool) {
-        pgPool.query(
-          `INSERT INTO devices (id, "userId", "deviceUuid", name, platform, "studentName", "schoolName", "className", "currentApp", "currentWebsite", "batteryLevel", charging, "networkType", latitude, longitude, accuracy, "lastSeen", "createdAt", "updatedAt")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-           ON CONFLICT (id) DO UPDATE SET "lastSeen" = $17, "updatedAt" = $19`,
-          [
-            device.id,
-            device.userId,
-            device.deviceUuid,
-            device.name,
-            device.platform,
-            device.studentName,
-            device.schoolName,
-            device.className,
-            device.currentApp,
-            device.currentWebsite,
-            device.batteryLevel,
-            device.charging,
-            device.networkType,
-            device.latitude,
-            device.longitude,
-            device.accuracy,
-            nowIso,
-            nowIso,
-            nowIso,
-          ]
-        ).catch((e: any) => console.warn('PG device insert error:', e.message));
-      }
     } else {
       device = state.devices[foundIndex];
       if (report.name) device.name = report.name.trim();
@@ -758,6 +843,67 @@ export const dbService = {
       }
     }
 
+    // Ensure device is upserted to Neon PostgreSQL (both new and updated devices)
+    if (pgPool) {
+      pgPool.query(
+        `INSERT INTO devices (
+          id, "userId", "deviceUuid", name, platform, "studentName", "studentId", "schoolName", grade, "className",
+          "parentPhone", "currentApp", "currentWebsite", "batteryLevel", charging, "networkType",
+          latitude, longitude, accuracy, "isUninstalled", "uninstalledAt", status, "lastSeen", "createdAt", "updatedAt"
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          platform = EXCLUDED.platform,
+          "studentName" = COALESCE(EXCLUDED."studentName", devices."studentName"),
+          "studentId" = COALESCE(EXCLUDED."studentId", devices."studentId"),
+          "schoolName" = COALESCE(EXCLUDED."schoolName", devices."schoolName"),
+          grade = COALESCE(EXCLUDED.grade, devices.grade),
+          "className" = COALESCE(EXCLUDED."className", devices."className"),
+          "parentPhone" = COALESCE(EXCLUDED."parentPhone", devices."parentPhone"),
+          "currentApp" = EXCLUDED."currentApp",
+          "currentWebsite" = EXCLUDED."currentWebsite",
+          "batteryLevel" = EXCLUDED."batteryLevel",
+          charging = EXCLUDED.charging,
+          "networkType" = EXCLUDED."networkType",
+          latitude = EXCLUDED.latitude,
+          longitude = EXCLUDED.longitude,
+          accuracy = EXCLUDED.accuracy,
+          "isUninstalled" = EXCLUDED."isUninstalled",
+          "uninstalledAt" = EXCLUDED."uninstalledAt",
+          status = EXCLUDED.status,
+          "lastSeen" = EXCLUDED."lastSeen",
+          "updatedAt" = EXCLUDED."updatedAt"`,
+        [
+          device.id,
+          device.userId || 'usr_default',
+          device.deviceUuid,
+          device.name,
+          device.platform || 'Android',
+          device.studentName || device.name,
+          device.studentId || '',
+          device.schoolName || '',
+          device.grade || '',
+          device.className || '',
+          device.parentPhone || '',
+          device.currentApp || 'Báo cáo GPS',
+          device.currentWebsite || 'DeviceMonitor',
+          device.batteryLevel ?? 100,
+          Boolean(device.charging),
+          device.networkType || 'WIFI',
+          device.latitude,
+          device.longitude,
+          device.accuracy,
+          Boolean(device.isUninstalled),
+          device.uninstalledAt || null,
+          device.status || 'ONLINE',
+          nowIso,
+          device.createdAt || nowIso,
+          nowIso,
+        ]
+      ).catch((e: any) => console.warn('PG device upsert warning:', e.message));
+    }
+
     // Record status
     const statusRecord: DeviceStatusRecord = {
       id: 'stat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
@@ -772,6 +918,25 @@ export const dbService = {
     };
     state.statuses.unshift(statusRecord);
     if (state.statuses.length > 500) state.statuses = state.statuses.slice(0, 500);
+
+    if (pgPool) {
+      pgPool.query(
+        `INSERT INTO device_statuses (id, "deviceId", "batteryLevel", charging, "networkType", "locationPermission", "locationSharing", status, timestamp)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT (id) DO NOTHING`,
+        [
+          statusRecord.id,
+          statusRecord.deviceId,
+          statusRecord.batteryLevel,
+          statusRecord.charging,
+          statusRecord.networkType,
+          statusRecord.locationPermission,
+          statusRecord.locationSharing,
+          statusRecord.status,
+          statusRecord.timestamp,
+        ]
+      ).catch((e: any) => console.warn('PG status insert warning:', e.message));
+    }
 
     // Record location if coordinates valid
     if (report.latitude !== undefined && report.longitude !== undefined && !isNaN(report.latitude) && !isNaN(report.longitude)) {

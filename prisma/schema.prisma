@@ -13,35 +13,77 @@ enum DeviceStatusEnum {
   OFFLINE
 }
 
+enum UserRole {
+  ADMIN
+  TEACHER
+  PARENT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
-  id           String    @id @default(uuid())
-  name         String
-  email        String    @unique
-  passwordHash String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  devices      Device[]
-  sessions     Session[]
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  passwordHash   String
+  role           UserRole       @default(TEACHER)
+  approvalStatus ApprovalStatus @default(APPROVED)
+  schoolName     String?
+  grade          String?
+  className      String?
+  studentName    String?
+  phone          String?
+  approvedBy     String?
+  approvedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  devices        Device[]
+  sessions       Session[]
 
   @@map("users")
 }
 
 model Device {
-  id           String           @id @default(uuid())
-  userId       String
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name         String
-  deviceUuid   String           @unique
-  platform     String           // "iOS" | "Android" | "Tablet"
-  osVersion    String?
-  appVersion   String?
-  lastSeen     DateTime         @default(now())
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  locations    DeviceLocation[]
-  statuses     DeviceStatus[]
+  id                String           @id @default(uuid())
+  userId            String?
+  user              User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name              String
+  deviceUuid        String           @unique
+  platform          String           // "iOS" | "Android" | "Tablet"
+  osVersion         String?
+  appVersion        String?
+  studentName       String?
+  studentId         String?
+  schoolName        String?
+  grade             String?
+  className         String?
+  parentPhone       String?
+  currentApp        String?
+  currentWebsite    String?
+  screenTimeMinutes Int              @default(0)
+  status            DeviceStatusEnum @default(ONLINE)
+  batteryLevel      Int              @default(100)
+  charging          Boolean          @default(false)
+  networkType       String           @default("WIFI")
+  latitude          Float?
+  longitude         Float?
+  accuracy          Float?
+  isUninstalled     Boolean          @default(false)
+  uninstalledAt     DateTime?
+  inClassAlert      Boolean          @default(false)
+  isNoNetwork       Boolean          @default(false)
+  lastSeen          DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  locations         DeviceLocation[]
+  statuses          DeviceStatus[]
 
   @@index([userId])
+  @@index([lastSeen])
   @@map("devices")
 }
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
@@ -28,13 +29,16 @@ const PORT = Number(process.env.PORT) || argPort || 3000;
 async function startServer() {
   const app = express();
 
+  // High-performance gzip/brotli compression for all requests
+  app.use(compression());
+
   // Basic security and parsing middlewares
   app.use(cors({
     origin: true,
     credentials: true,
   }));
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
 
   // Initialize Database (Neon PostgreSQL with local fallback)
@@ -116,11 +120,22 @@ async function startServer() {
     }
 
     if (fs.existsSync(indexPath)) {
-      app.use(express.static(distPath));
+      app.use(
+        express.static(distPath, {
+          maxAge: '1y',
+          immutable: true,
+          setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.html')) {
+              res.setHeader('Cache-Control', 'no-cache');
+            }
+          },
+        })
+      );
       app.get('*', (_req, res) => {
+        res.setHeader('Cache-Control', 'no-cache');
         res.sendFile(indexPath);
       });
-      console.log('📦 Serving production build from dist/');
+      console.log('📦 Serving production build from dist/ with high-speed caching & gzip');
     } else {
       // Fallback if build somehow failed
       app.get('*', (_req, res) => {
