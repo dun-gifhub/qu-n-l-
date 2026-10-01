@@ -56,7 +56,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       isHighlight: true,
     },
     {
-      label: 'Danh Sách Thiết Bị',
+      label: 'Danh Sách Giám Sát',
       path: '/devices',
       icon: Smartphone,
     },

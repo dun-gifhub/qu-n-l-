@@ -134,6 +134,10 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
         connectionTimeoutMillis: 3000,
       });
 
+      pgPool.on('error', (err) => {
+        console.warn('PostgreSQL pool background warning (using local persistent store):', err.message);
+      });
+
       const client = await pgPool.connect();
       console.log('Successfully connected to Neon PostgreSQL database.');
       isPostgresConnected = true;
@@ -407,6 +411,38 @@ export const dbService = {
     const normEmail = email.toLowerCase().trim();
     const state = readLocalDB();
     return state.users.find(u => u.email.toLowerCase() === normEmail) || null;
+  },
+
+  async findUserByEmailOrPhone(identifier: string): Promise<UserRecord | null> {
+    if (!identifier) return null;
+    const raw = String(identifier).toLowerCase().trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '');
+    const cleanDigits = raw.replace(/\D/g, '');
+    const state = readLocalDB();
+    return (
+      state.users.find((u) => {
+        if (u.email && u.email.toLowerCase() === raw) return true;
+        if (u.email && raw.includes('@') && u.email.toLowerCase().replace(/[\s.-]/g, '') === raw.replace(/[\s.-]/g, '')) {
+          return true;
+        }
+        if (cleanDigits.length >= 8) {
+          if (u.phone) {
+            const uPhoneDigits = u.phone.replace(/\D/g, '');
+            if (
+              uPhoneDigits &&
+              (uPhoneDigits === cleanDigits ||
+                uPhoneDigits.endsWith(cleanDigits) ||
+                cleanDigits.endsWith(uPhoneDigits))
+            ) {
+              return true;
+            }
+          }
+          if (u.email && u.email.includes(cleanDigits)) {
+            return true;
+          }
+        }
+        return false;
+      }) || null
+    );
   },
 
   async findUserById(id: string): Promise<UserRecord | null> {

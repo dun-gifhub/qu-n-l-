@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { UserRole } from '../types/index.ts';
-import { Radio, Lock, Mail, User, ArrowRight, AlertCircle, GraduationCap, Users } from 'lucide-react';
+import { Radio, Lock, Mail, User, ArrowRight, AlertCircle, GraduationCap, Users, Eye, EyeOff, Phone } from 'lucide-react';
 
 interface RegisterPageProps {
   navigate: (path: string, options?: { message?: string }) => void;
@@ -25,33 +25,41 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
   const [studentName, setStudentName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!name.trim()) {
+    const cleanName = name.trim();
+    if (!cleanName) {
       errs.name = 'Họ và tên không được để trống';
     }
+
+    const cleanInput = email.trim();
+    const isPhone = /^(\+?84|0)?[0-9]{8,12}$/.test(cleanInput.replace(/[\s.-]/g, ''));
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim() || !emailRegex.test(email.trim())) {
-      errs.email = 'Vui lòng nhập email hợp lệ';
+    if (!cleanInput || (!isPhone && !emailRegex.test(cleanInput))) {
+      errs.email = 'Vui lòng nhập Email hoặc Số điện thoại hợp lệ (VD: 0901234567)';
     }
-    if (!schoolName.trim()) {
-      errs.schoolName = 'Vui lòng nhập tên trường học để kết nối dữ liệu';
-    }
-    if (role === 'PARENT' && !studentName.trim()) {
-      errs.studentName = 'Vui lòng nhập họ tên con (học sinh)';
-    }
+
     if (!password || password.length < 6) {
       errs.password = 'Mật khẩu phải chứa ít nhất 6 ký tự';
     }
-    if (password !== confirmPassword) {
+
+    // Only validate confirmPassword if the user manually entered something in it
+    if (confirmPassword && password !== confirmPassword) {
       errs.confirmPassword = 'Mật khẩu xác nhận không khớp với mật khẩu';
     }
+
     setErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      setGeneralError(Object.values(errs)[0]);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,16 +68,24 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
     if (!validate()) return;
 
     setIsLoading(true);
+
+    const cleanInput = email.trim();
+    const isPhone = /^(\+?84|0)?[0-9]{8,12}$/.test(cleanInput.replace(/[\s.-]/g, ''));
+    const resolvedPhone = phone.trim() || (isPhone ? cleanInput : undefined);
+    const resolvedEmail = isPhone && !cleanInput.includes('@')
+      ? `${cleanInput.replace(/\D/g, '')}@phone.devicemonitor.com`
+      : cleanInput;
+
     const res = await register({
       name: name.trim(),
-      email: email.trim(),
-      password,
-      confirmPassword,
+      email: resolvedEmail,
+      password: password.trim(),
+      confirmPassword: (confirmPassword || password).trim(),
       role,
-      schoolName: schoolName.trim(),
-      className: className.trim() || undefined,
-      studentName: role === 'PARENT' ? studentName.trim() : undefined,
-      phone: phone.trim() || undefined,
+      schoolName: schoolName.trim() || 'THPT Chuyên Lê Hồng Phong',
+      className: className.trim() || '10A1',
+      studentName: studentName.trim() || (role === 'PARENT' ? `Con của ${name.trim() || 'học sinh'}` : undefined),
+      phone: resolvedPhone,
     });
     setIsLoading(false);
 
@@ -83,7 +99,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
       if (res.errors) {
         setErrors(res.errors);
       }
-      setGeneralError(res.message || 'Không thể tạo tài khoản');
+      const firstErr = res.errors ? Object.values(res.errors)[0] : null;
+      setGeneralError(firstErr || res.message || 'Không thể tạo tài khoản');
     }
   };
 
@@ -116,11 +133,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-lg">
-        <div className="bg-white dark:bg-slate-900 py-7 px-6 sm:px-8 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 py-7 px-6 sm:px-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           {generalError && (
             <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{generalError}</span>
+              <span className="font-medium">{generalError}</span>
             </div>
           )}
 
@@ -172,7 +189,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {role === 'TEACHER' ? 'Họ tên Giáo viên' : 'Họ tên Phụ huynh'}
+                  {role === 'TEACHER' ? 'Họ tên Giáo viên' : 'Họ tên Phụ huynh'} *
                 </label>
                 <input
                   type="text"
@@ -180,7 +197,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
                   placeholder={role === 'TEACHER' ? 'Cô Nguyễn Thị Lan' : 'PH Nguyễn Hoàng Minh'}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
                 />
                 {errors.name && <p className="text-[11px] text-rose-500 mt-1">{errors.name}</p>}
               </div>
@@ -189,28 +206,45 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Số điện thoại liên hệ
                 </label>
-                <input
-                  type="text"
-                  placeholder="0901234567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Phone className="w-3.5 h-3.5" />
+                  </div>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="0901234567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  />
+                </div>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Email đăng nhập
+                Email hoặc Số điện thoại đăng nhập *
               </label>
-              <input
-                type="email"
-                required
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  placeholder="name@example.com hoặc 0901234567"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Hỗ trợ cả Email lẫn Số điện thoại di động để đăng nhập dễ dàng trên điện thoại
+              </p>
               {errors.email && <p className="text-[11px] text-rose-500 mt-1">{errors.email}</p>}
             </div>
 
@@ -222,11 +256,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
                 </label>
                 <input
                   type="text"
-                  required
                   value={schoolName}
                   onChange={(e) => setSchoolName(e.target.value)}
                   placeholder="VD: THPT Chuyên Lê Hồng Phong"
-                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
                 />
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {SCHOOL_SUGGESTIONS.map((s) => (
@@ -252,23 +285,25 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
                   placeholder="VD: 10A1"
-                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
                 />
               </div>
             </div>
 
             {role === 'PARENT' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Họ và tên con (Học sinh)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Họ và tên con (Học sinh)
+                  </label>
+                  <span className="text-[10px] text-slate-400">Không bắt buộc</span>
+                </div>
                 <input
                   type="text"
-                  required
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
-                  placeholder="VD: Nguyễn Minh Khôi"
-                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  placeholder="VD: Nguyễn Minh Khôi (hoặc để trống, hệ thống tự điền)"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
                 />
                 {errors.studentName && <p className="text-[11px] text-rose-500 mt-1">{errors.studentName}</p>}
               </div>
@@ -277,16 +312,25 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Mật khẩu (≥ 6 ký tự)
+                  Mật khẩu (≥ 6 ký tự) *
                 </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 {errors.password && <p className="text-[11px] text-rose-500 mt-1">{errors.password}</p>}
               </div>
 
@@ -294,14 +338,22 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Xác nhận mật khẩu
                 </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 {errors.confirmPassword && (
                   <p className="text-[11px] text-rose-500 mt-1">{errors.confirmPassword}</p>
                 )}
@@ -316,7 +368,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-indigo-600/20"
               >
                 {isLoading ? 'Đang gửi đăng ký...' : 'Đăng ký & Gửi yêu cầu Admin duyệt'}
                 {!isLoading && <ArrowRight className="w-4 h-4" />}

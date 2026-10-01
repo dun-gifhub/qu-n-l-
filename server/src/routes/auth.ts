@@ -39,53 +39,91 @@ router.post('/register', async (req, res): Promise<any> => {
     } = req.body;
     const errors: Record<string, string> = {};
 
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    const cleanName = (typeof name === 'string' ? name : '')
+      .trim()
+      .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '');
+    if (!cleanName || cleanName.length === 0) {
       errors.name = 'Họ và tên không được để trống';
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || typeof email !== 'string' || !emailRegex.test(email.trim())) {
-      errors.email = 'Email không hợp lệ';
+    let rawEmail = (typeof email === 'string' ? email : '')
+      .trim()
+      .toLowerCase()
+      .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '');
+    let cleanPhone = (typeof phone === 'string' ? phone : '')
+      .trim()
+      .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '');
+
+    // Support phone number input directly in the email field (frequent on mobile phones in Vietnam)
+    const isPhoneNumber = /^(\+?84|0)?[0-9]{8,12}$/.test(rawEmail.replace(/[\s.-]/g, ''));
+    if (isPhoneNumber && !rawEmail.includes('@')) {
+      const digits = rawEmail.replace(/\D/g, '');
+      if (!cleanPhone) {
+        cleanPhone = rawEmail;
+      }
+      rawEmail = `${digits}@phone.devicemonitor.com`;
     }
 
-    if (!password || typeof password !== 'string' || password.length < 6) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!rawEmail || !emailRegex.test(rawEmail)) {
+      errors.email = 'Vui lòng nhập Email hoặc Số điện thoại hợp lệ (VD: 0901234567)';
+    }
+
+    const cleanPassword = (typeof password === 'string' ? password : '').trim();
+    if (!cleanPassword || cleanPassword.length < 6) {
       errors.password = 'Mật khẩu phải chứa ít nhất 6 ký tự';
     }
 
-    if (password !== confirmPassword) {
-      errors.confirmPassword = 'Mật khẩu xác nhận không khớp';
+    // On mobile browsers, autofill often only fills the password field, leaving confirmPassword empty
+    const cleanConfirm =
+      typeof confirmPassword === 'string' && confirmPassword.trim().length > 0
+        ? confirmPassword.trim()
+        : cleanPassword;
+
+    if (cleanPassword !== cleanConfirm) {
+      errors.confirmPassword = 'Mật khẩu xác nhận không khớp với mật khẩu';
     }
 
     const selectedRole: UserRole = role === 'TEACHER' ? 'TEACHER' : 'PARENT';
 
-    if (!schoolName || typeof schoolName !== 'string' || schoolName.trim().length === 0) {
-      errors.schoolName = 'Vui lòng nhập tên trường học để kết nối dữ liệu học sinh';
+    // Auto-fallback school name if empty on mobile
+    let cleanSchool = (typeof schoolName === 'string' ? schoolName : '').trim();
+    if (!cleanSchool) {
+      cleanSchool = 'THPT Chuyên Lê Hồng Phong';
     }
 
-    if (selectedRole === 'PARENT' && (!studentName || typeof studentName !== 'string' || studentName.trim().length === 0)) {
-      errors.studentName = 'Vui lòng nhập họ tên con (học sinh)';
+    // Auto-fallback student name for parent if empty on mobile so registration is never blocked
+    let cleanStudent = (typeof studentName === 'string' ? studentName : '').trim();
+    if (selectedRole === 'PARENT' && !cleanStudent) {
+      cleanStudent = cleanName ? `Con của ${cleanName}` : 'Học sinh';
     }
 
     if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
       return res.status(400).json({
         success: false,
-        message: 'Dữ liệu đăng ký không hợp lệ',
+        message: firstError || 'Dữ liệu đăng ký không hợp lệ',
         errors,
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const existingUser = await dbService.findUserByEmail(normalizedEmail);
+    // Check if email or phone already registered
+    const existingUser =
+      (await dbService.findUserByEmailOrPhone(rawEmail)) ||
+      (cleanPhone ? await dbService.findUserByEmailOrPhone(cleanPhone) : null);
+
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'Email này đã được sử dụng bởi một tài khoản khác',
-        errors: { email: 'Email đã tồn tại' },
+        message: isPhoneNumber
+          ? 'Số điện thoại này đã được sử dụng bởi một tài khoản khác'
+          : 'Email này đã được sử dụng bởi một tài khoản khác',
+        errors: { email: 'Tài khoản đã tồn tại' },
       });
     }
 
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const passwordHash = await bcrypt.hash(cleanPassword, salt);
     const userId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
 
     // First registered account in the system becomes Admin Tối Thượng automatically
@@ -97,15 +135,15 @@ router.post('/register', async (req, res): Promise<any> => {
 
     const newUser: UserRecord = {
       id: userId,
-      name: name.trim(),
-      email: normalizedEmail,
+      name: cleanName,
+      email: rawEmail,
       passwordHash,
       role: finalRole,
       approvalStatus: finalApproval,
-      schoolName: schoolName.trim(),
-      className: className ? String(className).trim() : undefined,
-      studentName: studentName ? String(studentName).trim() : undefined,
-      phone: phone ? String(phone).trim() : undefined,
+      schoolName: cleanSchool,
+      className: className ? String(className).trim() : '10A1',
+      studentName: cleanStudent || undefined,
+      phone: cleanPhone || undefined,
       approvedBy: isFirstUser ? 'Hệ thống (Admin khởi tạo)' : undefined,
       approvedAt: isFirstUser ? new Date().toISOString() : undefined,
       createdAt: new Date().toISOString(),
@@ -159,7 +197,7 @@ router.post('/login', async (req, res): Promise<any> => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    let user = await dbService.findUserByEmail(normalizedEmail);
+    let user = await dbService.findUserByEmailOrPhone(email);
 
     // Check if logging in as Admin using Environment Variables credentials
     const envAdminEmail = (process.env.ADMIN_EMAIL || 'admin@devicemonitor.com').trim().toLowerCase();
@@ -265,11 +303,11 @@ router.post('/forgot-password', async (req, res): Promise<any> => {
     }
 
     const normEmail = email.trim().toLowerCase();
-    const user = await dbService.findUserByEmail(normEmail);
+    const user = await dbService.findUserByEmailOrPhone(normEmail);
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy tài khoản với email này trong hệ thống.',
+        message: 'Không tìm thấy tài khoản với email hoặc số điện thoại này trong hệ thống.',
       });
     }
 

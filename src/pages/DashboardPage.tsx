@@ -145,186 +145,75 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const uninstalledCount = devices.filter((d) => d.isUninstalled).length;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Giám Sát Thiết Bị Học Sinh
-            </h1>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-              Tự làm mới: 1s
-            </span>
-          </div>
-          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Máy chủ tiếp nhận:{' '}
-            <strong className="text-indigo-600 dark:text-indigo-400 font-mono">
-              https://qu-n-l-s1k1.onrender.com
-            </strong>{' '}
-            · Bản đồ Google Maps vệ tinh trực tuyến
-          </p>
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* Page Header (Image 1) */}
+      <div>
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Giám Sát Thiết Bị Học Sinh
+          </h1>
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+            Tự làm mới: 1s
+          </span>
         </div>
-
-        {/* User Scope / Role Indicator */}
-        <div className="flex items-center gap-2">
-          {user ? (
-            <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs shadow-xs">
-              <span className="text-slate-400">Đang đăng nhập: </span>
-              <strong className="text-indigo-600 dark:text-indigo-400">
-                {user.role === 'ADMIN'
-                  ? 'Quản trị viên (Toàn hệ thống)'
-                  : user.role === 'TEACHER'
-                  ? `Giáo viên (${user.schoolName || 'Trường học'} ${user.className ? `- ${user.className}` : ''})`
-                  : `Phụ huynh (${user.studentName ? `Con: ${user.studentName}` : 'Học sinh'})`}
-              </strong>
-            </div>
-          ) : (
-            <button
-              onClick={() => navigate('/login')}
-              className="py-1.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition cursor-pointer"
-            >
-              Đăng nhập phân quyền
-            </button>
-          )}
-
-          {user?.role === 'ADMIN' && (
-            <button
-              onClick={() => navigate('/accounts')}
-              className="py-1.5 px-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-            >
-              <Users className="w-3.5 h-3.5 text-amber-600" />
-              <span>Duyệt TK Giáo viên & PH</span>
-            </button>
-          )}
-        </div>
+        <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Máy chủ tiếp nhận:{' '}
+          <strong className="text-indigo-600 dark:text-indigo-400 font-mono">
+            https://qu-n-l-s1k1.onrender.com
+          </strong>{' '}
+          · Bản đồ Google Maps vệ tinh trực tuyến
+        </p>
       </div>
 
-      {/* Banner Cảnh Báo Khẩn Cấp (nếu có học sinh dùng trong giờ hoặc gỡ app) */}
-      {(inClassCount > 0 || uninstalledCount > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {inClassCount > 0 && (
-            <div
-              onClick={() => setSelectedStatusFilter('IN_CLASS')}
-              className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 flex items-center justify-between cursor-pointer hover:bg-rose-100/60 dark:hover:bg-rose-950/70 transition"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold animate-pulse">
-                  <BellRing className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs text-rose-900 dark:text-rose-200">
-                    CẢNH BÁO SỬ DỤNG TRONG GIỜ HỌC!
-                  </div>
-                  <div className="text-[11px] text-rose-700 dark:text-rose-300">
-                    Phát hiện <strong>{inClassCount} thiết bị</strong> đang online và hoạt động trong khung giờ học.
-                  </div>
-                </div>
-              </div>
-              <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                Lọc xem ↗
-              </span>
+      {/* Banner Cảnh Báo Khẩn Cấp (Image 1) */}
+      {uninstalledCount > 0 ? (
+        <div
+          onClick={() => setSelectedStatusFilter('UNINSTALLED')}
+          className="p-3.5 px-4 rounded-2xl bg-amber-50 dark:bg-[#1c130d] border border-amber-300 dark:border-amber-800/80 flex items-center justify-between cursor-pointer hover:bg-amber-100/60 dark:hover:bg-amber-950/70 transition shadow-xs"
+        >
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0">
+              <Trash2 className="w-5 h-5" />
             </div>
-          )}
-
-          {uninstalledCount > 0 && (
-            <div
-              onClick={() => setSelectedStatusFilter('UNINSTALLED')}
-              className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 flex items-center justify-between cursor-pointer hover:bg-amber-100/60 dark:hover:bg-amber-950/70 transition"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
-                  <Trash2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="font-bold text-xs text-amber-900 dark:text-amber-200">
-                    NGHI VẤN HỌC SINH GỠ ỨNG DỤNG!
-                  </div>
-                  <div className="text-[11px] text-amber-700 dark:text-amber-300">
-                    Có <strong>{uninstalledCount} điện thoại</strong> vừa gửi tín hiệu gỡ app hoặc ngắt báo cáo.
-                  </div>
-                </div>
+            <div className="min-w-0">
+              <div className="font-bold text-xs text-amber-900 dark:text-amber-400 tracking-wide uppercase">
+                NGHI VẤN HỌC SINH GỠ ỨNG DỤNG!
               </div>
-              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                Lọc xem ↗
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Primary Connection Banner: https://qu-n-l-s1k1.onrender.com/report */}
-      <div className="p-5 md:p-6 rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white border border-indigo-700/50 shadow-md">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-semibold border border-indigo-400/30">
-              <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              <span>Link Kết Nối Điện Thoại Học Sinh (Live Tracker)</span>
-            </div>
-            <h2 className="text-lg md:text-xl font-extrabold tracking-tight">
-              Đồng bộ dữ liệu báo cáo: {reportUrl}
-            </h2>
-            <p className="text-xs md:text-sm text-indigo-200/90 leading-relaxed">
-              Mở camera quét mã QR hoặc mở link dưới đây trên điện thoại học sinh. Tọa độ vệ tinh Google Maps, mức pin và trạng thái mạng sẽ tự động làm mới về màn hình máy chủ mỗi giây mà không cần cài đặt phức tạp.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <div className="px-3.5 py-2 rounded-xl bg-slate-950/80 border border-indigo-500/30 text-xs font-mono font-bold text-emerald-400 truncate max-w-full">
-                {reportUrl}
+              <div className="text-[11px] text-amber-700 dark:text-amber-200/90 mt-0.5 truncate">
+                Có <strong>{uninstalledCount} điện thoại</strong> vừa gửi tín hiệu gỡ app hoặc ngắt báo cáo.
               </div>
-              <button
-                onClick={handleCopyLink}
-                className="py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
-              >
-                {copiedLink ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                    <span>Đã sao chép!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Sao chép link</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowQr(!showQr)}
-                className="py-2 px-3 rounded-xl bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-600/40 text-xs font-semibold text-indigo-200 flex items-center gap-1.5 transition cursor-pointer"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>{showQr ? 'Ẩn mã QR' : 'Hiện mã QR quét điện thoại'}</span>
-              </button>
-              <button
-                onClick={() => navigate('/report')}
-                className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer ml-auto"
-              >
-                <span>📱 Mở trang báo cáo</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
-
-          {/* QR Code Container */}
-          <div className={`shrink-0 ${showQr ? 'block' : 'hidden lg:block'}`}>
-            <div className="p-3 bg-white rounded-2xl shadow-xl border border-indigo-200 text-center">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(
-                  reportUrl
-                )}`}
-                alt="QR Code Báo Cáo"
-                className="w-28 h-28 mx-auto rounded-lg"
-              />
-              <span className="block mt-1 text-[10px] font-bold text-slate-800">
-                Quét bằng Camera ĐT
-              </span>
+          <span className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 flex items-center gap-1 shrink-0 ml-3">
+            Lọc xem ↗
+          </span>
+        </div>
+      ) : inClassCount > 0 ? (
+        <div
+          onClick={() => setSelectedStatusFilter('IN_CLASS')}
+          className="p-3.5 px-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 flex items-center justify-between cursor-pointer hover:bg-rose-100/60 dark:hover:bg-rose-950/70 transition shadow-xs"
+        >
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold animate-pulse shrink-0">
+              <BellRing className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-xs text-rose-900 dark:text-rose-200">
+                CẢNH BÁO SỬ DỤNG TRONG GIỜ HỌC!
+              </div>
+              <div className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5 truncate">
+                Phát hiện <strong>{inClassCount} thiết bị</strong> đang online và hoạt động trong khung giờ học.
+              </div>
             </div>
           </div>
+          <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1 shrink-0 ml-3">
+            Lọc xem ↗
+          </span>
         </div>
-      </div>
+      ) : null}
 
-      {/* Status Counters Bar */}
+      {/* Status Counters Bar (Image 2) */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div
           onClick={() => setSelectedStatusFilter('ALL')}
@@ -348,7 +237,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           }`}
         >
           <div className="text-[11px] font-medium opacity-80 flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             <span>Đang Online</span>
           </div>
           <div className="text-xl md:text-2xl font-black mt-1 text-emerald-500 dark:text-emerald-400">
@@ -412,38 +300,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       </div>
 
-      {/* Hierarchy Filter Bar: Khối & Lớp cho Giáo Viên & Quản Lý */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <span className="font-bold text-xs text-slate-900 dark:text-white">
-              Phân Loại Theo Trường, Khối & Lớp:
-            </span>
-          </div>
+      {/* Hierarchy Filter Bar: Khối & Lớp (Image 2) */}
+      <div className="p-3.5 px-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <GraduationCap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          <span className="font-bold text-xs text-slate-900 dark:text-white">
+            Phân Loại Theo Trường, Khối & Lớp:
+          </span>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* School Filter */}
-            {availableSchools.length > 1 && (
-              <select
-                value={selectedSchool}
-                onChange={(e) => setSelectedSchool(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300"
-              >
-                <option value="ALL">Tất cả các trường</option>
-                {availableSchools.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {/* Grade Filter */}
+        <div className="flex items-center gap-2">
+          {/* Grade Filter */}
+          <div className="relative">
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
-              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300"
+              className="appearance-none pl-3.5 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
             >
               <option value="ALL">Tất cả các khối</option>
               {availableGrades.map((g) => (
@@ -452,12 +324,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </option>
               ))}
             </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
 
-            {/* Class Filter */}
+          {/* Class Filter */}
+          <div className="relative">
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300"
+              className="appearance-none pl-3.5 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer"
             >
               <option value="ALL">Tất cả các lớp</option>
               {availableClasses.map((c) => (
@@ -466,20 +341,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </option>
               ))}
             </select>
-
-            {(selectedSchool !== 'ALL' || selectedGrade !== 'ALL' || selectedClass !== 'ALL' || selectedStatusFilter !== 'ALL') && (
-              <button
-                onClick={() => {
-                  setSelectedSchool('ALL');
-                  setSelectedGrade('ALL');
-                  setSelectedClass('ALL');
-                  setSelectedStatusFilter('ALL');
-                }}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-[11px] font-semibold text-slate-500 hover:text-slate-700 cursor-pointer"
-              >
-                Đặt lại bộ lọc
-              </button>
-            )}
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
       </div>
@@ -517,7 +379,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-slate-900 dark:text-white text-base">
-              Danh Sách Học Sinh ({filteredDevices.length} máy)
+              Danh Sách Giám Sát Học Sinh ({filteredDevices.length} máy)
             </h2>
             <button
               onClick={() => navigate('/devices')}

@@ -13,6 +13,32 @@
       "approvedAt": "2026-09-30T14:13:22.329Z",
       "createdAt": "2026-09-30T14:13:22.329Z",
       "updatedAt": "2026-09-30T14:13:22.329Z"
+    },
+    {
+      "id": "usr_1790836452535_xrknh",
+      "name": "Phu Huynh So Dien Thoai",
+      "email": "0987654321@phone.devicemonitor.com",
+      "passwordHash": "$2b$10$cm9yiCIFfND7eC0I3TJsKep9gp9ZeCM0mH7tyxbDk/g1tXhkKRTO6",
+      "role": "PARENT",
+      "approvalStatus": "PENDING",
+      "schoolName": "THPT Chuyên Lê Hồng Phong",
+      "className": "10A1",
+      "studentName": "Con của Phu Huynh So Dien Thoai",
+      "phone": "0987654321",
+      "createdAt": "2026-10-01T06:34:12.536Z",
+      "updatedAt": "2026-10-01T06:34:12.536Z"
+    },
+    {
+      "id": "usr_1790836460875_a0d6r",
+      "name": "Nguyen Thi Mai",
+      "email": "maitest@gmail.com",
+      "passwordHash": "$2b$10$YLUOnnyisU7mj43aQUqxquMcGionxaNbZz9d0uGDUAOTrK6mF9isa",
+      "role": "TEACHER",
+      "approvalStatus": "PENDING",
+      "schoolName": "THPT Chuyên Lê Hồng Phong",
+      "className": "10A1",
+      "createdAt": "2026-10-01T06:34:20.876Z",
+      "updatedAt": "2026-10-01T06:34:20.876Z"
     }
   ],
   "devices": [
@@ -133,6 +159,24 @@
       "ipAddress": "127.0.0.1",
       "expiresAt": "2026-10-07T14:14:41.218Z",
       "createdAt": "2026-09-30T14:14:41.218Z"
+    },
+    {
+      "id": "sess_1790835996572",
+      "userId": "usr_admin_muo6qxdp",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfYWRtaW5fbXVvNnF4ZHAiLCJlbWFpbCI6ImFkbWluQGRldmljZW1vbml0b3IuY29tIiwibmFtZSI6IlF14bqjbiBUcuG7iyBWacOqbiAoQWRtaW4pIiwicm9sZSI6IkFETUlOIiwic2Nob29sTmFtZSI6IlRIUFQgQ2h1ecOqbiBMw6ogSOG7k25nIFBob25nIiwiYXBwcm92YWxTdGF0dXMiOiJBUFBST1ZFRCIsImlhdCI6MTc5MDgzNTk5NiwiZXhwIjoxNzkxNDQwNzk2fQ.6bbiuUvWXvzeszkXAbKXc9dU5AEdXFmE5-sgOOBRjEY",
+      "userAgent": "curl/7.88.1",
+      "ipAddress": "127.0.0.1",
+      "expiresAt": "2026-10-08T06:26:36.572Z",
+      "createdAt": "2026-10-01T06:26:36.572Z"
+    },
+    {
+      "id": "sess_1790836456943",
+      "userId": "usr_1790836452535_xrknh",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfMTc5MDgzNjQ1MjUzNV94cmtuaCIsImVtYWlsIjoiMDk4NzY1NDMyMUBwaG9uZS5kZXZpY2Vtb25pdG9yLmNvbSIsIm5hbWUiOiJQaHUgSHV5bmggU28gRGllbiBUaG9haSIsInJvbGUiOiJQQVJFTlQiLCJzY2hvb2xOYW1lIjoiVEhQVCBDaHV5w6puIEzDqiBI4buTbmcgUGhvbmciLCJjbGFzc05hbWUiOiIxMEExIiwiYXBwcm92YWxTdGF0dXMiOiJQRU5ESU5HIiwiaWF0IjoxNzkwODM2NDU2LCJleHAiOjE3OTE0NDEyNTZ9.LfdgCHGpkrE7AhkRZF6xSGHNURkxW8c5bNEUBuZx4OU",
+      "userAgent": "curl/7.88.1",
+      "ipAddress": "127.0.0.1",
+      "expiresAt": "2026-10-08T06:34:16.944Z",
+      "createdAt": "2026-10-01T06:34:16.944Z"
     }
   ],
   "activities": [
