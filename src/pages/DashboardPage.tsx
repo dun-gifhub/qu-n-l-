@@ -98,10 +98,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   useEffect(() => {
     fetchLiveData(true);
-    // User requested: "web tự làm mới mỗi giây" (refreshes automatically every 1 second)
+    // Smart auto-refresh: 2.5s when tab is active, paused when tab is hidden to save battery & network
     const interval = setInterval(() => {
-      fetchLiveData(false);
-    }, 1000);
+      if (!document.hidden) {
+        fetchLiveData(false);
+      }
+    }, 2500);
     return () => clearInterval(interval);
   }, []);
 
@@ -154,7 +156,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </h1>
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-            Tự làm mới: 1s
+            Tự làm mới: 2.5s
           </span>
         </div>
         <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -162,7 +164,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <strong className="text-indigo-600 dark:text-indigo-400 font-mono">
             https://qu-n-l-s1k1.onrender.com
           </strong>{' '}
-          · Bản đồ Google Maps vệ tinh trực tuyến
+          · Giám sát App & Website học sinh trực tuyến
         </p>
       </div>
 
@@ -346,31 +348,116 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       </div>
 
-      {/* Google Maps Section */}
+      {/* Live App & Web Monitor Overview */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
-              <MapPin className="w-4 h-4" />
+              <Globe className="w-4 h-4" />
             </div>
             <div>
               <h2 className="font-bold text-slate-900 dark:text-white text-base">
-                Bản Đồ Google Maps Trực Tuyến
+                Giám Sát Ứng Dụng & Website Trực Tiếp (Live App & Web)
               </h2>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Hiển thị vị trí thực của học sinh theo từng khối, lớp trên nền Google Maps vệ tinh
+                Phát hiện trực tiếp ứng dụng đang mở, trang web học sinh đang vào truyền về máy chủ
               </p>
             </div>
           </div>
           <button
-            onClick={() => navigate('/map')}
+            onClick={() => navigate('/app-usage')}
             className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer whitespace-nowrap"
           >
-            <span>Mở toàn màn hình</span>
+            <span>Quản lý chi tiết App & Web</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
-        <DeviceMap devices={filteredDevices} height="390px" />
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+          {filteredDevices.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400">
+              Chưa có thiết bị nào đang kết nối để theo dõi App & Web.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="py-3 px-5">Học sinh / Thiết bị</th>
+                    <th className="py-3 px-5">Trường & Lớp</th>
+                    <th className="py-3 px-5">📱 Ứng Dụng Đang Mở</th>
+                    <th className="py-3 px-5">🌐 Website Vừa Vào</th>
+                    <th className="py-3 px-5">Pin & Sạc</th>
+                    <th className="py-3 px-5">Trạng thái</th>
+                    <th className="py-3 px-5 text-right">Chi tiết</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {filteredDevices.map((d) => (
+                    <tr
+                      key={d.id}
+                      className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition cursor-pointer"
+                      onClick={() => navigate(`/devices/${d.id}`)}
+                    >
+                      <td className="py-3 px-5">
+                        <div className="font-bold text-slate-900 dark:text-white">
+                          {d.studentName || d.name}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {d.deviceUuid.substring(0, 12)}...
+                        </div>
+                      </td>
+                      <td className="py-3 px-5">
+                        <div className="text-slate-800 dark:text-slate-200 font-medium">
+                          {d.schoolName || 'Chưa gán trường'}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {d.className ? `Lớp ${d.className}` : ''}
+                        </div>
+                      </td>
+                      <td className="py-3 px-5">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+                          {d.currentApp || 'Đang mở màn hình chính'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-5">
+                        <span className="font-mono text-xs text-slate-700 dark:text-slate-300">
+                          {d.currentWebsite || 'google.com'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-5">
+                        <div className="flex items-center gap-1 font-mono font-bold text-slate-800 dark:text-slate-200">
+                          <span>{d.batteryLevel ?? 100}%</span>
+                          {d.charging && <span className="text-[10px] text-amber-500 font-normal">⚡ Sạc</span>}
+                        </div>
+                      </td>
+                      <td className="py-3 px-5">
+                        {d.inClassAlert ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                            Trong giờ học
+                          </span>
+                        ) : d.status === 'ONLINE' ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                            Online
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                            Offline
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-5 text-right">
+                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                          Xem ↗
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Two Column Grid: Devices & Activity */}

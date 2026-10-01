@@ -37,14 +37,25 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    // If we already have token and user cached, don't show full-screen blocking loader
+    return !localStorage.getItem('token');
+  });
 
   const fetchCurrentUser = async () => {
     const savedToken = localStorage.getItem('token');
     if (!savedToken) {
       setUser(null);
+      localStorage.removeItem('user');
       setIsLoading(false);
       return;
     }
@@ -53,15 +64,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await api.getMe();
       if (res.success && res.data) {
         setUser(res.data);
-      } else {
+        localStorage.setItem('user', JSON.stringify(res.data));
+      } else if (res.message && (
+        res.message.includes('Unauthorized') ||
+        res.message.includes('hết hạn') ||
+        res.message.includes('không còn tồn tại')
+      )) {
+        // Only invalidate session on genuine auth failures, not network/server hiccups
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setToken(null);
         setUser(null);
       }
-    } catch {
-      localStorage.removeItem('token');
-      setToken(null);
-      setUser(null);
+    } catch (err) {
+      // On network failure or connection blip, retain the user session and do NOT log out!
+      console.warn('Network hiccup during session check, retaining cached credentials:', err);
     } finally {
       setIsLoading(false);
     }
@@ -76,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await api.login({ email, password });
     if (res.success && res.data) {
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
       setToken(res.data.token);
       setUser(res.data.user);
     }
@@ -94,6 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ignore
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setToken(null);
       setUser(null);
     }

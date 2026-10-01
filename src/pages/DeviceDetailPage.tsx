@@ -8,7 +8,6 @@ import {
   WebVisitItem,
   PhoneContact,
 } from '../types/index.ts';
-import { DeviceMap } from '../components/Map/DeviceMap.tsx';
 import {
   Smartphone,
   Battery,
@@ -49,7 +48,7 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   deviceId,
   navigate,
   onOpenSimulator,
-  initialTab = 'status',
+  initialTab = 'usage',
 }) => {
   const [device, setDevice] = useState<Device | null>(null);
   const [history, setHistory] = useState<DeviceLocation[]>([]);
@@ -69,8 +68,8 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<
-    'status' | 'contacts' | 'usage' | 'location' | 'history' | 'activity' | 'api'
-  >((initialTab as any) || 'status');
+    'usage' | 'status' | 'activity' | 'api'
+  >((initialTab === 'location' || initialTab === 'history' ? 'usage' : (initialTab as any)) || 'usage');
   const [historyRange, setHistoryRange] = useState<'today' | '7days' | '30days'>('today');
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -329,12 +328,10 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
       {/* Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto gap-2">
         {[
-          { key: 'status', label: 'Trạng thái & Học sinh' },
-          { key: 'usage', label: `Sử dụng App & Web (${appUsages.length + webHistory.length})` },
-          { key: 'location', label: 'Vị trí hiện tại' },
-          { key: 'history', label: 'Lịch sử vị trí' },
-          { key: 'activity', label: 'Nhật ký hoạt động' },
-          { key: 'api', label: 'API Mobile App' },
+          { key: 'usage', label: `📱 Sử dụng App & Web (${appUsages.length + webHistory.length})` },
+          { key: 'status', label: '⚙️ Trạng thái & Học sinh' },
+          { key: 'activity', label: '📋 Nhật ký hoạt động' },
+          { key: 'api', label: '🔌 API Mobile App' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -460,12 +457,38 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
             </div>
           </div>
 
-          {/* Quick Map Preview */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
-            <h3 className="font-bold text-base text-slate-900 dark:text-white">
-              Vị Trí GPS Mới Nhất Của Học Sinh
+          {/* App & Web Summary Card */}
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+            <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <Globe className="w-4 h-4 text-indigo-500" />
+              <span>Giám Sát Trực Tiếp App & Web</span>
             </h3>
-            <DeviceMap selectedDevice={device} height="320px" />
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500">Ứng dụng mở gần nhất:</span>
+                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+                  {device.currentApp || 'Màn hình chính'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500">Website vừa truy cập:</span>
+                <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                  {device.currentWebsite || 'google.com'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500">Mức pin hiện tại:</span>
+                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                  {device.batteryLevel ?? 100}% {device.charging ? '⚡ Đang sạc' : ''}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('usage')}
+              className="w-full py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition cursor-pointer"
+            >
+              Xem Chi Tiết Lịch Sử App & Web ↗
+            </button>
           </div>
         </div>
       )}
@@ -595,119 +618,7 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </div>
       )}
 
-      {/* Tab 3: Location Map */}
-      {activeTab === 'location' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
-            <div className="flex items-center gap-6">
-              <div>
-                <span className="text-slate-400 block">Vĩ độ (Latitude)</span>
-                <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
-                  {typeof device.latitude === 'number' ? device.latitude.toFixed(5) : 'Chưa có'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block">Kinh độ (Longitude)</span>
-                <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
-                  {typeof device.longitude === 'number' ? device.longitude.toFixed(5) : 'Chưa có'}
-                </span>
-              </div>
-              <div>
-                <span className="text-slate-400 block">Độ chính xác (Accuracy)</span>
-                <span className="font-mono tabular-nums font-semibold text-slate-800 dark:text-slate-200">
-                  {device.accuracy ? `±${device.accuracy}m` : 'Tiêu chuẩn'}
-                </span>
-              </div>
-            </div>
 
-            <button
-              onClick={() => navigate('/report')}
-              className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition cursor-pointer text-xs"
-            >
-              📱 Mở Báo Cáo Trên ĐT
-            </button>
-          </div>
-
-          <DeviceMap selectedDevice={device} height="480px" />
-        </div>
-      )}
-
-      {/* Tab 4: Location History */}
-      {activeTab === 'history' && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-semibold">Lọc khoảng thời gian:</span>
-              {(['today', '7days', '30days'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setHistoryRange(r)}
-                  className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                    historyRange === r
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  {r === 'today' && 'Hôm nay'}
-                  {r === '7days' && '7 ngày qua'}
-                  {r === '30days' && '30 ngày qua'}
-                </button>
-              ))}
-            </div>
-
-            <span className="text-xs text-slate-400 font-mono tabular-nums">
-              Tổng số điểm ghi nhận: <strong>{history.length}</strong>
-            </span>
-          </div>
-
-          <DeviceMap historyLocations={history} height="360px" />
-
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                Bảng Lịch Sử Tọa Độ GPS
-              </h3>
-            </div>
-
-            {history.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400">
-                Chưa có dữ liệu lịch sử vị trí trong khoảng thời gian này.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
-                    <tr>
-                      <th className="py-3 px-6">Thời gian</th>
-                      <th className="py-3 px-6">Vĩ độ (Latitude)</th>
-                      <th className="py-3 px-6">Kinh độ (Longitude)</th>
-                      <th className="py-3 px-6">Độ chính xác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono tabular-nums">
-                    {history.map((h, i) => (
-                      <tr key={h.id || i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                        <td className="py-3 px-6 text-slate-700 dark:text-slate-300">
-                          {new Date(h.timestamp).toLocaleString('vi-VN')}
-                        </td>
-                        <td className="py-3 px-6 text-slate-900 dark:text-slate-100">
-                          {h.latitude.toFixed(6)}
-                        </td>
-                        <td className="py-3 px-6 text-slate-900 dark:text-slate-100">
-                          {h.longitude.toFixed(6)}
-                        </td>
-                        <td className="py-3 px-6 text-slate-500">
-                          {h.accuracy ? `±${h.accuracy} m` : 'N/A'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Tab 5: Activity Log */}
       {activeTab === 'activity' && (

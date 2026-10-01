@@ -51,7 +51,11 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
 
   useEffect(() => {
     loadDevices();
-    const interval = setInterval(loadDevices, 1000);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        loadDevices();
+      }
+    }, 2500);
     return () => clearInterval(interval);
   }, [user?.id]);
 
@@ -324,7 +328,7 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
               Chưa có thiết bị nào trong danh sách
             </h3>
             <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-              Mở link báo cáo trên điện thoại học sinh hoặc đăng ký thiết bị mới để bắt đầu giám sát vị trí GPS.
+              Mở link báo cáo trên điện thoại học sinh hoặc đăng ký thiết bị mới để bắt đầu giám sát App & Web.
             </p>
           </div>
           <div className="pt-2 flex justify-center gap-3">

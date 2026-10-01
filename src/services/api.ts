@@ -36,12 +36,23 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       headers,
     });
 
-    const data: ApiResponse<T> = await res.json();
+    const text = await res.text();
+    let data: ApiResponse<T>;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return {
+        success: false,
+        message: res.status >= 500
+          ? 'Máy chủ đang đồng bộ dữ liệu. Kết nối sẽ tự phục hồi trong giây lát.'
+          : 'Lỗi phản hồi từ máy chủ.',
+      };
+    }
     return data;
   } catch (err: any) {
     return {
       success: false,
-      message: err.message || 'Lỗi kết nối máy chủ. Vui lòng thử lại sau.',
+      message: err.message || 'Lỗi kết nối máy chủ. Vui lòng kiểm tra đường truyền mạng.',
     };
   }
 }

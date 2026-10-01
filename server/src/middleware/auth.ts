@@ -10,7 +10,7 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export function generateToken(payload: AuthUserPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
 }
 
 export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -32,7 +32,13 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthUserPayload;
-    const freshUser = await dbService.findUserById(decoded.userId);
+    let freshUser = await dbService.findUserById(decoded.userId);
+
+    // Fallback: If userId changed (e.g. after database sync or admin reset), look up by email
+    if (!freshUser && decoded.email) {
+      freshUser = await dbService.findUserByEmail(decoded.email);
+    }
+
     if (!freshUser) {
       return res.status(401).json({
         success: false,

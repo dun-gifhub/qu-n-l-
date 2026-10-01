@@ -78,9 +78,10 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
     }
   }, [selectedDeviceId]);
 
-  // Real-time 1-second live auto-refresh to detect what app or web the phone is using
+  // Real-time live auto-refresh to detect what app or web the phone is using
   useEffect(() => {
     const timer = setInterval(async () => {
+      if (document.hidden) return;
       try {
         const devRes = await api.getDevices();
         if (devRes.success && devRes.data) {
@@ -96,7 +97,7 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
       } catch {
         // silent background poll
       }
-    }, 1000);
+    }, 2500);
     return () => clearInterval(timer);
   }, [selectedDeviceId]);
 

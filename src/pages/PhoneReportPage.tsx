@@ -757,7 +757,7 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
               className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-base shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-3 transition-all cursor-pointer transform active:scale-98"
             >
               <Play className="w-5 h-5 fill-current" />
-              <span>BẮT ĐẦU BÁO CÁO VỊ TRÍ & PIN</span>
+              <span>BẮT ĐẦU BÁO CÁO APP, WEB & PIN</span>
             </button>
           ) : (
             <button
@@ -781,33 +781,18 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
 
         {/* Real-time Telemetry Status */}
         <div className="mt-6 grid grid-cols-2 gap-3">
-          {/* GPS Coordinates */}
+          {/* Active App & Web Status */}
           <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
-              <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Tọa độ Google Maps</span>
+            <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-semibold">
+              <Globe className="w-3.5 h-3.5" />
+              <span>Đang Truyền Về Server</span>
             </div>
-            {coords ? (
-              <div>
-                <div className="text-xs font-mono font-bold text-white">
-                  {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
-                </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                  Sai số: ±{Math.round(coords.accuracy || 10)}m
-                </div>
-                <a
-                  href={`https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1 text-[10px] text-indigo-400 hover:underline flex items-center gap-1"
-                >
-                  <span>Xem trên Google Maps</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              </div>
-            ) : (
-              <div className="text-xs text-slate-500 italic">Đang dò GPS vệ tinh...</div>
-            )}
+            <div className="text-xs font-bold text-white truncate">
+              {currentApp || 'Màn hình chính'}
+            </div>
+            <div className="text-[10px] text-slate-400 truncate font-mono">
+              {currentWebsite || 'google.com'}
+            </div>
           </div>
 
           {/* Battery Status */}
@@ -834,35 +819,8 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
 
         {/* Report Stats */}
         <div className="mt-3 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between text-xs">
-          <span className="text-slate-400">Số gói tin đã truyền thành công:</span>
+          <span className="text-slate-400">Số gói tin App & Web đã truyền:</span>
           <span className="font-mono font-bold text-indigo-400">{reportCount} gói tin</span>
-        </div>
-
-        {/* Quick GPS Test Buttons */}
-        <div className="mt-4 p-3.5 rounded-2xl bg-slate-900/50 border border-slate-800/60 space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="font-semibold">Gửi vị trí nhanh (nếu GPS trong nhà yếu):</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => sendSampleLocation('HCM')}
-              className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition cursor-pointer text-center"
-            >
-              TP.HCM
-            </button>
-            <button
-              onClick={() => sendSampleLocation('HN')}
-              className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition cursor-pointer text-center"
-            >
-              Hà Nội
-            </button>
-            <button
-              onClick={() => sendSampleLocation('DN')}
-              className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition cursor-pointer text-center"
-            >
-              Đà Nẵng
-            </button>
-          </div>
         </div>
       </div>
 

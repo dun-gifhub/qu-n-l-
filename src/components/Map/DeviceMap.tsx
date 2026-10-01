@@ -51,7 +51,12 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    if (!mapInstanceRef.current) {
+    try {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+
       const defaultCenter: [number, number] = center || [10.7769, 106.7009]; // Default Ho Chi Minh City
       const map = L.map(mapContainerRef.current, {
         center: defaultCenter,
@@ -70,10 +75,19 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
       tileLayerRef.current = tile;
       layerGroupRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
+    } catch (err) {
+      console.warn('Leaflet map initialization warning (safely handled):', err);
     }
 
     return () => {
-      // Map cleanup on component unmount
+      try {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+        }
+      } catch (err) {
+        // Safe disposal
+      }
     };
   }, []);
 

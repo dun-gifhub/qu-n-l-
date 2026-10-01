@@ -75,7 +75,7 @@ function ensureDefaultAdmin(state: DBState): DBState {
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(adminPassword, salt);
     const newAdmin = {
-      id: 'usr_admin_' + Date.now().toString(36),
+      id: 'usr_admin_master',
       name: adminName,
       email: adminEmail,
       passwordHash,
@@ -584,7 +584,27 @@ export const dbService = {
   async findUserByEmail(email: string): Promise<UserRecord | null> {
     const normEmail = email.toLowerCase().trim();
     const state = readLocalDB();
-    return state.users.find(u => u.email.toLowerCase() === normEmail) || null;
+    const local = state.users.find(u => u.email.toLowerCase() === normEmail);
+    if (local) return local;
+
+    if (pgPool) {
+      try {
+        const res = await pgPool.query('SELECT * FROM users WHERE LOWER(email) = $1 LIMIT 1', [normEmail]);
+        if (res.rows && res.rows[0]) {
+          const u = res.rows[0] as UserRecord;
+          const idx = state.users.findIndex(x => x.id === u.id || x.email.toLowerCase() === normEmail);
+          if (idx === -1) {
+            state.users.push(u);
+          } else {
+            state.users[idx] = { ...state.users[idx], ...u };
+          }
+          return u;
+        }
+      } catch (err) {
+        console.warn('findUserByEmail Postgres fallback error:', err);
+      }
+    }
+    return null;
   },
 
   async findUserByEmailOrPhone(identifier: string): Promise<UserRecord | null> {
@@ -592,36 +612,78 @@ export const dbService = {
     const raw = String(identifier).toLowerCase().trim().replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '');
     const cleanDigits = raw.replace(/\D/g, '');
     const state = readLocalDB();
-    return (
-      state.users.find((u) => {
-        if (u.email && u.email.toLowerCase() === raw) return true;
-        if (u.email && raw.includes('@') && u.email.toLowerCase().replace(/[\s.-]/g, '') === raw.replace(/[\s.-]/g, '')) {
-          return true;
-        }
-        if (cleanDigits.length >= 8) {
-          if (u.phone) {
-            const uPhoneDigits = u.phone.replace(/\D/g, '');
-            if (
-              uPhoneDigits &&
-              (uPhoneDigits === cleanDigits ||
-                uPhoneDigits.endsWith(cleanDigits) ||
-                cleanDigits.endsWith(uPhoneDigits))
-            ) {
-              return true;
-            }
-          }
-          if (u.email && u.email.includes(cleanDigits)) {
+    const found = state.users.find((u) => {
+      if (u.email && u.email.toLowerCase() === raw) return true;
+      if (u.email && raw.includes('@') && u.email.toLowerCase().replace(/[\s.-]/g, '') === raw.replace(/[\s.-]/g, '')) {
+        return true;
+      }
+      if (cleanDigits.length >= 8) {
+        if (u.phone) {
+          const uPhoneDigits = u.phone.replace(/\D/g, '');
+          if (
+            uPhoneDigits &&
+            (uPhoneDigits === cleanDigits ||
+              uPhoneDigits.endsWith(cleanDigits) ||
+              cleanDigits.endsWith(uPhoneDigits))
+          ) {
             return true;
           }
         }
-        return false;
-      }) || null
-    );
+        if (u.email && u.email.includes(cleanDigits)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (found) return found;
+
+    if (pgPool) {
+      try {
+        const res = await pgPool.query(
+          `SELECT * FROM users 
+           WHERE LOWER(email) = $1 
+              OR ($2 <> '' AND (phone LIKE '%' || $2 || '%' OR email LIKE '%' || $2 || '%'))
+           LIMIT 1`,
+          [raw, cleanDigits]
+        );
+        if (res.rows && res.rows[0]) {
+          const u = res.rows[0] as UserRecord;
+          state.users.push(u);
+          return u;
+        }
+      } catch (err) {
+        console.warn('findUserByEmailOrPhone Postgres fallback error:', err);
+      }
+    }
+
+    return null;
   },
 
   async findUserById(id: string): Promise<UserRecord | null> {
     const state = readLocalDB();
-    return state.users.find(u => u.id === id) || null;
+    const local = state.users.find(u => u.id === id);
+    if (local) return local;
+
+    if (pgPool) {
+      try {
+        const res = await pgPool.query('SELECT * FROM users WHERE id = $1 LIMIT 1', [id]);
+        if (res.rows && res.rows[0]) {
+          const u = res.rows[0] as UserRecord;
+          const idx = state.users.findIndex(x => x.id === id);
+          if (idx === -1) {
+            state.users.push(u);
+          } else {
+            state.users[idx] = { ...state.users[idx], ...u };
+          }
+          return u;
+        }
+      } catch (err) {
+        console.warn('findUserById Postgres fallback error:', err);
+      }
+    }
+
+    return null;
   },
 
   async getAllUsers(): Promise<(Omit<UserRecord, 'passwordHash'> & { deviceCount: number })[]> {

@@ -227,37 +227,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
               </button>
             </div>
 
-            {/* Admin Quick Credentials Hint Banner */}
-            {loginMode === 'ADMIN' && (
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 text-xs text-[#003B7A] space-y-2">
-                <div className="flex items-center justify-between font-bold">
-                  <div className="flex items-center gap-1.5">
-                    <KeyRound className="w-4 h-4 text-[#0057B8]" />
-                    <span>Thông tin Mật khẩu Admin hệ thống</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-100 text-[#0057B8] font-bold">
-                    Admin Tối Thượng
-                  </span>
-                </div>
-                <div className="text-[11px] text-slate-600 leading-relaxed">
-                  Email: <strong className="font-mono text-[#0057B8]">admin@devicemonitor.com</strong>
-                  <br />
-                  Mật khẩu mặc định: <strong className="font-mono text-[#0057B8]">admin123</strong> (hoặc mật khẩu do Admin đã đổi)
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('admin@devicemonitor.com');
-                    setPassword('admin123');
-                  }}
-                  className="w-full py-1.5 px-2.5 rounded-xl bg-white hover:bg-blue-100/50 border border-blue-200 text-[#0057B8] text-[11px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Điền nhanh Email & Mật khẩu Admin</span>
-                </button>
-              </div>
-            )}
-
             {/* Notification or Redirect Message */}
             {message && (
               <div className="p-3.5 rounded-[14px] bg-[#EAF5FF] border border-[#d2e7fc] text-[#0057B8] text-xs font-semibold flex items-center gap-2">
