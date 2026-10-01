@@ -348,6 +348,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       </div>
 
+      {/* Google Maps & Lịch Sử Di Chuyển Trực Tuyến */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-900 dark:text-white text-base">
+                Bản Đồ Google Maps & Định Vị Trực Tuyến
+              </h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Hiển thị vị trí thực của học sinh theo từng khối, lớp trên nền Google Maps vệ tinh
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/map')}
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer whitespace-nowrap"
+          >
+            <span>Mở toàn màn hình</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs">
+          <DeviceMap devices={filteredDevices} height="390px" />
+        </div>
+      </div>
+
       {/* Live App & Web Monitor Overview */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">

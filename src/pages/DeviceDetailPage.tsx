@@ -8,6 +8,7 @@ import {
   WebVisitItem,
   PhoneContact,
 } from '../types/index.ts';
+import { DeviceMap } from '../components/Map/DeviceMap.tsx';
 import {
   Smartphone,
   Battery,
@@ -35,6 +36,8 @@ import {
   CheckCircle2,
   ShieldCheck,
   UserPlus,
+  Navigation,
+  ExternalLink,
 } from 'lucide-react';
 
 interface DeviceDetailPageProps {
@@ -48,7 +51,7 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   deviceId,
   navigate,
   onOpenSimulator,
-  initialTab = 'usage',
+  initialTab = 'history',
 }) => {
   const [device, setDevice] = useState<Device | null>(null);
   const [history, setHistory] = useState<DeviceLocation[]>([]);
@@ -68,9 +71,9 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   const [deletingContactId, setDeletingContactId] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<
-    'usage' | 'status' | 'activity' | 'api'
-  >((initialTab === 'location' || initialTab === 'history' ? 'usage' : (initialTab as any)) || 'usage');
-  const [historyRange, setHistoryRange] = useState<'today' | '7days' | '30days'>('today');
+    'history' | 'location' | 'usage' | 'status' | 'contacts' | 'activity' | 'api'
+  >((initialTab as any) || 'history');
+  const [historyRange, setHistoryRange] = useState<'all' | 'today' | '7days' | '30days'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -79,6 +82,20 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   const [editSchoolName, setEditSchoolName] = useState('');
   const [editClassName, setEditClassName] = useState('');
   const [copiedCurl, setCopiedCurl] = useState(false);
+  const [copiedGps, setCopiedGps] = useState(false);
+
+  const copyGpsHistory = () => {
+    if (history.length === 0) return;
+    const text = history
+      .map(
+        (h, i) =>
+          `#${i + 1} | ${new Date(h.timestamp).toLocaleString('vi-VN')} | GPS: ${h.latitude},${h.longitude} | Sai số: ±${Math.round(h.accuracy || 10)}m`
+      )
+      .join('\n');
+    navigator.clipboard.writeText(text);
+    setCopiedGps(true);
+    setTimeout(() => setCopiedGps(false), 2500);
+  };
 
   const loadDeviceData = async () => {
     setIsLoading(true);
@@ -107,8 +124,56 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         setAppUsages(usageRes.data.appUsages);
         setWebHistory(usageRes.data.webHistory);
       }
+      try {
+        const cRes = await api.getDeviceContacts(deviceId);
+        if (cRes.success && cRes.data) {
+          setContacts(cRes.data);
+        }
+      } catch {}
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newContactName.trim() || !newContactPhone.trim()) return;
+    setIsAddingContact(true);
+    setContactFeedback(null);
+    const res = await api.addDeviceContact(deviceId, {
+      name: newContactName.trim(),
+      phone: newContactPhone.trim(),
+      relationship: newContactRel.trim(),
+      isEmergencyAlert: newContactAlert,
+    });
+    setIsAddingContact(false);
+    if (res.success && res.data) {
+      setContacts(res.data);
+      setNewContactName('');
+      setNewContactPhone('');
+      setContactFeedback({ type: 'success', text: 'Thêm số điện thoại mới thành công!' });
+      setTimeout(() => setContactFeedback(null), 3000);
+    } else {
+      setContactFeedback({ type: 'error', text: res.message || 'Lỗi thêm số điện thoại' });
+    }
+  };
+
+  const handleDeleteContact = async (contactId: string) => {
+    setDeletingContactId(contactId);
+    const res = await api.deleteDeviceContact(deviceId, contactId);
+    setDeletingContactId(null);
+    if (res.success && res.data) {
+      setContacts(res.data);
+    }
+  };
+
+  const handleClearAllContacts = async () => {
+    setIsDeletingAllContacts(true);
+    const res = await api.clearAllDeviceContacts(deviceId);
+    setIsDeletingAllContacts(false);
+    setConfirmClearContactsOpen(false);
+    if (res.success) {
+      setContacts([]);
     }
   };
 
@@ -328,9 +393,12 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
       {/* Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto gap-2">
         {[
+          { key: 'history', label: `🗺️ Lịch sử di chuyển (${history.length} điểm)` },
+          { key: 'location', label: '📍 Vị trí hiện tại' },
           { key: 'usage', label: `📱 Sử dụng App & Web (${appUsages.length + webHistory.length})` },
           { key: 'status', label: '⚙️ Trạng thái & Học sinh' },
-          { key: 'activity', label: '📋 Nhật ký hoạt động' },
+          { key: 'contacts', label: `📞 Danh bạ & SĐT (${contacts.length})` },
+          { key: 'activity', label: `📋 Nhật ký hoạt động (${activities.length})` },
           { key: 'api', label: '🔌 API Mobile App' },
         ].map((tab) => (
           <button
@@ -346,6 +414,353 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
           </button>
         ))}
       </div>
+
+      {/* Tab: Lịch Sử Di Chuyển (Movement History & GPS Route Tracking) */}
+      {activeTab === 'history' && (
+        <div className="space-y-6">
+          {/* Reassurance Banner: CHỈ THÊM KHÔNG BỚT */}
+          <div className="p-3.5 px-4 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
+                <Navigation className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-extrabold text-indigo-950 dark:text-indigo-200">
+                  Cơ chế lưu trữ: CHỈ THÊM KHÔNG BỚT · ĐỒNG BỘ NEON POSTGRESQL
+                </div>
+                <div className="text-[11px] text-indigo-700 dark:text-indigo-300 mt-0.5">
+                  Tất cả các điểm tọa độ di chuyển được bảo toàn vĩnh viễn, không bao giờ bị cắt giảm hay xoá bớt.
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              <button
+                onClick={copyGpsHistory}
+                disabled={history.length === 0}
+                className="py-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                title="Sao chép toàn bộ danh sách tọa độ GPS"
+              >
+                {copiedGps ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedGps ? 'Đã chép GPS' : 'Chép tọa độ'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Controls Bar */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                Khoảng thời gian:
+              </span>
+              {[
+                { key: 'all', label: 'Toàn bộ (Chỉ thêm không bớt)' },
+                { key: 'today', label: 'Hôm nay' },
+                { key: '7days', label: '7 ngày qua' },
+                { key: '30days', label: '30 ngày qua' },
+              ].map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => setHistoryRange(r.key as any)}
+                  className={`py-1.5 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                    historyRange === r.key
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3 text-xs font-mono">
+              <span className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 font-bold">
+                📍 {history.length} tọa độ đã lưu trữ
+              </span>
+              <button
+                onClick={loadDeviceData}
+                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                title="Làm mới lịch sử"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Route Map */}
+          <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs">
+            <div className="px-5 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-indigo-500" />
+                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                  Lộ Trình Di Chuyển Trên Nền Google Maps Vệ Tinh (Đường Nối Tuyến Đường)
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono">
+                Tự động nối lộ trình theo thời gian thực
+              </span>
+            </div>
+            <DeviceMap historyLocations={history} height="460px" />
+          </div>
+
+          {/* Detailed Points Table */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                  Bảng Lịch Sử Tọa Độ GPS & Điểm Dừng
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Đồng bộ và lưu trữ kiên cố trên Neon PostgreSQL
+                </p>
+              </div>
+              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                {history.length} điểm ghi nhận
+              </span>
+            </div>
+
+            {history.length === 0 ? (
+              <div className="py-12 px-4 text-center text-xs text-slate-400 space-y-2">
+                <p>Chưa có dữ liệu lịch sử di chuyển nào được ghi nhận trong khoảng thời gian này.</p>
+                <p className="text-[11px] text-slate-500">Mở link báo cáo trên điện thoại để bắt đầu truyền tọa độ GPS định kỳ.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="py-3 px-5">STT</th>
+                      <th className="py-3 px-5">Thời gian</th>
+                      <th className="py-3 px-5">Vĩ độ (Latitude)</th>
+                      <th className="py-3 px-5">Kinh độ (Longitude)</th>
+                      <th className="py-3 px-5">Độ chính xác</th>
+                      <th className="py-3 px-5">Trạng thái điểm</th>
+                      <th className="py-3 px-5 text-right">Xem bản đồ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono tabular-nums">
+                    {history.map((loc, idx) => (
+                      <tr key={loc.id || idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                        <td className="py-3 px-5 text-slate-400">#{idx + 1}</td>
+                        <td className="py-3 px-5 text-slate-800 dark:text-slate-200 font-sans">
+                          {new Date(loc.timestamp).toLocaleString('vi-VN')}
+                        </td>
+                        <td className="py-3 px-5 font-bold text-slate-900 dark:text-white">
+                          {loc.latitude.toFixed(6)}
+                        </td>
+                        <td className="py-3 px-5 font-bold text-slate-900 dark:text-white">
+                          {loc.longitude.toFixed(6)}
+                        </td>
+                        <td className="py-3 px-5 text-slate-500">
+                          {loc.accuracy ? `±${Math.round(loc.accuracy)} m` : '±10 m'}
+                        </td>
+                        <td className="py-3 px-5 font-sans">
+                          {idx === 0 ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                              Vị trí mới nhất
+                            </span>
+                          ) : idx === history.length - 1 ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+                              Điểm xuất phát
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                              Điểm di chuyển
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-5 text-right font-sans">
+                          <a
+                            href={`https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>Google Maps</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Vị Trí Trực Tuyến Hiện Tại */}
+      {activeTab === 'location' && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-6">
+              <div>
+                <span className="text-slate-400 block">Vĩ độ (Latitude)</span>
+                <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
+                  {typeof device.latitude === 'number' ? device.latitude.toFixed(6) : 'Chưa có'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block">Kinh độ (Longitude)</span>
+                <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
+                  {typeof device.longitude === 'number' ? device.longitude.toFixed(6) : 'Chưa có'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block">Độ chính xác (Accuracy)</span>
+                <span className="font-mono tabular-nums font-semibold text-slate-800 dark:text-slate-200">
+                  {device.accuracy ? `±${device.accuracy}m` : 'Tiêu chuẩn'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {device.latitude && device.longitude && (
+                <a
+                  href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition cursor-pointer text-xs flex items-center gap-1"
+                >
+                  <span>Mở Google Maps</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+              <button
+                onClick={() => navigate('/report')}
+                className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition cursor-pointer text-xs flex items-center gap-1"
+              >
+                <span>📱 Mở Báo Cáo Trên ĐT</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs">
+            <DeviceMap selectedDevice={device} height="480px" />
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Danh bạ & SĐT Phụ Huynh / Khẩn Cấp */}
+      {activeTab === 'contacts' && (
+        <div className="space-y-6">
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-indigo-500" />
+                  <span>Danh Bạ & Số Điện Thoại Khẩn Cấp ({contacts.length})</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Số điện thoại người thân để liên hệ ngay khi học sinh gặp sự cố hoặc cảnh báo giờ học
+                </p>
+              </div>
+
+              {contacts.length > 0 && (
+                <button
+                  onClick={handleClearAllContacts}
+                  disabled={isDeletingAllContacts}
+                  className="py-1.5 px-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 text-xs font-semibold transition cursor-pointer self-start"
+                >
+                  Xoá toàn bộ danh bạ
+                </button>
+              )}
+            </div>
+
+            {/* Add Contact Form */}
+            <form onSubmit={handleAddContact} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
+              <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">
+                + Thêm Số Điện Thoại Mới:
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  placeholder="Tên người liên hệ (VD: Mẹ Lan)"
+                  value={newContactName}
+                  onChange={(e) => setNewContactName(e.target.value)}
+                  className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Số điện thoại (VD: 0901234567)"
+                  value={newContactPhone}
+                  onChange={(e) => setNewContactPhone(e.target.value)}
+                  className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  required
+                />
+                <select
+                  value={newContactRel}
+                  onChange={(e) => setNewContactRel(e.target.value)}
+                  className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                >
+                  <option value="Phụ huynh">Phụ huynh (Bố/Mẹ)</option>
+                  <option value="Giáo viên">Giáo viên chủ nhiệm</option>
+                  <option value="Người giám hộ">Người giám hộ</option>
+                  <option value="Khẩn cấp">Số cứu nạn khẩn cấp</option>
+                </select>
+              </div>
+
+              {contactFeedback && (
+                <p className={`text-xs ${contactFeedback.type === 'success' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {contactFeedback.text}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isAddingContact}
+                className="py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs transition cursor-pointer"
+              >
+                {isAddingContact ? 'Đang lưu...' : 'Lưu Số Điện Thoại'}
+              </button>
+            </form>
+
+            {/* Contacts List */}
+            {contacts.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400">
+                Chưa có số điện thoại nào trong danh bạ khẩn cấp của thiết bị này.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {contacts.map((c) => (
+                  <div key={c.id} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                        {c.name}
+                      </div>
+                      <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5">
+                        {c.phone}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Quan hệ: {c.relationship || 'Phụ huynh'}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={`tel:${c.phone}`}
+                        className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition cursor-pointer"
+                        title="Gọi điện"
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" />
+                      </a>
+                      <button
+                        onClick={() => handleDeleteContact(c.id)}
+                        disabled={deletingContactId === c.id}
+                        className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition cursor-pointer"
+                        title="Xoá số"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tab 1: Status & Student Info */}
       {activeTab === 'status' && (

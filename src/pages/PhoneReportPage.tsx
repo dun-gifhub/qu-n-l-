@@ -20,6 +20,7 @@ import {
   Building,
   GraduationCap,
   Users,
+  Globe,
 } from 'lucide-react';
 import { api } from '../services/api.ts';
 

@@ -219,6 +219,15 @@ export const api = {
   getLocationHistory: (id: string, range: string = 'today') =>
     request<DeviceLocation[]>(`/devices/${id}/location-history?range=${range}`),
 
+  getAllMovementHistory: (range: string = 'all', deviceId?: string) => {
+    const q = new URLSearchParams();
+    if (range) q.set('range', range);
+    if (deviceId && deviceId !== 'ALL') q.set('deviceId', deviceId);
+    return request<(DeviceLocation & { deviceName?: string; studentName?: string; className?: string; schoolName?: string })[]>(
+      `/devices/movement-history/all?${q.toString()}`
+    );
+  },
+
   sendHeartbeat: (
     id: string,
     body: {

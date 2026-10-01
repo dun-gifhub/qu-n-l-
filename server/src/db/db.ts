@@ -126,7 +126,7 @@ function ensureDefaultAdmin(state: DBState): DBState {
 export async function initDatabase(): Promise<{ isPostgres: boolean }> {
   const dbUrl = process.env.DATABASE_URL;
 
-  if (dbUrl && dbUrl.startsWith('postgresql://') && !dbUrl.includes('user:password@ep-xyz')) {
+  if (dbUrl && (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) && !dbUrl.includes('user:password@ep-xyz')) {
     try {
       pgPool = new Pool({
         connectionString: dbUrl,
@@ -232,6 +232,37 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
           timestamp TEXT,
           metadata JSONB
         );
+
+        CREATE TABLE IF NOT EXISTS app_usages (
+          id TEXT PRIMARY KEY,
+          "deviceId" TEXT NOT NULL,
+          "appName" TEXT NOT NULL,
+          "packageName" TEXT,
+          category TEXT,
+          icon TEXT,
+          "durationMinutes" INTEGER DEFAULT 0,
+          "lastUsed" TEXT,
+          "isRunning" BOOLEAN DEFAULT false,
+          "isBlocked" BOOLEAN DEFAULT false,
+          "riskLevel" TEXT DEFAULT 'SAFE',
+          "createdAt" TEXT,
+          "updatedAt" TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS web_history (
+          id TEXT PRIMARY KEY,
+          "deviceId" TEXT NOT NULL,
+          url TEXT NOT NULL,
+          domain TEXT,
+          "pageTitle" TEXT,
+          category TEXT,
+          "visitCount" INTEGER DEFAULT 1,
+          "durationMinutes" INTEGER DEFAULT 0,
+          "isBlocked" BOOLEAN DEFAULT false,
+          timestamp TEXT,
+          "createdAt" TEXT,
+          "updatedAt" TEXT
+        );
       `);
 
       // 2. CRITICAL MIGRATION: Alter existing tables to add all missing columns and remove blocking constraints
@@ -298,58 +329,53 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
         CREATE INDEX IF NOT EXISTS idx_activities_time ON activities (timestamp DESC);
       `);
 
-      // 1. Sync users from Neon into local state, and sync local users to Neon
+      // 1. Sync users from Neon into local state (Neon is authoritative; deleted users never reappear)
       try {
         const userRes = await client.query('SELECT * FROM users');
         const state = readLocalDB();
         if (userRes.rows && userRes.rows.length > 0) {
-          for (const u of userRes.rows) {
-            const idx = state.users.findIndex(x => x.id === u.id || x.email.toLowerCase() === (u.email || '').toLowerCase());
-            if (idx === -1) {
-              state.users.push(u);
-            } else {
-              state.users[idx] = { ...state.users[idx], ...u };
-            }
-          }
+          // Adopt Neon PostgreSQL user records as single source of truth
+          state.users = userRes.rows as UserRecord[];
           console.log(`Synced ${userRes.rows.length} users from Neon PostgreSQL.`);
-        }
-
-        // Push any local admin or registered users to Neon
-        for (const u of state.users) {
-          await client.query(
-            `INSERT INTO users (
-              id, name, email, "passwordHash", role, "approvalStatus", "schoolName", grade, "className", "studentName", phone, "approvedBy", "approvedAt", "createdAt", "updatedAt"
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            ON CONFLICT (id) DO UPDATE SET
-              name = EXCLUDED.name,
-              "passwordHash" = EXCLUDED."passwordHash",
-              role = EXCLUDED.role,
-              "approvalStatus" = EXCLUDED."approvalStatus",
-              "schoolName" = EXCLUDED."schoolName",
-              grade = EXCLUDED.grade,
-              "className" = EXCLUDED."className",
-              "studentName" = EXCLUDED."studentName",
-              phone = EXCLUDED.phone,
-              "updatedAt" = EXCLUDED."updatedAt"`,
-            [
-              u.id,
-              u.name,
-              u.email,
-              u.passwordHash,
-              u.role,
-              u.approvalStatus,
-              u.schoolName || null,
-              u.grade || null,
-              u.className || null,
-              u.studentName || null,
-              u.phone || null,
-              u.approvedBy || null,
-              u.approvedAt || null,
-              u.createdAt,
-              u.updatedAt || new Date().toISOString(),
-            ]
-          ).catch((e: any) => console.warn('Neon initial user push warning:', e.message));
+        } else {
+          // If Neon table was completely empty, seed it with local users
+          for (const u of state.users) {
+            await client.query(
+              `INSERT INTO users (
+                id, name, email, "passwordHash", role, "approvalStatus", "schoolName", grade, "className", "studentName", phone, "approvedBy", "approvedAt", "createdAt", "updatedAt"
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+              ON CONFLICT (email) DO UPDATE SET
+                id = EXCLUDED.id,
+                name = EXCLUDED.name,
+                "passwordHash" = EXCLUDED."passwordHash",
+                role = EXCLUDED.role,
+                "approvalStatus" = EXCLUDED."approvalStatus",
+                "schoolName" = EXCLUDED."schoolName",
+                grade = EXCLUDED.grade,
+                "className" = EXCLUDED."className",
+                "studentName" = EXCLUDED."studentName",
+                phone = EXCLUDED.phone,
+                "updatedAt" = EXCLUDED."updatedAt"`,
+              [
+                u.id,
+                u.name,
+                u.email,
+                u.passwordHash,
+                u.role,
+                u.approvalStatus,
+                u.schoolName || null,
+                u.grade || null,
+                u.className || null,
+                u.studentName || null,
+                u.phone || null,
+                u.approvedBy || null,
+                u.approvedAt || null,
+                u.createdAt,
+                u.updatedAt || new Date().toISOString(),
+              ]
+            ).catch((e: any) => console.warn('Neon initial user push warning:', e.message));
+          }
         }
 
         // 2. Sync devices from Neon into local state
@@ -365,6 +391,148 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
           }
           console.log(`Synced ${devRes.rows.length} devices from Neon PostgreSQL.`);
         }
+
+        // Push local devices to Neon if missing
+        for (const d of state.devices) {
+          await client.query(
+            `INSERT INTO devices (
+              id, "userId", "deviceUuid", name, platform, "studentName", "studentId", "schoolName", grade, "className",
+              "parentPhone", "currentApp", "currentWebsite", "batteryLevel", charging, "networkType",
+              latitude, longitude, accuracy, "isUninstalled", "uninstalledAt", status, "lastSeen", "createdAt", "updatedAt"
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+            ON CONFLICT (id) DO UPDATE SET
+              name = EXCLUDED.name,
+              platform = EXCLUDED.platform,
+              "studentName" = COALESCE(EXCLUDED."studentName", devices."studentName"),
+              "schoolName" = COALESCE(EXCLUDED."schoolName", devices."schoolName"),
+              "className" = COALESCE(EXCLUDED."className", devices."className"),
+              "parentPhone" = COALESCE(EXCLUDED."parentPhone", devices."parentPhone"),
+              "currentApp" = EXCLUDED."currentApp",
+              "currentWebsite" = EXCLUDED."currentWebsite",
+              "batteryLevel" = EXCLUDED."batteryLevel",
+              charging = EXCLUDED.charging,
+              "networkType" = EXCLUDED."networkType",
+              latitude = EXCLUDED.latitude,
+              longitude = EXCLUDED.longitude,
+              accuracy = EXCLUDED.accuracy,
+              status = EXCLUDED.status,
+              "lastSeen" = EXCLUDED."lastSeen",
+              "updatedAt" = EXCLUDED."updatedAt"`,
+            [
+              d.id,
+              d.userId || 'usr_default',
+              d.deviceUuid,
+              d.name,
+              d.platform || 'Android',
+              d.studentName || d.name,
+              d.studentId || '',
+              d.schoolName || '',
+              d.grade || '',
+              d.className || '',
+              d.parentPhone || '',
+              d.currentApp || 'Màn hình chính',
+              d.currentWebsite || 'google.com',
+              d.batteryLevel ?? 100,
+              Boolean(d.charging),
+              d.networkType || 'WIFI',
+              d.latitude,
+              d.longitude,
+              d.accuracy,
+              Boolean(d.isUninstalled),
+              d.uninstalledAt || null,
+              d.status || 'ONLINE',
+              d.lastSeen || new Date().toISOString(),
+              d.createdAt || new Date().toISOString(),
+              d.updatedAt || new Date().toISOString(),
+            ]
+          ).catch((e: any) => console.warn('Neon push device warning:', e.message));
+        }
+
+        // 3. Sync device location history from Neon into local state (Chỉ thêm không bớt)
+        const locRes = await client.query('SELECT * FROM device_locations ORDER BY timestamp DESC LIMIT 50000');
+        if (locRes.rows && locRes.rows.length > 0) {
+          for (const l of locRes.rows) {
+            if (!state.locations.some(x => x.id === l.id)) {
+              state.locations.push(l);
+            }
+          }
+          console.log(`Synced ${locRes.rows.length} location history points from Neon.`);
+        }
+
+        // Push all local location records to Neon
+        for (const loc of state.locations) {
+          await client.query(
+            `INSERT INTO device_locations (id, "deviceId", latitude, longitude, accuracy, timestamp, "createdAt")
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (id) DO NOTHING`,
+            [loc.id, loc.deviceId, loc.latitude, loc.longitude, loc.accuracy, loc.timestamp, loc.createdAt || loc.timestamp]
+          ).catch(() => {});
+        }
+
+        // 4. Sync activities from Neon into local state
+        const actRes = await client.query('SELECT * FROM activities ORDER BY timestamp DESC LIMIT 1000');
+        if (actRes.rows && actRes.rows.length > 0) {
+          for (const a of actRes.rows) {
+            if (!state.activities.some(x => x.id === a.id)) {
+              state.activities.push(a);
+            }
+          }
+          console.log(`Synced ${actRes.rows.length} activities from Neon.`);
+        }
+
+        // 5. Sync app usages from Neon into local state
+        const appRes = await client.query('SELECT * FROM app_usages LIMIT 2000');
+        if (appRes.rows && appRes.rows.length > 0) {
+          for (const a of appRes.rows) {
+            const idx = state.appUsages.findIndex(x => x.id === a.id);
+            if (idx === -1) {
+              state.appUsages.push(a);
+            } else {
+              state.appUsages[idx] = { ...state.appUsages[idx], ...a };
+            }
+          }
+        }
+        for (const a of state.appUsages) {
+          await client.query(
+            `INSERT INTO app_usages (id, "deviceId", "appName", "packageName", category, icon, "durationMinutes", "lastUsed", "isRunning", "isBlocked", "riskLevel", "createdAt", "updatedAt")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+             ON CONFLICT (id) DO UPDATE SET
+               "durationMinutes" = EXCLUDED."durationMinutes",
+               "lastUsed" = EXCLUDED."lastUsed",
+               "isRunning" = EXCLUDED."isRunning",
+               "isBlocked" = EXCLUDED."isBlocked",
+               "updatedAt" = EXCLUDED."updatedAt"`,
+            [a.id, a.deviceId, a.appName, a.packageName, a.category, a.icon, a.durationMinutes, a.lastUsed, Boolean(a.isRunning), Boolean(a.isBlocked), a.riskLevel, (a as any).createdAt || new Date().toISOString(), (a as any).updatedAt || new Date().toISOString()]
+          ).catch(() => {});
+        }
+
+        // 6. Sync web history from Neon into local state
+        const webRes = await client.query('SELECT * FROM web_history LIMIT 2000');
+        if (webRes.rows && webRes.rows.length > 0) {
+          for (const w of webRes.rows) {
+            const idx = state.webHistory.findIndex(x => x.id === w.id);
+            if (idx === -1) {
+              state.webHistory.push(w);
+            } else {
+              state.webHistory[idx] = { ...state.webHistory[idx], ...w };
+            }
+          }
+        }
+        for (const w of state.webHistory) {
+          await client.query(
+            `INSERT INTO web_history (id, "deviceId", url, domain, "pageTitle", category, "visitCount", "durationMinutes", "isBlocked", timestamp, "createdAt", "updatedAt")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+             ON CONFLICT (id) DO UPDATE SET
+               "visitCount" = EXCLUDED."visitCount",
+               "durationMinutes" = EXCLUDED."durationMinutes",
+               "isBlocked" = EXCLUDED."isBlocked",
+               timestamp = EXCLUDED.timestamp,
+               "updatedAt" = EXCLUDED."updatedAt"`,
+            [w.id, w.deviceId, w.url, w.domain, w.pageTitle || '', w.category, w.visitCount, w.durationMinutes, Boolean(w.isBlocked), w.timestamp, (w as any).createdAt || new Date().toISOString(), (w as any).updatedAt || new Date().toISOString()]
+          ).catch(() => {});
+        }
+
         writeLocalDB(state);
       } catch (err: any) {
         console.warn('Neon sync warning:', err.message);
@@ -1309,13 +1477,14 @@ export const dbService = {
         timestamp: nowIso,
         createdAt: nowIso,
       };
+      // Chỉ thêm không bớt: Lưu giữ toàn bộ tọa độ di chuyển, không cắt ngắn hay xóa bớt
       state.locations.unshift(locRecord);
-      if (state.locations.length > 1000) state.locations = state.locations.slice(0, 1000);
 
       if (pgPool) {
         pgPool.query(
           `INSERT INTO device_locations (id, "deviceId", latitude, longitude, accuracy, timestamp, "createdAt")
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (id) DO NOTHING`,
           [locRecord.id, locRecord.deviceId, locRecord.latitude, locRecord.longitude, locRecord.accuracy, nowIso, nowIso]
         ).catch((e: any) => console.warn('PG location insert error:', e.message));
       }
@@ -1910,19 +2079,20 @@ export const dbService = {
     };
   },
 
-  // LOCATIONS
+  // LOCATIONS - Cơ chế CHỈ THÊM KHÔNG BỚT (Toàn bộ tọa độ GPS được lưu vĩnh viễn)
   async recordLocation(loc: DeviceLocationRecord): Promise<DeviceLocationRecord> {
     const state = readLocalDB();
+    // Chỉ thêm không bớt: bảo toàn vĩnh viễn toàn bộ lịch sử điểm di chuyển
     state.locations.unshift(loc);
-    const devLocs = state.locations.filter(l => l.deviceId === loc.deviceId);
-    if (devLocs.length > 500) {
-      state.locations = state.locations.filter(l => l.deviceId !== loc.deviceId || devLocs.slice(0, 500).includes(l));
-    }
 
     const d = state.devices.find(x => x.id === loc.deviceId);
     if (d) {
       d.lastSeen = loc.timestamp;
       d.updatedAt = loc.timestamp;
+      d.latitude = loc.latitude;
+      d.longitude = loc.longitude;
+      if (loc.accuracy) d.accuracy = loc.accuracy;
+
       state.activities.unshift({
         id: 'act_' + Date.now(),
         deviceId: d.id,
@@ -1937,6 +2107,15 @@ export const dbService = {
       });
     }
 
+    if (pgPool) {
+      pgPool.query(
+        `INSERT INTO device_locations (id, "deviceId", latitude, longitude, accuracy, timestamp, "createdAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (id) DO NOTHING`,
+        [loc.id, loc.deviceId, loc.latitude, loc.longitude, loc.accuracy || null, loc.timestamp, loc.createdAt || loc.timestamp]
+      ).catch((e: any) => console.warn('PG recordLocation error:', e.message));
+    }
+
     writeLocalDB(state);
     return loc;
   },
@@ -1949,7 +2128,58 @@ export const dbService = {
   },
 
   async getLocationHistory(deviceId: string, range?: string): Promise<DeviceLocationRecord[]> {
-    let cutoff = new Date(0);
+    let cutoff: Date | null = null;
+    const now = new Date();
+    if (range === 'today') {
+      cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (range === '7days') {
+      cutoff = new Date(now.getTime() - 7 * 86400000);
+    } else if (range === '30days') {
+      cutoff = new Date(now.getTime() - 30 * 86400000);
+    } // If range === 'all' or empty, cutoff remains null (lấy toàn bộ từ trước đến nay - chỉ thêm không bớt)
+
+    const state = readLocalDB();
+    const localMatches = state.locations
+      .filter(l => l.deviceId === deviceId && (!cutoff || new Date(l.timestamp) >= cutoff))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    if (pgPool) {
+      try {
+        let query = `SELECT id, "deviceId", latitude, longitude, accuracy, timestamp, "createdAt"
+                     FROM device_locations
+                     WHERE "deviceId" = $1`;
+        const params: any[] = [deviceId];
+        if (cutoff) {
+          query += ` AND timestamp >= $2`;
+          params.push(cutoff.toISOString());
+        }
+        query += ` ORDER BY timestamp DESC`;
+
+        const res = await pgPool.query(query, params);
+        if (res.rows && res.rows.length > 0) {
+          const map = new Map<string, DeviceLocationRecord>();
+          for (const l of res.rows) {
+            map.set(l.id, l as DeviceLocationRecord);
+          }
+          for (const l of localMatches) {
+            if (!map.has(l.id)) {
+              map.set(l.id, l);
+            }
+          }
+          return Array.from(map.values())
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        }
+      } catch (err: any) {
+        console.warn('Neon getLocationHistory warning:', err.message);
+      }
+    }
+
+    return localMatches;
+  },
+
+  // Lấy toàn bộ lịch sử di chuyển của tất cả thiết bị (Chỉ thêm không bớt)
+  async getAllMovementLocations(range?: string, deviceId?: string): Promise<(DeviceLocationRecord & { deviceName?: string; studentName?: string; className?: string; schoolName?: string })[]> {
+    let cutoff: Date | null = null;
     const now = new Date();
     if (range === 'today') {
       cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1960,10 +2190,65 @@ export const dbService = {
     }
 
     const state = readLocalDB();
-    return state.locations
-      .filter(l => l.deviceId === deviceId && new Date(l.timestamp) >= cutoff)
+    const devMap = new Map(state.devices.map(d => [d.id, d]));
+
+    let locations = [...state.locations];
+    if (deviceId && deviceId !== 'ALL') {
+      locations = locations.filter(l => l.deviceId === deviceId);
+    }
+    if (cutoff) {
+      locations = locations.filter(l => new Date(l.timestamp) >= cutoff!);
+    }
+
+    if (pgPool) {
+      try {
+        let query = `SELECT id, "deviceId", latitude, longitude, accuracy, timestamp, "createdAt" FROM device_locations`;
+        const params: any[] = [];
+        const conditions: string[] = [];
+
+        if (deviceId && deviceId !== 'ALL') {
+          conditions.push(`"deviceId" = $${params.length + 1}`);
+          params.push(deviceId);
+        }
+        if (cutoff) {
+          conditions.push(`timestamp >= $${params.length + 1}`);
+          params.push(cutoff.toISOString());
+        }
+        if (conditions.length > 0) {
+          query += ` WHERE ` + conditions.join(' AND ');
+        }
+        query += ` ORDER BY timestamp DESC LIMIT 50000`;
+
+        const res = await pgPool.query(query, params);
+        if (res.rows && res.rows.length > 0) {
+          const map = new Map<string, DeviceLocationRecord>();
+          for (const l of res.rows) {
+            map.set(l.id, l as DeviceLocationRecord);
+          }
+          for (const l of locations) {
+            if (!map.has(l.id)) {
+              map.set(l.id, l);
+            }
+          }
+          locations = Array.from(map.values());
+        }
+      } catch (err: any) {
+        console.warn('Neon getAllMovementLocations warning:', err.message);
+      }
+    }
+
+    return locations
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 300);
+      .map(loc => {
+        const d = devMap.get(loc.deviceId);
+        return {
+          ...loc,
+          deviceName: d?.name || 'Thiết bị',
+          studentName: d?.studentName || d?.name || 'Học sinh',
+          className: d?.className || '',
+          schoolName: d?.schoolName || '',
+        };
+      });
   },
 
   // STATUS & HEARTBEAT
@@ -2052,6 +2337,25 @@ export const dbService = {
   // ACTIVITIES
   async getAllActivities(limit = 80): Promise<ActivityEvent[]> {
     const state = readLocalDB();
+    if (pgPool) {
+      try {
+        const res = await pgPool.query('SELECT * FROM activities ORDER BY timestamp DESC LIMIT $1', [limit]);
+        if (res.rows && res.rows.length > 0) {
+          const map = new Map<string, ActivityEvent>();
+          for (const a of res.rows) {
+            map.set(a.id, a as ActivityEvent);
+          }
+          for (const a of state.activities) {
+            if (!map.has(a.id)) map.set(a.id, a);
+          }
+          return Array.from(map.values())
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, limit);
+        }
+      } catch (err: any) {
+        console.warn('Neon getAllActivities warning:', err.message);
+      }
+    }
     return state.activities
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, limit);
@@ -2064,19 +2368,13 @@ export const dbService = {
     const devices = await this.getAccessibleDevices(userId);
     const deviceIds = new Set(devices.map(d => d.id));
 
-    const state = readLocalDB();
-    return state.activities
-      .filter(a => deviceIds.has(a.deviceId))
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, limit);
+    const all = await this.getAllActivities(limit * 2);
+    return all.filter(a => deviceIds.has(a.deviceId)).slice(0, limit);
   },
 
   async getActivitiesForDevice(deviceId: string, limit = 50): Promise<ActivityEvent[]> {
-    const state = readLocalDB();
-    return state.activities
-      .filter(a => a.deviceId === deviceId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, limit);
+    const all = await this.getAllActivities(limit * 2);
+    return all.filter(a => a.deviceId === deviceId).slice(0, limit);
   },
 
   // DATABASE STATS FOR NEON AND LOCAL
@@ -2084,22 +2382,27 @@ export const dbService = {
     isNeonConnected: boolean;
     totalUsers: number;
     totalDevices: number;
+    totalLocations: number;
     neonUsersCount?: number;
     neonDevicesCount?: number;
+    neonLocationsCount?: number;
     databaseEngine: string;
   }> {
     const state = readLocalDB();
     let neonUsersCount: number | undefined;
     let neonDevicesCount: number | undefined;
+    let neonLocationsCount: number | undefined;
 
     if (pgPool && isPostgresConnected) {
       try {
-        const [uRes, dRes] = await Promise.all([
+        const [uRes, dRes, lRes] = await Promise.all([
           pgPool.query('SELECT COUNT(*) FROM users'),
           pgPool.query('SELECT COUNT(*) FROM devices'),
+          pgPool.query('SELECT COUNT(*) FROM device_locations'),
         ]);
         neonUsersCount = parseInt(uRes.rows[0]?.count || '0', 10);
         neonDevicesCount = parseInt(dRes.rows[0]?.count || '0', 10);
+        neonLocationsCount = parseInt(lRes.rows[0]?.count || '0', 10);
       } catch (err: any) {
         console.warn('Neon stats query warning:', err.message);
       }
@@ -2109,8 +2412,10 @@ export const dbService = {
       isNeonConnected: Boolean(isPostgresConnected && pgPool),
       totalUsers: neonUsersCount ?? state.users.length,
       totalDevices: neonDevicesCount ?? state.devices.length,
+      totalLocations: neonLocationsCount ?? state.locations.length,
       neonUsersCount,
       neonDevicesCount,
+      neonLocationsCount,
       databaseEngine: isPostgresConnected && pgPool ? 'Neon PostgreSQL (Production)' : 'Local Persistent Engine (Active)',
     };
   },

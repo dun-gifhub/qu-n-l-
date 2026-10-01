@@ -205,6 +205,39 @@ router.get('/', requireAuth, requireApproved, async (req: AuthenticatedRequest, 
   }
 });
 
+// GET /api/devices/movement-history/all - Get complete movement history across accessible devices (Chỉ thêm không bớt)
+router.get('/movement-history/all', requireAuth, requireApproved, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const range = (req.query.range as string) || 'all';
+    const deviceId = req.query.deviceId as string | undefined;
+
+    const accessible = await dbService.getAccessibleDevices(req.user!.userId);
+    const accessibleIds = new Set(accessible.map(d => d.id));
+
+    if (deviceId && deviceId !== 'ALL' && !accessibleIds.has(deviceId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền truy cập dữ liệu di chuyển của thiết bị này',
+      });
+    }
+
+    const allLocations = await dbService.getAllMovementLocations(range, deviceId);
+    const userLocations = allLocations.filter(l => accessibleIds.has(l.deviceId));
+
+    return res.json({
+      success: true,
+      data: userLocations,
+      totalCount: userLocations.length,
+      storagePolicy: 'APPEND_ONLY_PERMANENT',
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể tải lịch sử di chuyển toàn hệ thống: ' + error.message,
+    });
+  }
+});
+
 // POST /api/devices - Register/Add new student device (bắt buộc đăng nhập)
 router.post('/', requireAuth, requireApproved, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
