@@ -1,13 +1,31 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
 
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   }
+  .font-education {
+    font-family: 'Be Vietnam Pro', Arial, sans-serif;
+  }
   code, pre {
     font-family: 'JetBrains Mono', monospace;
   }
+}
+
+/* EdTech Design Tokens */
+:root {
+  --ed-primary-blue: #0057B8;
+  --ed-deep-blue: #003B7A;
+  --ed-bright-blue: #087FEA;
+  --ed-light-blue: #EAF5FF;
+  --ed-yellow-accent: #FFD200;
+  --ed-dark-yellow: #F5B800;
+  --ed-bg: #F5F9FD;
+  --ed-text-primary: #172B4D;
+  --ed-text-secondary: #60758D;
+  --ed-border: #DCE7F2;
 }
 
 /* Custom map popups and pins styling */

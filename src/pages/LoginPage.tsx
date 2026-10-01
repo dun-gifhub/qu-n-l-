@@ -1,7 +1,26 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { api } from '../services/api.ts';
-import { Radio, Lock, Mail, ArrowRight, AlertCircle, CheckCircle2, KeyRound, Phone, X, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import {
+  GraduationCap,
+  Lock,
+  Mail,
+  ArrowRight,
+  AlertCircle,
+  CheckCircle2,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Sparkles,
+  School,
+  ShieldCheck,
+  Smartphone,
+  BookOpen,
+  Users,
+} from 'lucide-react';
+import { EducationButton } from '../components/education/EducationButton.tsx';
+import { EducationInput } from '../components/education/EducationInput.tsx';
+import { EducationModal } from '../components/education/EducationModal.tsx';
 
 interface LoginPageProps {
   navigate: (path: string) => void;
@@ -27,7 +46,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail || !forgotNewPassword) {
-      setForgotStatusMsg({ type: 'error', text: 'Vui lòng nhập email và mật khẩu mới' });
+      setForgotStatusMsg({ type: 'error', text: 'Vui lòng nhập email/SĐT và mật khẩu mới' });
       return;
     }
     if (forgotNewPassword.length < 6) {
@@ -47,7 +66,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
     if (res.success) {
       setForgotStatusMsg({
         type: 'success',
-        text: res.message || 'Đặt lại mật khẩu thành công! Đang chuyển thông tin về form đăng nhập...',
+        text: res.message || 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.',
       });
       setEmail(forgotEmail.trim());
       setPassword(forgotNewPassword.trim());
@@ -66,7 +85,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setErrorMsg('Vui lòng nhập đầy đủ email và mật khẩu');
+      setErrorMsg('Vui lòng nhập đầy đủ Email/Số điện thoại và mật khẩu');
       return;
     }
 
@@ -79,264 +98,284 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
     if (res.success) {
       navigate('/dashboard');
     } else {
-      setErrorMsg(res.message || 'Email hoặc mật khẩu không chính xác');
+      setErrorMsg(res.message || 'Email, Số điện thoại hoặc mật khẩu không chính xác');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div
-          className="inline-flex items-center gap-2 cursor-pointer mb-3"
-          onClick={() => navigate('/')}
-        >
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white">
-            <Radio className="w-5 h-5" />
-          </div>
-          <span className="font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">
-            DeviceMonitor
-          </span>
-        </div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Đăng nhập vào hệ thống
-        </h2>
-        <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-          Chưa có tài khoản?{' '}
-          <button
-            onClick={() => navigate('/register')}
-            className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-          >
-            Đăng ký tài khoản mới
-          </button>
-        </p>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-slate-900 py-8 px-6 sm:px-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          {message && (
-            <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{message}</span>
-            </div>
-          )}
-
-          {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Email hoặc Số điện thoại
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Mail className="w-4 h-4" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  inputMode="email"
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  placeholder="name@example.com hoặc 0901234567"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F9FD] via-[#EAF5FF]/40 to-[#F5F9FD] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-education">
+      <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 rounded-[28px] overflow-hidden bg-white border border-[#DCE7F2] shadow-[0_20px_50px_rgba(0,59,122,0.08)]">
+        {/* Left Side: Educational Visual Illustration (Desktop) */}
+        <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-10 bg-gradient-to-br from-[#003B7A] via-[#0057B8] to-[#087FEA] text-white relative overflow-hidden">
+          {/* Brand header */}
+          <div className="relative z-10 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-[16px] bg-white text-[#0057B8] flex items-center justify-center font-extrabold shadow-md">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-2xl font-black tracking-tight">EduMonitor</span>
+                <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-black bg-[#FFD200] text-[#172B4D]">
+                  PRO
+                </span>
               </div>
             </div>
+            <p className="text-xs text-blue-100 font-medium pt-1">
+              Nền Tảng Quản Lý Giảng Dạy & An Toàn Học Đường
+            </p>
+          </div>
 
+          {/* Educational Visual Card */}
+          <div className="relative z-10 my-8 space-y-4">
+            <div className="p-5 rounded-[22px] bg-white/10 backdrop-blur-md border border-white/20 space-y-3">
+              <div className="flex items-center gap-2.5 text-[#FFD200] font-bold text-xs">
+                <Sparkles className="w-4 h-4" />
+                <span>Dành Cho Giáo Viên & Học Sinh</span>
+              </div>
+              <h3 className="font-extrabold text-lg leading-snug">
+                Theo dõi vị trí an toàn, chuyên cần và bảo vệ học sinh trên không gian mạng.
+              </h3>
+              <div className="grid grid-cols-2 gap-2 pt-2 text-xs font-semibold">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFD200]" />
+                  <span>Định vị Google Maps</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFD200]" />
+                  <span>Cảnh báo giờ học</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFD200]" />
+                  <span>Quản lý lớp học</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFD200]" />
+                  <span>Tiếp nhận 1 giây</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer note */}
+          <div className="relative z-10 text-xs text-blue-200 font-medium">
+            © 2026 EduMonitor Platform · Chuẩn Giáo Dục Thông Minh
+          </div>
+
+          {/* Decorative background glow circles */}
+          <div className="absolute top-0 right-0 -translate-y-12 translate-x-12 w-64 h-64 rounded-full bg-white/10 pointer-events-none blur-2xl" />
+          <div className="absolute bottom-0 left-0 translate-y-16 -translate-x-12 w-64 h-64 rounded-full bg-[#FFD200]/15 pointer-events-none blur-2xl" />
+        </div>
+
+        {/* Right Side: Login Card */}
+        <div className="lg:col-span-7 p-6 sm:p-10 md:p-12 flex flex-col justify-center bg-white">
+          <div className="max-w-md w-full mx-auto space-y-6">
+            {/* Header */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Mật khẩu
-                </label>
+              <div className="lg:hidden flex items-center gap-2 mb-4">
+                <div className="w-9 h-9 rounded-[12px] bg-[#0057B8] text-white flex items-center justify-center font-bold">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <span className="font-extrabold text-xl text-[#003B7A]">EduMonitor</span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172B4D] tracking-tight">
+                Chào mừng trở lại! 👋
+              </h2>
+              <p className="text-xs sm:text-sm text-[#60758D] mt-1.5 font-medium">
+                Đăng nhập để tiếp tục học tập và quản lý lớp học.
+              </p>
+            </div>
+
+            {/* Notification or Redirect Message */}
+            {message && (
+              <div className="p-3.5 rounded-[14px] bg-[#EAF5FF] border border-[#d2e7fc] text-[#0057B8] text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{message}</span>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMsg && (
+              <div className="p-3.5 rounded-[14px] bg-[#FEECEC] border border-[#FECACA] text-[#DC2626] text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <EducationInput
+                label="Email hoặc Số điện thoại"
+                type="text"
+                placeholder="VD: gv.nguyen@truong.edu.vn hoặc 0901234567"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                icon={<Mail className="w-4 h-4" />}
+                required
+              />
+
+              <div>
+                <EducationInput
+                  label="Mật khẩu"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Nhập mật khẩu..."
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  icon={<Lock className="w-4 h-4" />}
+                  rightElement={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-[#60758D] hover:text-[#0057B8] transition cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
+                  required
+                />
+
+                <div className="flex items-center justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email);
+                      setIsForgotModalOpen(true);
+                    }}
+                    className="text-xs font-bold text-[#0057B8] hover:text-[#003B7A] hover:underline cursor-pointer"
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <EducationButton
+                  type="submit"
+                  variant="primary"
+                  pill
+                  className="w-full text-base py-3.5 shadow-md"
+                  icon={<ArrowRight className="w-4 h-4" />}
+                  iconPosition="right"
+                  isLoading={isLoading}
+                >
+                  Đăng Nhập
+                </EducationButton>
+              </div>
+            </form>
+
+            {/* Quick Demo Access Bar */}
+            <div className="p-3.5 rounded-[18px] bg-[#F5F9FD] border border-[#DCE7F2] text-xs space-y-1.5">
+              <span className="font-extrabold text-[#172B4D] block">
+                🔑 Tài khoản kiểm thử nhanh (Demo):
+              </span>
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    setForgotEmail(email);
-                    setIsForgotModalOpen(true);
+                    setEmail('admin@devicemonitor.com');
+                    setPassword('admin123');
                   }}
-                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  className="px-2.5 py-1 rounded-full bg-white border border-[#DCE7F2] hover:border-[#0057B8] font-bold text-[#172B4D] text-[11px] cursor-pointer"
                 >
-                  Quên mật khẩu?
+                  Admin: admin@devicemonitor.com
                 </button>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  onClick={() => {
+                    setEmail('0987654321');
+                    setPassword('admin123');
+                  }}
+                  className="px-2.5 py-1 rounded-full bg-white border border-[#DCE7F2] hover:border-[#0057B8] font-bold text-[#172B4D] text-[11px] cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  Học sinh/PH: 0987654321
                 </button>
               </div>
             </div>
 
-            <div className="pt-2">
+            {/* Register Link */}
+            <div className="pt-4 border-t border-[#DCE7F2] text-center text-xs text-[#60758D]">
+              Chưa có tài khoản Giáo viên hoặc Học sinh?{' '}
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                onClick={() => navigate('/register')}
+                className="font-extrabold text-[#0057B8] hover:underline cursor-pointer"
               >
-                {isLoading ? 'Đang xác thực...' : 'Đăng nhập'}
-                {!isLoading && <ArrowRight className="w-4 h-4" />}
+                Đăng ký ngay tại đây →
               </button>
             </div>
-          </form>
-
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-center text-xs text-slate-400">
-            Hệ thống quản lý thiết bị học sinh &bull; Phân quyền trường học & phụ huynh
           </div>
         </div>
       </div>
 
       {/* Forgot Password Modal */}
-      {isForgotModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                  <KeyRound className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                    Quên Mật Khẩu
-                  </h3>
-                  <div className="text-[11px] text-slate-500">
-                    Khôi phục mật khẩu tài khoản của bạn
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsForgotModalOpen(false);
-                  setForgotStatusMsg(null);
-                }}
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleForgotPasswordSubmit} className="p-6 space-y-4">
-              {forgotStatusMsg && (
-                <div
-                  className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                    forgotStatusMsg.type === 'success'
-                      ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400'
-                  }`}
-                >
-                  {forgotStatusMsg.type === 'success' ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                  )}
-                  <span>{forgotStatusMsg.text}</span>
-                </div>
+      <EducationModal
+        isOpen={isForgotModalOpen}
+        onClose={() => setIsForgotModalOpen(false)}
+        title="Khôi Phục Mật Khẩu"
+        subtitle="Nhập email hoặc SĐT để thiết lập lại mật khẩu mới"
+        maxWidth="md"
+      >
+        <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+          {forgotStatusMsg && (
+            <div
+              className={`p-3.5 rounded-[14px] text-xs font-semibold flex items-center gap-2 ${
+                forgotStatusMsg.type === 'success'
+                  ? 'bg-[#EBFBF0] text-[#16A34A] border border-[#BDECC9]'
+                  : 'bg-[#FEECEC] text-[#DC2626] border border-[#FECACA]'
+              }`}
+            >
+              {forgotStatusMsg.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0" />
               )}
+              <span>{forgotStatusMsg.text}</span>
+            </div>
+          )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Email tài khoản
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    placeholder="name@example.com"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-              </div>
+          <EducationInput
+            label="Email tài khoản"
+            type="text"
+            placeholder="VD: gv.nguyen@truong.edu.vn"
+            value={forgotEmail}
+            onChange={(e) => setForgotEmail(e.target.value)}
+            required
+          />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Số điện thoại đăng ký (Không bắt buộc)
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="090xxxxxxx"
-                    value={forgotPhone}
-                    onChange={(e) => setForgotPhone(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-              </div>
+          <EducationInput
+            label="Số điện thoại liên hệ (nếu có)"
+            type="text"
+            placeholder="VD: 0901234567"
+            value={forgotPhone}
+            onChange={(e) => setForgotPhone(e.target.value)}
+          />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Mật khẩu mới
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Tối thiểu 6 ký tự"
-                    value={forgotNewPassword}
-                    onChange={(e) => setForgotNewPassword(e.target.value)}
-                    className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
-                  />
-                </div>
-              </div>
+          <EducationInput
+            label="Mật khẩu mới (tối thiểu 6 ký tự)"
+            type="password"
+            placeholder="Nhập mật khẩu mới muốn đặt..."
+            value={forgotNewPassword}
+            onChange={(e) => setForgotNewPassword(e.target.value)}
+            required
+          />
 
-              <div className="pt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsForgotModalOpen(false)}
-                  className="flex-1 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isForgotLoading}
-                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  {isForgotLoading ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Đang cập nhật...</span>
-                    </>
-                  ) : (
-                    <span>Đặt lại mật khẩu</span>
-                  )}
-                </button>
-              </div>
-            </form>
+          <div className="pt-2 flex justify-end gap-2">
+            <EducationButton
+              type="button"
+              variant="outline"
+              onClick={() => setIsForgotModalOpen(false)}
+            >
+              Hủy
+            </EducationButton>
+            <EducationButton
+              type="submit"
+              variant="primary"
+              isLoading={isForgotLoading}
+            >
+              Xác Nhận Đổi Mật Khẩu
+            </EducationButton>
           </div>
-        </div>
-      )}
+        </form>
+      </EducationModal>
     </div>
   );
 };

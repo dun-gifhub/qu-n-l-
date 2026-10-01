@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
 import { AppLayout } from './components/Layout/AppLayout.tsx';
+import { TeacherLayout } from './layouts/TeacherLayout.tsx';
+import { StudentLayout } from './layouts/StudentLayout.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
+
+// Admin Pages (100% giữ nguyên cho Admin)
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { DevicesPage } from './pages/DevicesPage.tsx';
 import { DeviceDetailPage } from './pages/DeviceDetailPage.tsx';
@@ -11,12 +15,25 @@ import { MapOverviewPage } from './pages/MapOverviewPage.tsx';
 import { ActivityPage } from './pages/ActivityPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { AppWebMonitorPage } from './pages/AppWebMonitorPage.tsx';
-import { PhoneReportPage } from './pages/PhoneReportPage.tsx';
 import { AccountsManagementPage } from './pages/AccountsManagementPage.tsx';
 import { AddDeviceModal } from './components/Device/AddDeviceModal.tsx';
+import { PhoneReportPage } from './pages/PhoneReportPage.tsx';
+
+// Teacher Pages (EdTech Design System mới)
+import { TeacherDashboardPage } from './pages/teacher/TeacherDashboardPage.tsx';
+import { TeacherClassesPage } from './pages/teacher/TeacherClassesPage.tsx';
+import { TeacherProfilePage } from './pages/teacher/TeacherProfilePage.tsx';
+
+// Student Pages (EdTech Design System mới)
+import { StudentDashboardPage } from './pages/student/StudentDashboardPage.tsx';
+import { StudentClassesPage } from './pages/student/StudentClassesPage.tsx';
+import { StudentProfilePage } from './pages/student/StudentProfilePage.tsx';
+
 import { Device } from './types/index.ts';
 import { api } from './services/api.ts';
-import { Clock, ShieldAlert, LogOut, RefreshCw, School, AlertCircle } from 'lucide-react';
+import { Clock, ShieldAlert, LogOut, RefreshCw, School, AlertCircle, GraduationCap } from 'lucide-react';
+import { EducationButton } from './components/education/EducationButton.tsx';
+import { EducationBadge } from './components/education/EducationBadge.tsx';
 
 function AppContent() {
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
@@ -63,10 +80,10 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center">
-        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-        <p className="mt-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Đang xác thực hệ thống DeviceMonitor...
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center font-education">
+        <div className="w-10 h-10 border-4 border-[#0057B8] border-t-transparent rounded-full animate-spin" />
+        <p className="mt-4 text-xs font-semibold text-[#60758D]">
+          Đang xác thực hệ thống Giáo Dục EduMonitor...
         </p>
       </div>
     );
@@ -95,7 +112,7 @@ function AppContent() {
         message={
           navMessage ||
           (currentPath !== '/login'
-            ? 'Bắt buộc phải đăng nhập để xem thông tin và bản đồ thiết bị học sinh.'
+            ? 'Bắt buộc phải đăng nhập để xem thông tin và bản đồ học sinh.'
             : undefined)
         }
       />
@@ -106,84 +123,83 @@ function AppContent() {
   if (user.role !== 'ADMIN' && user.approvalStatus !== 'APPROVED') {
     const isPending = user.approvalStatus === 'PENDING';
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-xl text-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#F5F9FD] via-[#EAF5FF]/50 to-[#F5F9FD] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 font-education">
+        <div className="max-w-md w-full bg-white rounded-[26px] p-8 border border-[#DCE7F2] shadow-[0_20px_50px_rgba(0,59,122,0.08)] text-center space-y-4">
           <div
-            className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4 ${
+            className={`w-16 h-16 rounded-[20px] mx-auto flex items-center justify-center ${
               isPending
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                ? 'bg-[#FFF9D6] text-[#8C6B00] border border-[#FFE770]'
+                : 'bg-[#FEECEC] text-[#DC2626] border border-[#FECACA]'
             }`}
           >
             {isPending ? <Clock className="w-8 h-8" /> : <ShieldAlert className="w-8 h-8" />}
           </div>
 
-          <h2 className="text-xl font-black text-slate-900 dark:text-white">
-            {isPending ? 'Tài Khoản Đang Chờ Phê Duyệt' : 'Tài Khoản Chưa Được Cấp Quyền'}
-          </h2>
+          <div className="space-y-1">
+            <h2 className="text-xl font-extrabold text-[#172B4D]">
+              {isPending ? 'Tài Khoản Đang Chờ Phê Duyệt' : 'Tài Khoản Chưa Được Kích Hoạt'}
+            </h2>
+            <p className="text-xs text-[#60758D] leading-relaxed">
+              {isPending
+                ? 'Hồ sơ Giáo viên / Học sinh của bạn đã được đăng ký thành công và đang chờ Quản trị viên (Admin) xét duyệt. Vui lòng liên hệ Admin nhà trường để được kích hoạt quyền truy cập.'
+                : 'Tài khoản của bạn đã bị từ chối hoặc tạm khóa. Vui lòng liên hệ Admin để được hỗ trợ.'}
+            </p>
+          </div>
 
-          <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            {isPending
-              ? 'Tài khoản của bạn đã được đăng ký thành công và đang chờ Quản trị viên (Admin) xét duyệt. Vui lòng liên hệ Admin nhà trường để được kích hoạt quyền xem.'
-              : 'Tài khoản của bạn đã bị từ chối hoặc khóa bởi Quản trị viên. Vui lòng liên hệ Admin để biết thêm chi tiết.'}
-          </p>
-
-          <div className="mt-6 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-left text-xs space-y-2">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Họ và tên:</span>
-              <span className="font-semibold text-slate-900 dark:text-white">{user.name}</span>
+          <div className="p-4 rounded-[18px] bg-[#F5F9FD] border border-[#DCE7F2] text-left text-xs space-y-2.5">
+            <div className="flex justify-between items-center">
+              <span className="text-[#60758D]">Họ và tên:</span>
+              <span className="font-extrabold text-[#172B4D]">{user.name}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Email:</span>
-              <span className="font-mono text-slate-700 dark:text-slate-300">{user.email}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-[#60758D]">Tài khoản:</span>
+              <span className="font-mono text-[#172B4D]">{user.email}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Vai trò đăng ký:</span>
-              <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                {user.role === 'TEACHER' ? 'Giáo viên phụ trách' : 'Phụ huynh học sinh'}
-              </span>
+            <div className="flex justify-between items-center">
+              <span className="text-[#60758D]">Vai trò:</span>
+              <EducationBadge variant="primary">
+                {user.role === 'TEACHER' ? 'Giáo Viên' : 'Học Sinh / PH'}
+              </EducationBadge>
             </div>
             {user.schoolName && (
-              <div className="flex justify-between">
-                <span className="text-slate-500">Trường:</span>
-                <span className="text-slate-700 dark:text-slate-300">{user.schoolName}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[#60758D]">Trường học:</span>
+                <span className="font-semibold text-[#172B4D]">{user.schoolName}</span>
               </div>
             )}
-            <div className="flex justify-between pt-1 border-t border-slate-200 dark:border-slate-700">
-              <span className="text-slate-500">Trạng thái:</span>
-              <span
-                className={`font-bold px-2 py-0.5 rounded-full text-[10px] ${
-                  isPending
-                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                    : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                }`}
-              >
-                {isPending ? 'CHỜ DUYỆT' : 'TỪ CHỐI / KHÓA'}
-              </span>
+            <div className="flex justify-between items-center pt-2 border-t border-[#DCE7F2]">
+              <span className="text-[#60758D]">Trạng thái:</span>
+              <EducationBadge variant={isPending ? 'warning' : 'danger'}>
+                {isPending ? 'ĐANG CHỜ DUYỆT' : 'CHƯA ĐƯỢC DUYỆT'}
+              </EducationBadge>
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-2">
-            <button
+          <div className="pt-2 flex flex-col gap-2.5">
+            <EducationButton
+              variant="primary"
+              pill
+              className="w-full"
+              isLoading={isRefreshingStatus}
+              icon={<RefreshCw className={`w-4 h-4 ${isRefreshingStatus ? 'animate-spin' : ''}`} />}
               onClick={async () => {
                 setIsRefreshingStatus(true);
                 if (refreshUser) await refreshUser();
                 setIsRefreshingStatus(false);
               }}
-              disabled={isRefreshingStatus}
-              className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs transition"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshingStatus ? 'animate-spin' : ''}`} />
-              <span>Kiểm tra lại trạng thái duyệt</span>
-            </button>
+              Kiểm Tra Lại Trạng Thái
+            </EducationButton>
 
-            <button
+            <EducationButton
+              variant="outline"
+              pill
+              className="w-full"
+              icon={<LogOut className="w-4 h-4" />}
               onClick={() => logout()}
-              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition"
             >
-              <LogOut className="w-4 h-4" />
-              <span>Đăng xuất tài khoản</span>
-            </button>
+              Đăng Xuất
+            </EducationButton>
           </div>
         </div>
       </div>
@@ -195,24 +211,137 @@ function AppContent() {
     /^\/devices\/([^\/]+)(?:\/(location|history|usage))?$/
   );
 
-  return (
-    <AppLayout activePath={currentPath} navigate={navigate}>
-      {(currentPath === '/' || currentPath === '/dashboard') && (
-        <DashboardPage
-          navigate={navigate}
-          onOpenAddDevice={() => setIsAddDeviceOpen(true)}
+  // =========================================================================
+  // XXI. ADMIN — TUYỆT ĐỐI GIỮ NGUYÊN 100% GIAO DIỆN HIỆN TẠI
+  // =========================================================================
+  if (user.role === 'ADMIN') {
+    return (
+      <AppLayout activePath={currentPath} navigate={navigate}>
+        {(currentPath === '/' || currentPath === '/dashboard') && (
+          <DashboardPage
+            navigate={navigate}
+            onOpenAddDevice={() => setIsAddDeviceOpen(true)}
+          />
+        )}
+
+        {currentPath === '/devices' && (
+          <DevicesPage
+            navigate={navigate}
+            onOpenAddDevice={() => setIsAddDeviceOpen(true)}
+          />
+        )}
+
+        {currentPath === '/app-usage' && (
+          <AppWebMonitorPage navigate={navigate} />
+        )}
+
+        {deviceDetailMatch && (
+          <DeviceDetailPage
+            deviceId={deviceDetailMatch[1]}
+            initialTab={deviceDetailMatch[2] || 'status'}
+            navigate={navigate}
+          />
+        )}
+
+        {currentPath === '/map' && (
+          <MapOverviewPage navigate={navigate} />
+        )}
+
+        {currentPath === '/activity' && <ActivityPage />}
+
+        {currentPath === '/accounts' && (
+          <AccountsManagementPage navigate={navigate} />
+        )}
+
+        {currentPath === '/settings' && <SettingsPage />}
+
+        {/* Global Add Device Modal */}
+        <AddDeviceModal
+          isOpen={isAddDeviceOpen}
+          onClose={() => setIsAddDeviceOpen(false)}
+          onDeviceCreated={(newDev) => {
+            setDevices((prev) => [newDev, ...prev]);
+            navigate(`/devices/${newDev.id}`);
+          }}
         />
+      </AppLayout>
+    );
+  }
+
+  // =========================================================================
+  // TEACHER LAYOUT & EDTECH PAGES
+  // =========================================================================
+  if (user.role === 'TEACHER') {
+    return (
+      <TeacherLayout activePath={currentPath} navigate={navigate}>
+        {(currentPath === '/' || currentPath === '/dashboard') && (
+          <TeacherDashboardPage
+            navigate={navigate}
+            onOpenAddDevice={() => setIsAddDeviceOpen(true)}
+          />
+        )}
+
+        {currentPath === '/classes' && (
+          <TeacherClassesPage navigate={navigate} />
+        )}
+
+        {currentPath === '/devices' && (
+          <TeacherDashboardPage
+            navigate={navigate}
+            onOpenAddDevice={() => setIsAddDeviceOpen(true)}
+          />
+        )}
+
+        {deviceDetailMatch && (
+          <DeviceDetailPage
+            deviceId={deviceDetailMatch[1]}
+            initialTab={deviceDetailMatch[2] || 'status'}
+            navigate={navigate}
+          />
+        )}
+
+        {currentPath === '/map' && (
+          <MapOverviewPage navigate={navigate} />
+        )}
+
+        {currentPath === '/app-usage' && (
+          <AppWebMonitorPage navigate={navigate} />
+        )}
+
+        {currentPath === '/activity' && <ActivityPage />}
+
+        {(currentPath === '/profile' || currentPath === '/settings') && (
+          <TeacherProfilePage />
+        )}
+
+        {/* Global Add Device Modal */}
+        <AddDeviceModal
+          isOpen={isAddDeviceOpen}
+          onClose={() => setIsAddDeviceOpen(false)}
+          onDeviceCreated={(newDev) => {
+            setDevices((prev) => [newDev, ...prev]);
+            navigate(`/devices/${newDev.id}`);
+          }}
+        />
+      </TeacherLayout>
+    );
+  }
+
+  // =========================================================================
+  // STUDENT / PARENT LAYOUT & EDTECH PAGES
+  // =========================================================================
+  return (
+    <StudentLayout activePath={currentPath} navigate={navigate}>
+      {(currentPath === '/' || currentPath === '/dashboard') && (
+        <StudentDashboardPage navigate={navigate} />
+      )}
+
+      {currentPath === '/classes' && (
+        <StudentClassesPage navigate={navigate} />
       )}
 
       {currentPath === '/devices' && (
-        <DevicesPage
-          navigate={navigate}
-          onOpenAddDevice={() => setIsAddDeviceOpen(true)}
-        />
-      )}
-
-      {currentPath === '/app-usage' && (
-        <AppWebMonitorPage navigate={navigate} />
+        <StudentDashboardPage navigate={navigate} />
       )}
 
       {deviceDetailMatch && (
@@ -229,22 +358,10 @@ function AppContent() {
 
       {currentPath === '/activity' && <ActivityPage />}
 
-      {currentPath === '/accounts' && (
-        <AccountsManagementPage navigate={navigate} />
+      {(currentPath === '/profile' || currentPath === '/settings') && (
+        <StudentProfilePage />
       )}
-
-      {currentPath === '/settings' && <SettingsPage />}
-
-      {/* Global Add Device Modal */}
-      <AddDeviceModal
-        isOpen={isAddDeviceOpen}
-        onClose={() => setIsAddDeviceOpen(false)}
-        onDeviceCreated={(newDev) => {
-          setDevices((prev) => [newDev, ...prev]);
-          navigate(`/devices/${newDev.id}`);
-        }}
-      />
-    </AppLayout>
+    </StudentLayout>
   );
 }
 
