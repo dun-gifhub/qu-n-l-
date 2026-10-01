@@ -96,6 +96,13 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
     );
   });
 
+  const [currentApp, setCurrentApp] = useState<string>(() => {
+    return localStorage.getItem('reporter_current_app') || 'Màn hình chính';
+  });
+  const [currentWebsite, setCurrentWebsite] = useState<string>(() => {
+    return localStorage.getItem('reporter_current_website') || 'google.com';
+  });
+
   const [isReporting, setIsReporting] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>('Chưa bật báo cáo');
   const [reportCount, setReportCount] = useState<number>(0);
@@ -198,13 +205,31 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isReporting, deviceUuid, studentName]);
 
+  // Auto-detect when student switches apps or minimizes browser
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        const backgroundApp = 'Ứng dụng chạy ngầm / Rời màn hình';
+        setCurrentApp(backgroundApp);
+        sendReport(undefined, false, false, backgroundApp);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isReporting, currentApp, currentWebsite]);
+
   // Function to send telemetry to server
   const sendReport = async (
     overrideCoords?: { latitude: number; longitude: number; accuracy?: number },
     forceUninstall: boolean = false,
-    forceNoNetwork: boolean = false
+    forceNoNetwork: boolean = false,
+    overrideApp?: string,
+    overrideWeb?: string
   ) => {
     const targetCoords = overrideCoords || coords;
+    const activeApp = overrideApp || currentApp || 'Màn hình chính';
+    const activeWeb = overrideWeb || currentWebsite || 'google.com';
+
     try {
       const payload = {
         deviceUuid,
@@ -222,8 +247,8 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
         batteryLevel: battery.level,
         charging: battery.charging,
         networkType: forceNoNetwork ? 'NONE' : networkType,
-        currentApp: 'Báo cáo trực tiếp',
-        currentWebsite: window.location.hostname,
+        currentApp: activeApp,
+        currentWebsite: activeWeb,
         isUninstalled: forceUninstall,
         isNoNetwork: forceNoNetwork || isOffline,
       };
@@ -604,6 +629,123 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
           <div className="pt-1 text-[10px] text-slate-500 flex items-center justify-between font-mono">
             <span>UUID máy:</span>
             <span className="truncate max-w-[190px]">{deviceUuid}</span>
+          </div>
+        </div>
+
+        {/* Real-time App & Website Monitoring on Phone */}
+        <div className="mt-4 p-4 rounded-2xl bg-slate-900 border border-indigo-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              <h3 className="font-extrabold text-xs text-white uppercase tracking-wider">
+                Giám Sát App & Website Đang Mở
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">
+              Báo về máy chủ
+            </span>
+          </div>
+
+          <p className="text-[11px] text-slate-400">
+            Hệ thống tự động phát hiện ứng dụng hoặc trang web học sinh đang xem trên điện thoại và báo ngay về màn hình Quản trị viên, Giáo viên, Phụ huynh.
+          </p>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>Ứng dụng điện thoại đang mở:</span>
+              <strong className="text-emerald-400 font-mono">{currentApp}</strong>
+            </label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { name: 'TikTok', icon: '🎵' },
+                { name: 'YouTube', icon: '📺' },
+                { name: 'Liên Quân Mobile', icon: '🎮' },
+                { name: 'Roblox', icon: '🕹️' },
+                { name: 'Facebook', icon: '💬' },
+                { name: 'Zalo', icon: '📱' },
+                { name: 'K12Online', icon: '📚' },
+                { name: 'vnEdu', icon: '🏫' },
+                { name: 'Màn hình chính', icon: '🏠' },
+              ].map((app) => (
+                <button
+                  type="button"
+                  key={app.name}
+                  onClick={() => {
+                    setCurrentApp(app.name);
+                    localStorage.setItem('reporter_current_app', app.name);
+                    sendReport(undefined, false, false, app.name, currentWebsite);
+                  }}
+                  className={`py-2 px-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer border ${
+                    currentApp === app.name
+                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <span>{app.icon}</span>
+                  <span className="truncate">{app.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-2">
+              <input
+                type="text"
+                value={currentApp}
+                onChange={(e) => {
+                  setCurrentApp(e.target.value);
+                  localStorage.setItem('reporter_current_app', e.target.value);
+                }}
+                onBlur={() => sendReport(undefined, false, false, currentApp, currentWebsite)}
+                placeholder="Hoặc nhập tên ứng dụng khác..."
+                className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>Trang web đang truy cập:</span>
+              <strong className="text-indigo-400 font-mono text-[11px] truncate max-w-[170px]">{currentWebsite}</strong>
+            </label>
+            <div className="flex flex-wrap gap-1 mb-2">
+              {[
+                'youtube.com',
+                'tiktok.com',
+                'facebook.com',
+                'k12online.vn',
+                'vnedu.vn',
+                'roblox.com',
+                'google.com',
+              ].map((site) => (
+                <button
+                  type="button"
+                  key={site}
+                  onClick={() => {
+                    setCurrentWebsite(site);
+                    localStorage.setItem('reporter_current_website', site);
+                    sendReport(undefined, false, false, currentApp, site);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-semibold transition cursor-pointer border ${
+                    currentWebsite.includes(site)
+                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50'
+                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                  }`}
+                >
+                  {site}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={currentWebsite}
+              onChange={(e) => {
+                setCurrentWebsite(e.target.value);
+                localStorage.setItem('reporter_current_website', e.target.value);
+              }}
+              onBlur={() => sendReport(undefined, false, false, currentApp, currentWebsite)}
+              placeholder="VD: https://vnedu.vn hoặc youtube.com"
+              className="w-full px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+            />
           </div>
         </div>
 

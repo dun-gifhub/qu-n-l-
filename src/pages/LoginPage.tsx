@@ -29,6 +29,7 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
   const { login } = useAuth();
+  const [loginMode, setLoginMode] = useState<'USER' | 'ADMIN'>('USER');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -179,12 +180,83 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172B4D] tracking-tight">
-                Chào mừng trở lại! 👋
+                {loginMode === 'ADMIN' ? 'Đăng Nhập Quản Trị Viên (Admin) 🛡️' : 'Chào mừng trở lại! 👋'}
               </h2>
               <p className="text-xs sm:text-sm text-[#60758D] mt-1.5 font-medium">
-                Đăng nhập để tiếp tục học tập và quản lý lớp học.
+                {loginMode === 'ADMIN'
+                  ? 'Khu vực quản lý tối cao dành cho Admin: phê duyệt giáo viên, quản lý toàn bộ thiết bị và cơ sở dữ liệu Neon.'
+                  : 'Đăng nhập để tiếp tục học tập, điểm danh và quản lý lớp học.'}
               </p>
             </div>
+
+            {/* Role Switcher Tabs */}
+            <div className="grid grid-cols-2 p-1.5 bg-[#F0F5FA] rounded-2xl border border-[#DCE7F2]">
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginMode('USER');
+                  if (email === 'admin@devicemonitor.com') {
+                    setEmail('');
+                    setPassword('');
+                  }
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  loginMode === 'USER'
+                    ? 'bg-white text-[#0057B8] shadow-xs'
+                    : 'text-[#60758D] hover:text-[#172B4D]'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Giáo Viên / Phụ Huynh</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginMode('ADMIN');
+                  setEmail('admin@devicemonitor.com');
+                  setPassword('admin123');
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  loginMode === 'ADMIN'
+                    ? 'bg-[#0057B8] text-white shadow-xs'
+                    : 'text-[#60758D] hover:text-[#172B4D]'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Quản Trị Viên (Admin)</span>
+              </button>
+            </div>
+
+            {/* Admin Quick Credentials Hint Banner */}
+            {loginMode === 'ADMIN' && (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 text-xs text-[#003B7A] space-y-2">
+                <div className="flex items-center justify-between font-bold">
+                  <div className="flex items-center gap-1.5">
+                    <KeyRound className="w-4 h-4 text-[#0057B8]" />
+                    <span>Thông tin Mật khẩu Admin hệ thống</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-100 text-[#0057B8] font-bold">
+                    Admin Tối Thượng
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-600 leading-relaxed">
+                  Email: <strong className="font-mono text-[#0057B8]">admin@devicemonitor.com</strong>
+                  <br />
+                  Mật khẩu mặc định: <strong className="font-mono text-[#0057B8]">admin123</strong> (hoặc mật khẩu do Admin đã đổi)
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('admin@devicemonitor.com');
+                    setPassword('admin123');
+                  }}
+                  className="w-full py-1.5 px-2.5 rounded-xl bg-white hover:bg-blue-100/50 border border-blue-200 text-[#0057B8] text-[11px] font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-2xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Điền nhanh Email & Mật khẩu Admin</span>
+                </button>
+              </div>
+            )}
 
             {/* Notification or Redirect Message */}
             {message && (
@@ -205,18 +277,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <EducationInput
-                label="Email hoặc Số điện thoại"
+                label={loginMode === 'ADMIN' ? 'Email Quản trị viên (Admin)' : 'Email hoặc Số điện thoại'}
                 type="text"
-                placeholder="VD: gv.nguyen@truong.edu.vn hoặc 0901234567"
+                placeholder={loginMode === 'ADMIN' ? 'admin@devicemonitor.com' : 'VD: gv.nguyen@truong.edu.vn hoặc 0901234567'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                icon={<Mail className="w-4 h-4" />}
+                icon={loginMode === 'ADMIN' ? <ShieldCheck className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
                 required
               />
 
               <div>
                 <EducationInput
-                  label="Mật khẩu"
+                  label={loginMode === 'ADMIN' ? 'Mật khẩu Admin' : 'Mật khẩu'}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Nhập mật khẩu..."
                   value={password}
@@ -251,21 +323,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
               <div className="pt-2">
                 <EducationButton
                   type="submit"
-                  variant="primary"
+                  variant={loginMode === 'ADMIN' ? 'primary' : 'primary'}
                   pill
                   className="w-full text-base py-3.5 shadow-md"
                   icon={<ArrowRight className="w-4 h-4" />}
                   iconPosition="right"
                   isLoading={isLoading}
                 >
-                  Đăng Nhập
+                  {loginMode === 'ADMIN' ? 'Đăng Nhập Quản Trị Viên (Admin)' : 'Đăng Nhập'}
                 </EducationButton>
               </div>
             </form>
 
             {/* Register Link */}
             <div className="pt-4 border-t border-[#DCE7F2] text-center text-xs text-[#60758D]">
-              Chưa có tài khoản Giáo viên hoặc Học sinh?{' '}
+              Chưa có tài khoản Giáo viên hoặc Phụ huynh?{' '}
               <button
                 onClick={() => navigate('/register')}
                 className="font-extrabold text-[#0057B8] hover:underline cursor-pointer"

@@ -279,4 +279,15 @@ export const api = {
     request<PhoneContact[]>(`/devices/${deviceId}/contacts`, {
       method: 'DELETE',
     }),
+
+  // Database Stats (Neon PostgreSQL / Local)
+  getDatabaseStats: () =>
+    request<{
+      isNeonConnected: boolean;
+      totalUsers: number;
+      totalDevices: number;
+      neonUsersCount?: number;
+      neonDevicesCount?: number;
+      databaseEngine: string;
+    }>('/health/stats'),
 };

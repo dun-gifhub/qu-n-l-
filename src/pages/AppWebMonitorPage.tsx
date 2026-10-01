@@ -78,6 +78,28 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
     }
   }, [selectedDeviceId]);
 
+  // Real-time 1-second live auto-refresh to detect what app or web the phone is using
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      try {
+        const devRes = await api.getDevices();
+        if (devRes.success && devRes.data) {
+          setDevices(devRes.data);
+        }
+        if (selectedDeviceId) {
+          const usageRes = await api.getDeviceUsage(selectedDeviceId);
+          if (usageRes.success && usageRes.data) {
+            setAppUsages(usageRes.data.appUsages);
+            setWebHistory(usageRes.data.webHistory);
+          }
+        }
+      } catch {
+        // silent background poll
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [selectedDeviceId]);
+
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId) || null;
 
   const handleToggleBlock = async (targetType: 'APP' | 'WEB', targetName: string) => {
@@ -255,6 +277,48 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
 
           {selectedDevice && (
             <>
+              {/* Live Alerts for in-class usage, uninstall, or no network */}
+              {selectedDevice.inClassAlert && (
+                <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center justify-between gap-3 animate-pulse">
+                  <div className="flex items-center gap-2.5">
+                    <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                    <div>
+                      <div className="font-extrabold text-sm text-rose-600 dark:text-rose-400">
+                        🚨 CẢNH BÁO: SỬ DỤNG ĐIỆN THOẠI TRONG GIỜ HỌC!
+                      </div>
+                      <div className="text-xs text-rose-700/80 dark:text-rose-300/80 mt-0.5">
+                        Học sinh <strong>{selectedDevice.studentName}</strong> ({selectedDevice.className || 'Chưa rõ lớp'}) đang mở ứng dụng <strong>"{selectedDevice.currentApp}"</strong> trong khung giờ học quy định.
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-rose-600 text-white shrink-0">
+                    BÁO ĐỘNG GIỜ HỌC
+                  </span>
+                </div>
+              )}
+
+              {selectedDevice.isUninstalled && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center gap-2.5">
+                  <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>
+                    ⚠️ <strong>NGHI VẤN GỠ APP:</strong> Thiết bị của học sinh {selectedDevice.studentName} đã ngắt kết nối hoặc gửi tín hiệu gỡ cài đặt!
+                  </span>
+                </div>
+              )}
+
+              {/* Real-time Live Badge */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                    Phát Hiện Trực Tiếp Từ Điện Thoại Học Sinh (Tự động cập nhật 1 giây/lần)
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                  ● LIVE STREAMING
+                </span>
+              </div>
+
               {/* Current Real-time Activity Banner */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">

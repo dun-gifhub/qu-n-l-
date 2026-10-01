@@ -16,4 +16,19 @@ router.get('/', (req: Request, res: Response) => {
   });
 });
 
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await dbService.getDatabaseStats();
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi đọc trạng thái cơ sở dữ liệu',
+    });
+  }
+});
+
 export default router;

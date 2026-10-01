@@ -298,14 +298,74 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
         CREATE INDEX IF NOT EXISTS idx_activities_time ON activities (timestamp DESC);
       `);
 
-      // Sync existing devices from Neon into local state
+      // 1. Sync users from Neon into local state, and sync local users to Neon
       try {
+        const userRes = await client.query('SELECT * FROM users');
+        const state = readLocalDB();
+        if (userRes.rows && userRes.rows.length > 0) {
+          for (const u of userRes.rows) {
+            const idx = state.users.findIndex(x => x.id === u.id || x.email.toLowerCase() === (u.email || '').toLowerCase());
+            if (idx === -1) {
+              state.users.push(u);
+            } else {
+              state.users[idx] = { ...state.users[idx], ...u };
+            }
+          }
+          console.log(`Synced ${userRes.rows.length} users from Neon PostgreSQL.`);
+        }
+
+        // Push any local admin or registered users to Neon
+        for (const u of state.users) {
+          await client.query(
+            `INSERT INTO users (
+              id, name, email, "passwordHash", role, "approvalStatus", "schoolName", grade, "className", "studentName", phone, "approvedBy", "approvedAt", "createdAt", "updatedAt"
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            ON CONFLICT (id) DO UPDATE SET
+              name = EXCLUDED.name,
+              "passwordHash" = EXCLUDED."passwordHash",
+              role = EXCLUDED.role,
+              "approvalStatus" = EXCLUDED."approvalStatus",
+              "schoolName" = EXCLUDED."schoolName",
+              grade = EXCLUDED.grade,
+              "className" = EXCLUDED."className",
+              "studentName" = EXCLUDED."studentName",
+              phone = EXCLUDED.phone,
+              "updatedAt" = EXCLUDED."updatedAt"`,
+            [
+              u.id,
+              u.name,
+              u.email,
+              u.passwordHash,
+              u.role,
+              u.approvalStatus,
+              u.schoolName || null,
+              u.grade || null,
+              u.className || null,
+              u.studentName || null,
+              u.phone || null,
+              u.approvedBy || null,
+              u.approvedAt || null,
+              u.createdAt,
+              u.updatedAt || new Date().toISOString(),
+            ]
+          ).catch((e: any) => console.warn('Neon initial user push warning:', e.message));
+        }
+
+        // 2. Sync devices from Neon into local state
         const devRes = await client.query('SELECT * FROM devices');
         if (devRes.rows && devRes.rows.length > 0) {
-          const state = readLocalDB();
-          state.devices = devRes.rows;
-          writeLocalDB(state);
+          for (const d of devRes.rows) {
+            const idx = state.devices.findIndex(x => x.id === d.id);
+            if (idx === -1) {
+              state.devices.push(d);
+            } else {
+              state.devices[idx] = { ...state.devices[idx], ...d };
+            }
+          }
+          console.log(`Synced ${devRes.rows.length} devices from Neon PostgreSQL.`);
         }
+        writeLocalDB(state);
       } catch (err: any) {
         console.warn('Neon sync warning:', err.message);
       }
@@ -591,6 +651,51 @@ export const dbService = {
     const state = readLocalDB();
     state.users.push(user);
     writeLocalDB(state);
+
+    if (pgPool) {
+      try {
+        await pgPool.query(
+          `INSERT INTO users (
+            id, name, email, "passwordHash", role, "approvalStatus", "schoolName", grade, "className", "studentName", phone, "approvedBy", "approvedAt", "createdAt", "updatedAt"
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            email = EXCLUDED.email,
+            "passwordHash" = EXCLUDED."passwordHash",
+            role = EXCLUDED.role,
+            "approvalStatus" = EXCLUDED."approvalStatus",
+            "schoolName" = EXCLUDED."schoolName",
+            grade = EXCLUDED.grade,
+            "className" = EXCLUDED."className",
+            "studentName" = EXCLUDED."studentName",
+            phone = EXCLUDED.phone,
+            "approvedBy" = EXCLUDED."approvedBy",
+            "approvedAt" = EXCLUDED."approvedAt",
+            "updatedAt" = EXCLUDED."updatedAt"`,
+          [
+            user.id,
+            user.name,
+            user.email,
+            user.passwordHash,
+            user.role,
+            user.approvalStatus,
+            user.schoolName || null,
+            user.grade || null,
+            user.className || null,
+            user.studentName || null,
+            user.phone || null,
+            user.approvedBy || null,
+            user.approvedAt || null,
+            user.createdAt,
+            user.updatedAt || new Date().toISOString(),
+          ]
+        );
+      } catch (err: any) {
+        console.warn('Neon user insert warning:', err.message);
+      }
+    }
+
     return user;
   },
 
@@ -598,10 +703,11 @@ export const dbService = {
     const state = readLocalDB();
     const idx = state.users.findIndex(u => u.id === id);
     if (idx === -1) return null;
+    const nowIso = new Date().toISOString();
     state.users[idx] = {
       ...state.users[idx],
       ...updates,
-      updatedAt: new Date().toISOString(),
+      updatedAt: nowIso,
     };
 
     // If schoolName or className changed on a parent, sync their devices if needed
@@ -613,6 +719,42 @@ export const dbService = {
       });
     }
     writeLocalDB(state);
+
+    if (pgPool) {
+      try {
+        const u = state.users[idx];
+        await pgPool.query(
+          `UPDATE users SET
+            name = $2,
+            role = $3,
+            "approvalStatus" = $4,
+            "schoolName" = $5,
+            grade = $6,
+            "className" = $7,
+            "studentName" = $8,
+            phone = $9,
+            "passwordHash" = $10,
+            "updatedAt" = $11
+          WHERE id = $1`,
+          [
+            u.id,
+            u.name,
+            u.role,
+            u.approvalStatus,
+            u.schoolName || null,
+            u.grade || null,
+            u.className || null,
+            u.studentName || null,
+            u.phone || null,
+            u.passwordHash,
+            nowIso,
+          ]
+        );
+      } catch (err: any) {
+        console.warn('Neon user update warning:', err.message);
+      }
+    }
+
     return state.users[idx];
   },
 
@@ -624,11 +766,29 @@ export const dbService = {
     const state = readLocalDB();
     const idx = state.users.findIndex(u => u.id === userId);
     if (idx === -1) return null;
+    const nowIso = new Date().toISOString();
     state.users[idx].approvalStatus = approvalStatus;
     state.users[idx].approvedBy = adminName;
-    state.users[idx].approvedAt = new Date().toISOString();
-    state.users[idx].updatedAt = new Date().toISOString();
+    state.users[idx].approvedAt = nowIso;
+    state.users[idx].updatedAt = nowIso;
     writeLocalDB(state);
+
+    if (pgPool) {
+      try {
+        await pgPool.query(
+          `UPDATE users SET
+            "approvalStatus" = $2,
+            "approvedBy" = $3,
+            "approvedAt" = $4,
+            "updatedAt" = $4
+          WHERE id = $1`,
+          [userId, approvalStatus, adminName, nowIso]
+        );
+      } catch (err: any) {
+        console.warn('Neon user approval update warning:', err.message);
+      }
+    }
+
     return state.users[idx];
   },
 
@@ -644,6 +804,15 @@ export const dbService = {
     state.appUsages = state.appUsages.filter(a => !userDeviceIds.has(a.deviceId));
     state.webHistory = state.webHistory.filter(w => !userDeviceIds.has(w.deviceId));
     writeLocalDB(state);
+
+    if (pgPool) {
+      try {
+        await pgPool.query('DELETE FROM users WHERE id = $1', [userId]);
+      } catch (err: any) {
+        console.warn('Neon user delete warning:', err.message);
+      }
+    }
+
     return true;
   },
 
@@ -840,6 +1009,135 @@ export const dbService = {
         device.latitude = report.latitude;
         device.longitude = report.longitude;
         device.accuracy = report.accuracy;
+      }
+    }
+
+    // App & Web Detection & Recording from Mobile Phone Telemetry
+    if (report.currentApp && report.currentApp.trim()) {
+      const appName = report.currentApp.trim();
+      const prevApp = device.currentApp;
+      device.currentApp = appName;
+
+      // Mark other apps on this device as not running
+      state.appUsages.forEach((a) => {
+        if (a.deviceId === device.id) a.isRunning = false;
+      });
+
+      const existingApp = state.appUsages.find(
+        (a) => a.deviceId === device.id && a.appName.toLowerCase() === appName.toLowerCase()
+      );
+
+      const isGame = /game|roblox|free fire|liên quân|pubg|genshin/i.test(appName);
+      const isEdu = /k12|vnedu|học|zoom|meet|teams|classroom|sách|duolingo/i.test(appName);
+      const isSocial = /tiktok|facebook|youtube|zalo|messenger|instagram|threads/i.test(appName);
+      const cat = isGame ? 'GAME' : isEdu ? 'EDUCATION' : isSocial ? 'SOCIAL' : 'OTHER';
+      const isBlocked = (device.blockedApps || []).some((b) => b.toLowerCase() === appName.toLowerCase());
+
+      if (existingApp) {
+        existingApp.durationMinutes += 1;
+        existingApp.lastUsed = nowIso;
+        existingApp.isRunning = !existingApp.isBlocked;
+        existingApp.isBlocked = isBlocked;
+      } else {
+        const icon = isGame ? '🎮' : isEdu ? '📚' : isSocial ? '📱' : '⚙️';
+        state.appUsages.push({
+          id: 'app_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+          deviceId: device.id,
+          appName,
+          packageName: 'app.' + appName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+          category: cat,
+          icon,
+          durationMinutes: 5,
+          lastUsed: nowIso,
+          isRunning: !isBlocked,
+          isBlocked,
+          riskLevel: isBlocked ? 'RESTRICTED' : isGame || isSocial ? 'WARNING' : 'SAFE',
+        });
+      }
+
+      // If phone switched to a new app, log activity
+      if (prevApp !== appName && appName !== 'Màn hình chính' && appName !== 'Báo cáo GPS') {
+        state.activities.unshift({
+          id: 'act_' + Date.now() + '_app',
+          deviceId: device.id,
+          deviceName: device.name,
+          platform: device.platform,
+          studentName: device.studentName,
+          schoolName: device.schoolName,
+          grade: device.grade,
+          className: device.className,
+          type: 'APP_OPENED',
+          description: `📱 Phát hiện điện thoại học sinh ${device.studentName} (${device.className || 'Chưa rõ lớp'}) đang mở: "${appName}"`,
+          timestamp: nowIso,
+        });
+
+        // Check if currently in class hours (Cảnh báo dùng trong giờ học)
+        if (isCurrentlyInClassHours()) {
+          device.inClassAlert = true;
+          state.activities.unshift({
+            id: 'act_' + Date.now() + '_inclass',
+            deviceId: device.id,
+            deviceName: device.name,
+            platform: device.platform,
+            studentName: device.studentName,
+            schoolName: device.schoolName,
+            grade: device.grade,
+            className: device.className,
+            type: 'IN_CLASS_ALERT',
+            description: `🚨 CẢNH BÁO GIỜ HỌC: Học sinh ${device.studentName} đang dùng điện thoại ("${appName}") trong giờ học!`,
+            timestamp: nowIso,
+          });
+        }
+      }
+    }
+
+    if (report.currentWebsite && report.currentWebsite.trim()) {
+      const webUrl = report.currentWebsite.trim();
+      const prevWeb = device.currentWebsite;
+      device.currentWebsite = webUrl;
+
+      let domain = webUrl;
+      try {
+        domain = new URL(webUrl.startsWith('http') ? webUrl : `https://${webUrl}`).hostname.replace(/^www\./, '');
+      } catch {
+        domain = webUrl.replace(/^https?:\/\//, '').split('/')[0];
+      }
+
+      const isSocial = /facebook|tiktok|youtube|instagram/i.test(domain);
+      const isGame = /roblox|poki|game|crazygames/i.test(domain);
+      const isEdu = /edu|k12|hoc|quiz|google|wikipedia/i.test(domain);
+      const cat = isGame ? 'GAME' : isEdu ? 'EDUCATION' : isSocial ? 'SOCIAL' : 'OTHER';
+      const isBlocked = (device.blockedWebsites || []).some((b) => domain.toLowerCase().includes(b.toLowerCase()));
+
+      state.webHistory.unshift({
+        id: 'web_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        deviceId: device.id,
+        url: webUrl.startsWith('http') ? webUrl : `https://${webUrl}`,
+        domain,
+        pageTitle: `Trang web: ${domain}`,
+        category: cat,
+        timestamp: nowIso,
+        durationMinutes: 1,
+        visitCount: 1,
+        isBlocked,
+        riskLevel: isBlocked ? 'RESTRICTED' : isGame || isSocial ? 'WARNING' : 'SAFE',
+      });
+      if (state.webHistory.length > 500) state.webHistory = state.webHistory.slice(0, 500);
+
+      if (prevWeb !== webUrl && webUrl !== 'DeviceMonitor' && !webUrl.includes('onrender.com')) {
+        state.activities.unshift({
+          id: 'act_' + Date.now() + '_web',
+          deviceId: device.id,
+          deviceName: device.name,
+          platform: device.platform,
+          studentName: device.studentName,
+          schoolName: device.schoolName,
+          grade: device.grade,
+          className: device.className,
+          type: 'WEB_VISITED',
+          description: `🌐 Học sinh ${device.studentName} vừa truy cập website: ${domain}`,
+          timestamp: nowIso,
+        });
       }
     }
 
@@ -1052,6 +1350,52 @@ export const dbService = {
     });
 
     writeLocalDB(state);
+
+    if (pgPool) {
+      pgPool.query(
+        `INSERT INTO devices (
+          id, "userId", "deviceUuid", name, platform, "studentName", "studentId", "schoolName", grade, "className",
+          "parentPhone", "currentApp", "currentWebsite", "batteryLevel", charging, "networkType",
+          latitude, longitude, accuracy, "isUninstalled", "uninstalledAt", status, "lastSeen", "createdAt", "updatedAt"
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          platform = EXCLUDED.platform,
+          "studentName" = EXCLUDED."studentName",
+          "schoolName" = EXCLUDED."schoolName",
+          "className" = EXCLUDED."className",
+          "updatedAt" = EXCLUDED."updatedAt"`,
+        [
+          finalDevice.id,
+          finalDevice.userId || 'usr_default',
+          finalDevice.deviceUuid,
+          finalDevice.name,
+          finalDevice.platform,
+          finalDevice.studentName,
+          finalDevice.studentId || '',
+          finalDevice.schoolName,
+          finalDevice.grade || '',
+          finalDevice.className,
+          finalDevice.parentPhone || '',
+          finalDevice.currentApp,
+          finalDevice.currentWebsite,
+          finalDevice.batteryLevel,
+          Boolean(finalDevice.charging),
+          finalDevice.networkType,
+          finalDevice.latitude,
+          finalDevice.longitude,
+          finalDevice.accuracy,
+          Boolean(finalDevice.isUninstalled),
+          finalDevice.uninstalledAt || null,
+          finalDevice.status,
+          finalDevice.lastSeen || finalDevice.createdAt,
+          finalDevice.createdAt,
+          finalDevice.updatedAt,
+        ]
+      ).catch((e: any) => console.warn('Neon createDevice upsert error:', e.message));
+    }
+
     return enrichDevice(finalDevice, state);
   },
 
@@ -1070,6 +1414,22 @@ export const dbService = {
       updatedAt: new Date().toISOString(),
     };
     writeLocalDB(state);
+
+    if (pgPool) {
+      const d = state.devices[idx];
+      pgPool.query(
+        `UPDATE devices SET
+          name = COALESCE($2, name),
+          "studentName" = COALESCE($3, "studentName"),
+          "schoolName" = COALESCE($4, "schoolName"),
+          "className" = COALESCE($5, "className"),
+          "parentPhone" = COALESCE($6, "parentPhone"),
+          "updatedAt" = $7
+        WHERE id = $1`,
+        [id, d.name, d.studentName, d.schoolName, d.className, d.parentPhone, d.updatedAt]
+      ).catch((e: any) => console.warn('Neon updateDevice error:', e.message));
+    }
+
     return enrichDevice(state.devices[idx], state);
   },
 
@@ -1088,6 +1448,11 @@ export const dbService = {
     state.appUsages = state.appUsages.filter(a => a.deviceId !== id);
     state.webHistory = state.webHistory.filter(w => w.deviceId !== id);
     writeLocalDB(state);
+
+    if (pgPool) {
+      pgPool.query('DELETE FROM devices WHERE id = $1', [id]).catch((e: any) => console.warn('Neon deleteDevice error:', e.message));
+    }
+
     return true;
   },
 
@@ -1650,5 +2015,41 @@ export const dbService = {
       .filter(a => a.deviceId === deviceId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, limit);
+  },
+
+  // DATABASE STATS FOR NEON AND LOCAL
+  async getDatabaseStats(): Promise<{
+    isNeonConnected: boolean;
+    totalUsers: number;
+    totalDevices: number;
+    neonUsersCount?: number;
+    neonDevicesCount?: number;
+    databaseEngine: string;
+  }> {
+    const state = readLocalDB();
+    let neonUsersCount: number | undefined;
+    let neonDevicesCount: number | undefined;
+
+    if (pgPool && isPostgresConnected) {
+      try {
+        const [uRes, dRes] = await Promise.all([
+          pgPool.query('SELECT COUNT(*) FROM users'),
+          pgPool.query('SELECT COUNT(*) FROM devices'),
+        ]);
+        neonUsersCount = parseInt(uRes.rows[0]?.count || '0', 10);
+        neonDevicesCount = parseInt(dRes.rows[0]?.count || '0', 10);
+      } catch (err: any) {
+        console.warn('Neon stats query warning:', err.message);
+      }
+    }
+
+    return {
+      isNeonConnected: Boolean(isPostgresConnected && pgPool),
+      totalUsers: neonUsersCount ?? state.users.length,
+      totalDevices: neonDevicesCount ?? state.devices.length,
+      neonUsersCount,
+      neonDevicesCount,
+      databaseEngine: isPostgresConnected && pgPool ? 'Neon PostgreSQL (Production)' : 'Local Persistent Engine (Active)',
+    };
   },
 };
