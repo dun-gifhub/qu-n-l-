@@ -191,6 +191,8 @@ router.post('/uninstall', async (req: any, res: Response): Promise<any> => {
 // GET /api/devices - List accessible devices (bắt buộc đăng nhập)
 router.get('/', requireAuth, requireApproved, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
+    // Run automated MDM heartbeat check before returning devices
+    await dbService.checkHeartbeatTimeouts();
     const devices = await dbService.getAccessibleDevices(req.user!.userId);
     return res.json({
       success: true,
@@ -428,6 +430,46 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response): Promise<a
   }
 });
 
+// POST /api/devices/check-heartbeat - MDM Server checks heartbeat timeout across all devices
+router.post('/check-heartbeat', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const thresholdMs = req.body.thresholdMs ? parseInt(req.body.thresholdMs, 10) : 180000;
+    const result = await dbService.checkHeartbeatTimeouts(thresholdMs);
+    return res.json({
+      success: true,
+      message: `Đã kiểm tra tín hiệu nhịp tim (${result.newlyTimedOut} thiết bị vừa phát hiện mất kết nối / có thể đã gỡ)`,
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi kiểm tra nhịp tim thiết bị',
+      error: error.message,
+    });
+  }
+});
+
+// POST /api/devices/:id/restore-status - Khôi phục trạng thái hoạt động bình thường
+router.post('/:id/restore-status', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const updated = await dbService.setDeviceUninstallStatus(req.params.id, false, req.user!.userId);
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thiết bị hoặc không có quyền truy cập' });
+    }
+    return res.json({
+      success: true,
+      message: 'Đã khôi phục trạng thái hoạt động bình thường của thiết bị',
+      data: updated,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khôi phục trạng thái thiết bị',
+      error: error.message,
+    });
+  }
+});
+
 // POST /api/devices/:id/uninstall-status - Toggle or explicitly set uninstall status
 router.post('/:id/uninstall-status', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
@@ -446,6 +488,39 @@ router.post('/:id/uninstall-status', async (req: AuthenticatedRequest, res: Resp
       success: false,
       message: 'Lỗi cập nhật trạng thái gỡ cài đặt',
       error: error.message,
+    });
+  }
+});
+
+// DELETE /api/devices/all/clear or POST /api/devices/clear-all - Clear/wipe all devices
+router.delete('/all/clear', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const result = await dbService.clearAllDevices(req.user!.userId);
+    return res.json({
+      success: true,
+      message: `Đã làm trống toàn bộ thiết bị (${result.deletedCount} thiết bị)`,
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể làm trống danh sách thiết bị',
+    });
+  }
+});
+
+router.post('/clear-all', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const result = await dbService.clearAllDevices(req.user!.userId);
+    return res.json({
+      success: true,
+      message: `Đã làm trống toàn bộ thiết bị (${result.deletedCount} thiết bị)`,
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể làm trống danh sách thiết bị',
     });
   }
 });

@@ -1,6 +1,20 @@
 {
   "users": [
     {
+      "id": "usr_admin_master",
+      "name": "admin",
+      "email": "dungdaumoi223@gmail.com",
+      "passwordHash": "$2b$10$DWUBPpc/Xsdbl/vWfrEWl.rK5Kq8Xx75zvnX.kLK3O9yaOW2BCCbW",
+      "role": "ADMIN",
+      "approvalStatus": "APPROVED",
+      "schoolName": "THPT Chuyên Lê Hồng Phong",
+      "phone": "0976575943",
+      "approvedBy": "Cấu hình Environment",
+      "approvedAt": "2026-10-03T05:09:49.990Z",
+      "createdAt": "2026-10-03T05:09:49.990Z",
+      "updatedAt": "2026-10-03T05:09:49.990Z"
+    },
+    {
       "id": "usr_admin_muo6qxdp",
       "name": "Quản Trị Viên (Admin)",
       "email": "admin@devicemonitor.com",
@@ -13,143 +27,11 @@
       "approvedAt": "2026-09-30T14:13:22.329Z",
       "createdAt": "2026-09-30T14:13:22.329Z",
       "updatedAt": "2026-09-30T14:13:22.329Z"
-    },
-    {
-      "id": "usr_1790836452535_xrknh",
-      "name": "Phu Huynh So Dien Thoai",
-      "email": "0987654321@phone.devicemonitor.com",
-      "passwordHash": "$2b$10$cm9yiCIFfND7eC0I3TJsKep9gp9ZeCM0mH7tyxbDk/g1tXhkKRTO6",
-      "role": "PARENT",
-      "approvalStatus": "PENDING",
-      "schoolName": "THPT Chuyên Lê Hồng Phong",
-      "className": "10A1",
-      "studentName": "Con của Phu Huynh So Dien Thoai",
-      "phone": "0987654321",
-      "createdAt": "2026-10-01T06:34:12.536Z",
-      "updatedAt": "2026-10-01T06:34:12.536Z"
-    },
-    {
-      "id": "usr_1790836460875_a0d6r",
-      "name": "Nguyen Thi Mai",
-      "email": "maitest@gmail.com",
-      "passwordHash": "$2b$10$YLUOnnyisU7mj43aQUqxquMcGionxaNbZz9d0uGDUAOTrK6mF9isa",
-      "role": "TEACHER",
-      "approvalStatus": "PENDING",
-      "schoolName": "THPT Chuyên Lê Hồng Phong",
-      "className": "10A1",
-      "createdAt": "2026-10-01T06:34:20.876Z",
-      "updatedAt": "2026-10-01T06:34:20.876Z"
     }
   ],
-  "devices": [
-    {
-      "id": "dev_ssss_gphone",
-      "userId": "usr_admin_muo6qxdp",
-      "deviceUuid": "DEV-GPHONE-ARM64",
-      "name": "Google sdk_gphone64_arm64",
-      "platform": "Android",
-      "studentName": "ssss",
-      "studentId": "HS1001",
-      "schoolName": "THPT Chuyên Lê Hồng Phong",
-      "grade": "Khối 10",
-      "className": "10A1",
-      "parentPhone": "0901234567",
-      "currentApp": "Dùng giờ học (Đang mở sáng màn hình)",
-      "currentWebsite": "DeviceMonitor",
-      "screenTimeMinutes": 447,
-      "blockedApps": [],
-      "blockedWebsites": [],
-      "status": "ONLINE",
-      "batteryLevel": 100,
-      "charging": false,
-      "networkType": "WIFI",
-      "locationPermission": true,
-      "locationSharing": true,
-      "latitude": 39.237255,
-      "longitude": -123.150032,
-      "accuracy": 10,
-      "isUninstalled": false,
-      "isNoNetwork": false,
-      "lastSeen": "2026-09-30T14:15:00.000Z",
-      "createdAt": "2026-09-30T14:00:00.000Z",
-      "updatedAt": "2026-09-30T14:15:00.000Z"
-    },
-    {
-      "id": "dev_1790777799114_0ye8",
-      "userId": "usr_default",
-      "deviceUuid": "DEV-OC01RK",
-      "name": "Google sdk_gphone64_arm64",
-      "platform": "Android",
-      "studentName": "ssss",
-      "studentId": "",
-      "schoolName": "THPT Chuyên Lê Hồng Phong",
-      "grade": "Khối 10",
-      "className": "10A1",
-      "parentPhone": "",
-      "currentApp": "Dùng giờ học (Đang mở sáng màn hình)",
-      "currentWebsite": "DeviceMonitor",
-      "screenTimeMinutes": 5,
-      "blockedApps": [],
-      "blockedWebsites": [],
-      "status": "ONLINE",
-      "batteryLevel": 100,
-      "charging": false,
-      "networkType": "WIFI",
-      "locationPermission": true,
-      "locationSharing": true,
-      "latitude": 39.237255,
-      "longitude": -123.150032,
-      "accuracy": 10,
-      "isUninstalled": false,
-      "lastSeen": "2026-09-30T14:16:39.114Z",
-      "createdAt": "2026-09-30T14:16:39.114Z",
-      "updatedAt": "2026-09-30T14:16:39.114Z"
-    }
-  ],
-  "locations": [
-    {
-      "id": "loc_1790777799115_4u0s",
-      "deviceId": "dev_1790777799114_0ye8",
-      "latitude": 39.237255,
-      "longitude": -123.150032,
-      "accuracy": 10,
-      "timestamp": "2026-09-30T14:16:39.114Z",
-      "createdAt": "2026-09-30T14:16:39.114Z"
-    },
-    {
-      "id": "loc_init_1",
-      "deviceId": "dev_ssss_gphone",
-      "latitude": 39.237255,
-      "longitude": -123.150032,
-      "accuracy": 10,
-      "timestamp": "2026-09-30T14:15:00.000Z",
-      "createdAt": "2026-09-30T14:15:00.000Z"
-    }
-  ],
-  "statuses": [
-    {
-      "id": "stat_1790777799115_0ljc",
-      "deviceId": "dev_1790777799114_0ye8",
-      "batteryLevel": 100,
-      "charging": false,
-      "networkType": "WIFI",
-      "locationPermission": true,
-      "locationSharing": true,
-      "status": "ONLINE",
-      "timestamp": "2026-09-30T14:16:39.114Z"
-    },
-    {
-      "id": "stat_init_1",
-      "deviceId": "dev_ssss_gphone",
-      "batteryLevel": 100,
-      "charging": false,
-      "networkType": "WIFI",
-      "locationPermission": true,
-      "locationSharing": true,
-      "status": "ONLINE",
-      "timestamp": "2026-09-30T14:15:00.000Z"
-    }
-  ],
+  "devices": [],
+  "locations": [],
+  "statuses": [],
   "sessions": [
     {
       "id": "sess_1790777681218",
@@ -159,41 +41,9 @@
       "ipAddress": "127.0.0.1",
       "expiresAt": "2026-10-07T14:14:41.218Z",
       "createdAt": "2026-09-30T14:14:41.218Z"
-    },
-    {
-      "id": "sess_1790835996572",
-      "userId": "usr_admin_muo6qxdp",
-      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfYWRtaW5fbXVvNnF4ZHAiLCJlbWFpbCI6ImFkbWluQGRldmljZW1vbml0b3IuY29tIiwibmFtZSI6IlF14bqjbiBUcuG7iyBWacOqbiAoQWRtaW4pIiwicm9sZSI6IkFETUlOIiwic2Nob29sTmFtZSI6IlRIUFQgQ2h1ecOqbiBMw6ogSOG7k25nIFBob25nIiwiYXBwcm92YWxTdGF0dXMiOiJBUFBST1ZFRCIsImlhdCI6MTc5MDgzNTk5NiwiZXhwIjoxNzkxNDQwNzk2fQ.6bbiuUvWXvzeszkXAbKXc9dU5AEdXFmE5-sgOOBRjEY",
-      "userAgent": "curl/7.88.1",
-      "ipAddress": "127.0.0.1",
-      "expiresAt": "2026-10-08T06:26:36.572Z",
-      "createdAt": "2026-10-01T06:26:36.572Z"
-    },
-    {
-      "id": "sess_1790836456943",
-      "userId": "usr_1790836452535_xrknh",
-      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfMTc5MDgzNjQ1MjUzNV94cmtuaCIsImVtYWlsIjoiMDk4NzY1NDMyMUBwaG9uZS5kZXZpY2Vtb25pdG9yLmNvbSIsIm5hbWUiOiJQaHUgSHV5bmggU28gRGllbiBUaG9haSIsInJvbGUiOiJQQVJFTlQiLCJzY2hvb2xOYW1lIjoiVEhQVCBDaHV5w6puIEzDqiBI4buTbmcgUGhvbmciLCJjbGFzc05hbWUiOiIxMEExIiwiYXBwcm92YWxTdGF0dXMiOiJQRU5ESU5HIiwiaWF0IjoxNzkwODM2NDU2LCJleHAiOjE3OTE0NDEyNTZ9.LfdgCHGpkrE7AhkRZF6xSGHNURkxW8c5bNEUBuZx4OU",
-      "userAgent": "curl/7.88.1",
-      "ipAddress": "127.0.0.1",
-      "expiresAt": "2026-10-08T06:34:16.944Z",
-      "createdAt": "2026-10-01T06:34:16.944Z"
     }
   ],
-  "activities": [
-    {
-      "id": "act_1790777799115",
-      "deviceId": "dev_1790777799114_0ye8",
-      "deviceName": "Google sdk_gphone64_arm64",
-      "platform": "Android",
-      "studentName": "ssss",
-      "schoolName": "THPT Chuyên Lê Hồng Phong",
-      "grade": "Khối 10",
-      "className": "10A1",
-      "type": "ONLINE",
-      "description": "Thiết bị \"Google sdk_gphone64_arm64\" đã kết nối và bắt đầu báo cáo vào hệ thống",
-      "timestamp": "2026-09-30T14:16:39.114Z"
-    }
-  ],
+  "activities": [],
   "appUsages": [],
   "webHistory": []
 }

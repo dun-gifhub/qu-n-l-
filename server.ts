@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
-import { initDatabase } from './server/src/db/db.ts';
+import { initDatabase, dbService } from './server/src/db/db.ts';
 import authRouter from './server/src/routes/auth.ts';
 import devicesRouter from './server/src/routes/devices.ts';
 import activityRouter from './server/src/routes/activity.ts';
@@ -175,6 +175,18 @@ async function startServer() {
   server.keepAliveTimeout = 120000; // 120s
   server.headersTimeout = 125000;   // 125s
   server.requestTimeout = 300000;   // 300s (5 minutes)
+
+  // MDM Standard Heartbeat Timeout Task:
+  // Tác vụ kiểm tra tự động chạy định kỳ mỗi 15 giây trên máy chủ backend:
+  // Nếu thiết bị không gửi dữ liệu quá 3 phút kể từ last_seen, tự động cập nhật trạng thái
+  // thành: "Mất kết nối / Có thể đã gỡ cài đặt" và kích hoạt cảnh báo lên Dashboard.
+  const heartbeatInterval = setInterval(async () => {
+    try {
+      await dbService.checkHeartbeatTimeouts(180000); // 3 phút
+    } catch (err: any) {
+      console.warn('Heartbeat background checker warning:', err.message);
+    }
+  }, 15000);
 
   const gracefulShutdown = (signal: string) => {
     console.log(`Received ${signal}. Gracefully closing HTTP server...`);

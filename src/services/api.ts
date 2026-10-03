@@ -147,8 +147,17 @@ export const api = {
   deleteUserByAdmin: (userId: string) =>
     request<null>(`/users/${userId}`, { method: 'DELETE' }),
 
+  clearAllNonAdminUsers: () =>
+    request<{ deletedCount: number }>('/users/clear-all', { method: 'POST' }),
+
+  clearAllSystemData: () =>
+    request<{ deletedDevices: number; deletedUsers: number }>('/users/clear-all-system', { method: 'POST' }),
+
   // Devices
   getDevices: () => request<Device[]>('/devices'),
+
+  clearAllDevices: () =>
+    request<{ deletedCount: number }>('/devices/all/clear', { method: 'DELETE' }),
 
   getDeviceById: (id: string) => request<Device>(`/devices/${id}`),
 
@@ -182,6 +191,15 @@ export const api = {
 
   setDeviceUninstallStatus: (id: string, isUninstalled: boolean) =>
     request<Device>(`/devices/${id}/uninstall-status`, { method: 'POST', body: JSON.stringify({ isUninstalled }) }),
+
+  restoreDeviceStatus: (id: string) =>
+    request<Device>(`/devices/${id}/restore-status`, { method: 'POST' }),
+
+  checkHeartbeatTimeouts: (thresholdMs?: number) =>
+    request<{ checked: number; newlyTimedOut: number; activeCount: number; timedOutDevices: any[] }>(
+      '/devices/check-heartbeat',
+      { method: 'POST', body: JSON.stringify({ thresholdMs }) }
+    ),
 
   deleteDevice: (id: string) => request<null>(`/devices/${id}`, { method: 'DELETE' }),
 

@@ -100,6 +100,9 @@ export interface Device {
   locationSharing?: boolean;
   isUninstalled?: boolean;
   uninstalledAt?: string;
+  disconnectReason?: string;
+  heartbeatTimeout?: boolean;
+  lastHeartbeatAt?: string;
   inClassAlert?: boolean;
   isNoNetwork?: boolean;
 }

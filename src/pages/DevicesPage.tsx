@@ -86,6 +86,25 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
     }
   };
 
+  const [isClearingAll, setIsClearingAll] = useState(false);
+
+  const handleClearAllDevices = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn LÀM TRỐNG TẤT CẢ thiết bị và toàn bộ dữ liệu định vị/hoạt động không?')) {
+      return;
+    }
+    setIsClearingAll(true);
+    try {
+      const res = await api.clearAllDevices();
+      if (res.success) {
+        setDevices([]);
+        setMovementLocations([]);
+      }
+    } finally {
+      setIsClearingAll(false);
+      loadDevices();
+    }
+  };
+
   useEffect(() => {
     loadDevices();
     const interval = setInterval(() => {
@@ -197,6 +216,27 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
             {movementLocations.length > 0 ? `${movementLocations.length} điểm GPS` : 'Vĩnh cửu'}
           </span>
         </button>
+
+        <div className="flex items-center gap-2 ml-auto">
+          {totalDevices > 0 && (
+            <button
+              onClick={handleClearAllDevices}
+              disabled={isClearingAll}
+              className="py-2 px-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-900/50 transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Làm trống tất cả thiết bị trên hệ thống"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{isClearingAll ? 'Đang xóa...' : 'Làm trống tất cả'}</span>
+            </button>
+          )}
+          <button
+            onClick={onOpenAddDevice}
+            className="py-2 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Đăng ký thiết bị</span>
+          </button>
+        </div>
       </div>
 
       {/* VIEW MODE 1: DANH SÁCH THIẾT BỊ GIÁM SÁT */}

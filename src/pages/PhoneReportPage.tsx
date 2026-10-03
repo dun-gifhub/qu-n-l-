@@ -67,27 +67,33 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
   });
 
   const [studentName, setStudentName] = useState<string>(() => {
-    return localStorage.getItem('reporter_student_name') || 'Nguyễn Minh Quân';
+    const val = localStorage.getItem('reporter_student_name');
+    return val !== null ? val : '';
   });
 
   const [studentId, setStudentId] = useState<string>(() => {
-    return localStorage.getItem('reporter_student_id') || 'HS' + Math.floor(1000 + Math.random() * 9000);
+    const val = localStorage.getItem('reporter_student_id');
+    return val !== null ? val : '';
   });
 
   const [schoolName, setSchoolName] = useState<string>(() => {
-    return localStorage.getItem('reporter_school_name') || 'THPT Chuyên Lê Hồng Phong';
+    const val = localStorage.getItem('reporter_school_name');
+    return val !== null ? val : '';
   });
 
   const [grade, setGrade] = useState<string>(() => {
-    return localStorage.getItem('reporter_grade') || 'Khối 10';
+    const val = localStorage.getItem('reporter_grade');
+    return val !== null ? val : '';
   });
 
   const [className, setClassName] = useState<string>(() => {
-    return localStorage.getItem('reporter_class_name') || '10A1';
+    const val = localStorage.getItem('reporter_class_name');
+    return val !== null ? val : '';
   });
 
   const [parentPhone, setParentPhone] = useState<string>(() => {
-    return localStorage.getItem('reporter_parent_phone') || '0901234567';
+    const val = localStorage.getItem('reporter_parent_phone');
+    return val !== null ? val : '';
   });
 
   const [serverUrl, setServerUrl] = useState<string>(() => {
@@ -98,10 +104,12 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
   });
 
   const [currentApp, setCurrentApp] = useState<string>(() => {
-    return localStorage.getItem('reporter_current_app') || 'Màn hình chính';
+    const val = localStorage.getItem('reporter_current_app');
+    return val !== null ? val : 'Màn hình chính';
   });
   const [currentWebsite, setCurrentWebsite] = useState<string>(() => {
-    return localStorage.getItem('reporter_current_website') || 'google.com';
+    const val = localStorage.getItem('reporter_current_website');
+    return val !== null ? val : '';
   });
 
   const [isReporting, setIsReporting] = useState<boolean>(false);
@@ -112,6 +120,67 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
   const [copiedLink, setCopiedLink] = useState(false);
   const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
   const [isUninstalled, setIsUninstalled] = useState<boolean>(false);
+
+  // Clear all form inputs / Reset to blank
+  const handleClearAllFields = () => {
+    setStudentName('');
+    setStudentId('');
+    setSchoolName('');
+    setGrade('');
+    setClassName('');
+    setParentPhone('');
+    setDeviceName('');
+    setCurrentApp('');
+    setCurrentWebsite('');
+
+    localStorage.removeItem('reporter_student_name');
+    localStorage.removeItem('reporter_student_id');
+    localStorage.removeItem('reporter_school_name');
+    localStorage.removeItem('reporter_grade');
+    localStorage.removeItem('reporter_class_name');
+    localStorage.removeItem('reporter_parent_phone');
+    localStorage.removeItem('reporter_device_name');
+    localStorage.removeItem('reporter_current_app');
+    localStorage.removeItem('reporter_current_website');
+
+    setStatusMessage('Đã làm trống tất cả các ô nhập liệu thành công');
+    setLastError(null);
+  };
+
+  // Quick fill sample demo data
+  const handleFillDemoData = () => {
+    const sName = 'Nguyễn Minh Quân';
+    const sId = 'HS' + Math.floor(1000 + Math.random() * 9000);
+    const sSchool = 'THPT Chuyên Lê Hồng Phong';
+    const sGrade = 'Khối 10';
+    const sClass = '10A1';
+    const sPhone = '0901234567';
+    const sDev = /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'iPhone Học Sinh' : 'Điện Thoại Android';
+    const sApp = 'Màn hình chính';
+    const sWeb = 'google.com';
+
+    setStudentName(sName);
+    setStudentId(sId);
+    setSchoolName(sSchool);
+    setGrade(sGrade);
+    setClassName(sClass);
+    setParentPhone(sPhone);
+    setDeviceName(sDev);
+    setCurrentApp(sApp);
+    setCurrentWebsite(sWeb);
+
+    localStorage.setItem('reporter_student_name', sName);
+    localStorage.setItem('reporter_student_id', sId);
+    localStorage.setItem('reporter_school_name', sSchool);
+    localStorage.setItem('reporter_grade', sGrade);
+    localStorage.setItem('reporter_class_name', sClass);
+    localStorage.setItem('reporter_parent_phone', sPhone);
+    localStorage.setItem('reporter_device_name', sDev);
+    localStorage.setItem('reporter_current_app', sApp);
+    localStorage.setItem('reporter_current_website', sWeb);
+
+    setStatusMessage('Đã điền thông tin mẫu');
+  };
 
   // Live telemetry state
   const [coords, setCoords] = useState<{
@@ -498,14 +567,33 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
 
         {/* Student & School Info Form */}
         <div className="mt-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-3">
-          <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
               <GraduationCap className="w-4 h-4 text-indigo-400" />
               <span>THÔNG TIN HỌC SINH ĐĂNG KÝ</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-mono">
-              {platform} · {networkType}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleClearAllFields}
+                className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                title="Làm trống toàn bộ các trường nhập liệu"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Làm trống tất cả</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleFillDemoData}
+                className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-medium transition cursor-pointer"
+                title="Điền dữ liệu mẫu demo"
+              >
+                Mẫu demo
+              </button>
+              <span className="text-[10px] text-slate-500 font-mono ml-1">
+                {platform} · {networkType}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
@@ -570,6 +658,7 @@ export const PhoneReportPage: React.FC<PhoneReportPageProps> = ({ navigate }) =>
                 }}
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
+                <option value="">-- Để trống / Chọn khối --</option>
                 {GRADE_OPTIONS.map((g) => (
                   <option key={g} value={g}>
                     {g}

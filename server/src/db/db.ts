@@ -294,6 +294,8 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS accuracy DOUBLE PRECISION;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "isUninstalled" BOOLEAN DEFAULT false;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "uninstalledAt" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "disconnectReason" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "lastHeartbeatAt" TEXT;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "inClassAlert" BOOLEAN DEFAULT false;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "isNoNetwork" BOOLEAN DEFAULT false;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "lastSeen" TEXT;
@@ -605,8 +607,27 @@ function readLocalDB(): DBState {
   }
 }
 
-function writeLocalDB(state: DBState): void {
+export function resetMemoryCache(): void {
+  memoryCache = null;
+}
+
+function writeLocalDB(state: DBState, immediate: boolean = false): void {
   memoryCache = state;
+  if (immediate) {
+    if (saveDebounceTimer) {
+      clearTimeout(saveDebounceTimer);
+      saveDebounceTimer = null;
+    }
+    try {
+      if (memoryCache) {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(memoryCache, null, 2), 'utf-8');
+      }
+    } catch (err: any) {
+      console.warn('Immediate save error:', err.message);
+    }
+    return;
+  }
+
   if (!saveDebounceTimer) {
     saveDebounceTimer = setTimeout(() => {
       saveDebounceTimer = null;
@@ -658,16 +679,18 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
 
   const totalScreenTime = devApps.reduce((sum, a) => sum + (a.durationMinutes || 0), 0);
 
-  // Time calculation for real-time heartbeat
+  // Time calculation for real-time heartbeat (MDM Standard Heartbeat Timeout: 30s period, 3-min timeout)
   const lastSeenMs = d.lastSeen ? new Date(d.lastSeen).getTime() : 0;
-  const isHeartbeatFresh = (Date.now() - lastSeenMs) <= 30000; // within 30s
-  const isOnlineComputed = !d.isUninstalled && isHeartbeatFresh && d.networkType !== 'NONE';
-  const computedStatus = d.isUninstalled ? 'OFFLINE' : (isOnlineComputed ? 'ONLINE' : 'OFFLINE');
+  const isHeartbeatFresh = lastSeenMs > 0 && (Date.now() - lastSeenMs) <= 35000; // within 35s
+  // Ngưỡng thời gian quy định không gửi dữ liệu (sau 3 phút kể từ last_seen)
+  const isHeartbeatTimeout = lastSeenMs > 0 && (Date.now() - lastSeenMs > 180000);
   const isNoNet = d.networkType === 'NONE' || Boolean(d.isNoNetwork);
-  const inClass = computedStatus === 'ONLINE' && isCurrentlyInClassHours();
 
-  // Suspected uninstalled: if marked uninstalled OR if was online and silent > 60s
-  const isSuspectedUninstalled = Boolean(d.isUninstalled) || (!isHeartbeatFresh && Boolean(d.lastSeen) && (Date.now() - lastSeenMs > 60000) && d.isUninstalled !== false && !isNoNet);
+  // Suspected uninstalled: nếu đã bị đánh dấu gỡ HOẶC không gửi dữ liệu quá ngưỡng 3 phút
+  const isSuspectedUninstalled = Boolean(d.isUninstalled) || isHeartbeatTimeout;
+  const computedStatus = isSuspectedUninstalled ? 'OFFLINE' : (isHeartbeatFresh && !isNoNet ? 'ONLINE' : 'OFFLINE');
+  const inClass = computedStatus === 'ONLINE' && isCurrentlyInClassHours();
+  const disconnectReason = d.disconnectReason || (isHeartbeatTimeout ? 'Mất kết nối / Có thể đã gỡ cài đặt' : (d.isUninstalled ? 'Đã gỡ cài đặt' : undefined));
 
   return {
     ...d,
@@ -702,6 +725,9 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
     accuracy: latestLoc?.accuracy ?? d.accuracy,
     isUninstalled: isSuspectedUninstalled,
     uninstalledAt: d.uninstalledAt,
+    disconnectReason,
+    heartbeatTimeout: isHeartbeatTimeout,
+    lastHeartbeatAt: d.lastSeen,
     inClassAlert: inClass,
     isNoNetwork: isNoNet,
   };
@@ -1046,6 +1072,32 @@ export const dbService = {
     return true;
   },
 
+  async clearAllNonAdminUsers(requestingUserId: string): Promise<{ deletedCount: number }> {
+    const state = readLocalDB();
+    const caller = state.users.find(u => u.id === requestingUserId);
+    if (!caller || caller.role !== 'ADMIN') {
+      return { deletedCount: 0 };
+    }
+
+    const nonAdminUsers = state.users.filter(u => u.role !== 'ADMIN');
+    const count = nonAdminUsers.length;
+    const removedUserIds = new Set(nonAdminUsers.map(u => u.id));
+
+    state.users = state.users.filter(u => u.role === 'ADMIN');
+    state.sessions = state.sessions.filter(s => !removedUserIds.has(s.userId));
+    writeLocalDB(state, true);
+
+    if (pgPool) {
+      try {
+        await pgPool.query("DELETE FROM users WHERE role != 'ADMIN'");
+      } catch (err: any) {
+        console.warn('Neon clearAllNonAdminUsers warning:', err.message);
+      }
+    }
+
+    return { deletedCount: count };
+  },
+
   // DEVICES
   async getAllDevices(): Promise<DeviceRecord[]> {
     const state = readLocalDB();
@@ -1192,6 +1244,7 @@ export const dbService = {
         device.isUninstalled = true;
         device.uninstalledAt = nowIso;
         device.status = 'OFFLINE';
+        device.disconnectReason = 'Học sinh chủ động gửi tín hiệu gỡ ứng dụng';
         state.activities.unshift({
           id: 'act_' + Date.now(),
           deviceId: device.id,
@@ -1206,8 +1259,25 @@ export const dbService = {
           timestamp: nowIso,
         });
       } else {
+        const wasTimedOut = device.isUninstalled && device.disconnectReason === 'Mất kết nối / Có thể đã gỡ cài đặt';
         device.isUninstalled = false;
+        device.disconnectReason = undefined;
         device.status = 'ONLINE';
+        if (wasTimedOut) {
+          state.activities.unshift({
+            id: 'act_' + Date.now(),
+            deviceId: device.id,
+            deviceName: device.name,
+            platform: device.platform,
+            studentName: device.studentName,
+            schoolName: device.schoolName,
+            grade: device.grade,
+            className: device.className,
+            type: 'ONLINE',
+            description: `✅ KHÔI PHỤC KẾT NỐI: Thiết bị "${device.name}" (${device.studentName}) đã gửi lại tín hiệu nhịp tim bình thường sau thời gian mất kết nối.`,
+            timestamp: nowIso,
+          });
+        }
       }
 
       if (report.isNoNetwork || report.networkType === 'NONE') {
@@ -1685,6 +1755,227 @@ export const dbService = {
     }
 
     return true;
+  },
+
+  async setDeviceUninstallStatus(
+    deviceId: string,
+    isUninstalled: boolean,
+    requestingUserId: string
+  ): Promise<DeviceRecord | null> {
+    const state = readLocalDB();
+    const user = state.users.find(u => u.id === requestingUserId);
+    const d = state.devices.find(x => x.id === deviceId);
+    if (!d || !user) return null;
+
+    const enriched = enrichDevice(d, state);
+    if (!canUserAccessDevice(user, enriched)) return null;
+
+    const nowIso = new Date().toISOString();
+    d.isUninstalled = isUninstalled;
+    d.uninstalledAt = isUninstalled ? nowIso : undefined;
+    d.status = isUninstalled ? 'OFFLINE' : 'ONLINE';
+    d.disconnectReason = isUninstalled ? 'Đã ghi nhận gỡ cài đặt từ người quản trị / MDM' : undefined;
+    d.updatedAt = nowIso;
+
+    state.activities.unshift({
+      id: 'act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      deviceId: d.id,
+      deviceName: d.name,
+      platform: d.platform,
+      studentName: d.studentName,
+      schoolName: d.schoolName,
+      grade: d.grade,
+      className: d.className,
+      type: isUninstalled ? 'UNINSTALLED' : 'ONLINE',
+      description: isUninstalled
+        ? `⚠️ Quản trị viên đã đánh dấu thiết bị "${d.name}" (${d.studentName}) là ĐÃ GỠ ỨNG DỤNG / NGỪNG THEO DÕI.`
+        : `✅ Khôi phục trạng thái: Thiết bị "${d.name}" (${d.studentName}) đã được đặt lại trạng thái hoạt động bình thường.`,
+      timestamp: nowIso,
+    });
+
+    writeLocalDB(state, true);
+
+    if (pgPool) {
+      pgPool.query(
+        `UPDATE devices SET "isUninstalled" = $1, "uninstalledAt" = $2, status = $3, "disconnectReason" = $4, "updatedAt" = $5 WHERE id = $6`,
+        [isUninstalled, isUninstalled ? nowIso : null, isUninstalled ? 'OFFLINE' : 'ONLINE', d.disconnectReason || null, nowIso, d.id]
+      ).catch((e: any) => console.warn('Neon setDeviceUninstallStatus error:', e.message));
+    }
+
+    return enrichDevice(d, state);
+  },
+
+  async checkHeartbeatTimeouts(thresholdMs: number = 180000): Promise<{
+    checked: number;
+    newlyTimedOut: number;
+    activeCount: number;
+    timedOutDevices: { id: string; name: string; studentName?: string; silenceMinutes: number }[];
+  }> {
+    const state = readLocalDB();
+    const now = Date.now();
+    let newlyTimedOut = 0;
+    let activeCount = 0;
+    const timedOutList: { id: string; name: string; studentName?: string; silenceMinutes: number }[] = [];
+
+    for (const d of state.devices) {
+      if (!d.lastSeen) continue;
+      const lastSeenMs = new Date(d.lastSeen).getTime();
+      const diffMs = now - lastSeenMs;
+
+      if (diffMs > thresholdMs) {
+        const silenceMinutes = Math.round(diffMs / 60000);
+        const alreadyFlagged = d.isUninstalled && d.disconnectReason === 'Mất kết nối / Có thể đã gỡ cài đặt';
+
+        d.status = 'OFFLINE';
+        d.isUninstalled = true;
+        d.disconnectReason = 'Mất kết nối / Có thể đã gỡ cài đặt';
+        if (!d.uninstalledAt) {
+          d.uninstalledAt = new Date().toISOString();
+        }
+
+        timedOutList.push({
+          id: d.id,
+          name: d.name,
+          studentName: d.studentName,
+          silenceMinutes,
+        });
+
+        if (!alreadyFlagged) {
+          newlyTimedOut++;
+          d.updatedAt = new Date().toISOString();
+          state.activities.unshift({
+            id: 'act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+            deviceId: d.id,
+            deviceName: d.name,
+            platform: d.platform,
+            studentName: d.studentName,
+            schoolName: d.schoolName,
+            grade: d.grade,
+            className: d.className,
+            type: 'UNINSTALLED',
+            description: `⚠️ CẢNH BÁO MDM: Thiết bị "${d.name}" (${d.studentName || 'Học sinh'}) mất kết nối quá thời gian quy định (> ${silenceMinutes} phút không có nhịp tim). Hệ thống phát hiện: Mất kết nối / Có thể đã gỡ cài đặt!`,
+            timestamp: new Date().toISOString(),
+          });
+
+          if (pgPool) {
+            pgPool.query(
+              `UPDATE devices SET status = 'OFFLINE', "isUninstalled" = true, "uninstalledAt" = COALESCE("uninstalledAt", NOW()::text), "disconnectReason" = $1, "updatedAt" = NOW()::text WHERE id = $2`,
+              ['Mất kết nối / Có thể đã gỡ cài đặt', d.id]
+            ).catch((e: any) => console.warn('Neon heartbeat timeout warning:', e.message));
+          }
+        }
+      } else {
+        if (!d.isUninstalled) {
+          activeCount++;
+        }
+      }
+    }
+
+    if (newlyTimedOut > 0) {
+      writeLocalDB(state, true);
+    }
+
+    return {
+      checked: state.devices.length,
+      newlyTimedOut,
+      activeCount,
+      timedOutDevices: timedOutList,
+    };
+  },
+
+  async clearAllDevices(requestingUserId: string): Promise<{ deletedCount: number }> {
+    const state = readLocalDB();
+    const user = state.users.find(u => u.id === requestingUserId);
+    if (!user) return { deletedCount: 0 };
+
+    let count = 0;
+    if (user.role === 'ADMIN') {
+      count = state.devices.length;
+      state.devices = [];
+      state.locations = [];
+      state.statuses = [];
+      state.activities = [];
+      state.appUsages = [];
+      state.webHistory = [];
+      writeLocalDB(state, true);
+
+      if (pgPool) {
+        try {
+          await pgPool.query('DELETE FROM activities');
+          await pgPool.query('DELETE FROM app_usages');
+          await pgPool.query('DELETE FROM web_history');
+          await pgPool.query('DELETE FROM device_locations');
+          await pgPool.query('DELETE FROM device_statuses');
+          await pgPool.query('DELETE FROM devices');
+        } catch (e: any) {
+          console.warn('Neon clearAllDevices error:', e.message);
+        }
+      }
+    } else {
+      const accessibleIds = new Set(
+        state.devices
+          .filter(d => canUserAccessDevice(user, enrichDevice(d, state)))
+          .map(d => d.id)
+      );
+      count = accessibleIds.size;
+      state.devices = state.devices.filter(d => !accessibleIds.has(d.id));
+      state.locations = state.locations.filter(l => !accessibleIds.has(l.deviceId));
+      state.statuses = state.statuses.filter(s => !accessibleIds.has(s.deviceId));
+      state.activities = state.activities.filter(a => !accessibleIds.has(a.deviceId));
+      state.appUsages = state.appUsages.filter(a => !accessibleIds.has(a.deviceId));
+      state.webHistory = state.webHistory.filter(w => !accessibleIds.has(w.deviceId));
+      writeLocalDB(state, true);
+
+      if (pgPool && accessibleIds.size > 0) {
+        const idList = Array.from(accessibleIds);
+        pgPool.query('DELETE FROM devices WHERE id = ANY($1)', [idList]).catch((e: any) => console.warn(e.message));
+      }
+    }
+
+    return { deletedCount: count };
+  },
+
+  async clearAllSystemData(requestingUserId: string): Promise<{ deletedDevices: number; deletedUsers: number }> {
+    const state = readLocalDB();
+    const user = state.users.find(u => u.id === requestingUserId);
+    if (!user || user.role !== 'ADMIN') {
+      return { deletedDevices: 0, deletedUsers: 0 };
+    }
+
+    const devCount = state.devices.length;
+    const nonAdminUsers = state.users.filter(u => u.role !== 'ADMIN');
+    const userCount = nonAdminUsers.length;
+    const nonAdminIds = new Set(nonAdminUsers.map(u => u.id));
+
+    // Clear all telemetry and devices
+    state.devices = [];
+    state.locations = [];
+    state.statuses = [];
+    state.activities = [];
+    state.appUsages = [];
+    state.webHistory = [];
+
+    // Keep only Admin accounts & active admin sessions
+    state.users = state.users.filter(u => u.role === 'ADMIN');
+    state.sessions = state.sessions.filter(s => !nonAdminIds.has(s.userId));
+
+    writeLocalDB(state, true);
+
+    if (pgPool) {
+      try {
+        await pgPool.query('DELETE FROM activities');
+        await pgPool.query('DELETE FROM app_usages');
+        await pgPool.query('DELETE FROM web_history');
+        await pgPool.query('DELETE FROM device_locations');
+        await pgPool.query('DELETE FROM device_statuses');
+        await pgPool.query('DELETE FROM devices');
+        await pgPool.query("DELETE FROM users WHERE role != 'ADMIN'");
+      } catch (e: any) {
+        console.warn('Neon clearAllSystemData error:', e.message);
+      }
+    }
+
+    return { deletedDevices: devCount, deletedUsers: userCount };
   },
 
   // PHONE CONTACTS & SDT MANAGEMENT

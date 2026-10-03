@@ -162,6 +162,32 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
     }
   };
 
+  const handleClearAllNonAdminUsers = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn LÀM TRỐNG TẤT CẢ tài khoản phụ (Giáo viên và Phụ huynh) không? Các tài khoản này sẽ bị xoá khỏi hệ thống.')) {
+      return;
+    }
+    const res = await api.clearAllNonAdminUsers();
+    if (res.success) {
+      showToast(res.message || 'Đã làm trống toàn bộ tài khoản phụ thành công');
+      loadData();
+    } else {
+      showToast(res.message || 'Lỗi khi làm trống tài khoản');
+    }
+  };
+
+  const handleClearAllSystemData = async () => {
+    if (!window.confirm('⚠️ CẢNH BÁO NGUY HIỂM: Bạn có chắc chắn muốn LÀM TRỐNG TẤT CẢ dữ liệu trên toàn hệ thống (toàn bộ thiết bị, lịch sử định vị, báo cáo ứng dụng và tài khoản phụ)?\n\nChỉ tài khoản Admin sẽ được giữ lại.')) {
+      return;
+    }
+    const res = await api.clearAllSystemData();
+    if (res.success) {
+      showToast(res.message || 'Đã làm trống tất cả dữ liệu hệ thống thành công');
+      loadData();
+    } else {
+      showToast(res.message || 'Lỗi khi làm trống dữ liệu');
+    }
+  };
+
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || !newEmail.trim() || !newPassword.trim()) return;
@@ -321,7 +347,25 @@ export const AccountsManagementPage: React.FC<AccountsManagementPageProps> = ({ 
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={handleClearAllSystemData}
+              className="py-2.5 px-3.5 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs whitespace-nowrap"
+              title="Làm trống tất cả thiết bị, dữ liệu định vị và tài khoản phụ"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Làm trống tất cả dữ liệu</span>
+            </button>
+            {users.some((u) => u.role !== 'ADMIN') && (
+              <button
+                onClick={handleClearAllNonAdminUsers}
+                className="py-2.5 px-3.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/80 text-rose-200 border border-rose-700/60 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs whitespace-nowrap"
+                title="Xóa toàn bộ tài khoản Giáo viên và Phụ huynh"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Làm trống tài khoản phụ</span>
+              </button>
+            )}
             <button
               onClick={() => {
                 if (currentUser) openPasswordModal(currentUser);

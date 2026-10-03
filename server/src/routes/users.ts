@@ -251,6 +251,40 @@ router.patch('/:id/password', requireAdmin, async (req: AuthenticatedRequest, re
   }
 });
 
+// POST /api/users/clear-all - Admin clears all non-admin accounts
+router.post('/clear-all', requireAdmin, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const result = await dbService.clearAllNonAdminUsers(req.user!.userId);
+    return res.json({
+      success: true,
+      message: `Đã làm trống toàn bộ tài khoản phụ (${result.deletedCount} tài khoản)`,
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể làm trống danh sách tài khoản',
+    });
+  }
+});
+
+// POST /api/users/clear-all-system - Admin wipes all devices, telemetry, and non-admin accounts
+router.post('/clear-all-system', requireAdmin, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const result = await dbService.clearAllSystemData(req.user!.userId);
+    return res.json({
+      success: true,
+      message: `Đã làm trống tất cả dữ liệu hệ thống (${result.deletedDevices} thiết bị, ${result.deletedUsers} tài khoản phụ)`,
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Không thể làm trống tất cả dữ liệu hệ thống',
+    });
+  }
+});
+
 // DELETE /api/users/:id - Admin deletes an account
 router.delete('/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   try {
