@@ -359,7 +359,20 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response): Promise<a
     const device = await getDeviceWithAccessCheck(req.params.id, req.user!.userId, res);
     if (!device) return;
 
-    const { name, platform, osVersion, appVersion, studentName, schoolName, className } = req.body;
+    const {
+      name,
+      platform,
+      osVersion,
+      appVersion,
+      studentName,
+      studentId,
+      schoolName,
+      grade,
+      className,
+      parentPhone,
+      isUninstalled,
+      phoneContacts,
+    } = req.body;
     const updates: Partial<DeviceRecord> = {};
 
     if (name && typeof name === 'string' && name.trim().length > 0) {
@@ -377,24 +390,62 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response): Promise<a
     if (studentName !== undefined) {
       updates.studentName = String(studentName).trim();
     }
+    if (studentId !== undefined) {
+      updates.studentId = String(studentId).trim();
+    }
     if (schoolName !== undefined) {
       updates.schoolName = String(schoolName).trim();
     }
+    if (grade !== undefined) {
+      updates.grade = String(grade).trim();
+    }
     if (className !== undefined) {
       updates.className = String(className).trim();
+    }
+    if (parentPhone !== undefined) {
+      updates.parentPhone = String(parentPhone).trim();
+    }
+    if (isUninstalled !== undefined) {
+      updates.isUninstalled = Boolean(isUninstalled);
+      updates.uninstalledAt = isUninstalled ? new Date().toISOString() : undefined;
+    }
+    if (Array.isArray(phoneContacts)) {
+      updates.phoneContacts = phoneContacts;
     }
 
     const updated = await dbService.updateDevice(device.id, req.user!.userId, updates);
 
     return res.json({
       success: true,
-      message: 'Cập nhật thiết bị thành công',
+      message: 'Cập nhật thiết bị và thông tin liên lạc thành công',
       data: updated,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: 'Không thể cập nhật thiết bị',
+    });
+  }
+});
+
+// POST /api/devices/:id/uninstall-status - Toggle or explicitly set uninstall status
+router.post('/:id/uninstall-status', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    const { isUninstalled } = req.body;
+    const updated = await dbService.setDeviceUninstallStatus(req.params.id, Boolean(isUninstalled), req.user!.userId);
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy thiết bị hoặc không có quyền truy cập' });
+    }
+    return res.json({
+      success: true,
+      message: isUninstalled ? 'Đã ghi nhận trạng thái gỡ cài đặt' : 'Đã khôi phục trạng thái hoạt động của thiết bị',
+      data: updated,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi cập nhật trạng thái gỡ cài đặt',
+      error: error.message,
     });
   }
 });

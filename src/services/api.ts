@@ -171,10 +171,17 @@ export const api = {
       osVersion?: string;
       appVersion?: string;
       studentName?: string;
+      studentId?: string;
       schoolName?: string;
+      grade?: string;
       className?: string;
+      parentPhone?: string;
+      isUninstalled?: boolean;
     }
   ) => request<Device>(`/devices/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  setDeviceUninstallStatus: (id: string, isUninstalled: boolean) =>
+    request<Device>(`/devices/${id}/uninstall-status`, { method: 'POST', body: JSON.stringify({ isUninstalled }) }),
 
   deleteDevice: (id: string) => request<null>(`/devices/${id}`, { method: 'DELETE' }),
 

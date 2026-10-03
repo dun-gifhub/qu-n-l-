@@ -18,13 +18,22 @@ dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Support --port flag passed by package.json / runner
-let argPort = 3000;
+// Support --port flag passed by package.json / runner or default to 10000 on Render / 3000 locally
+let argPort = 0;
 const portArgIndex = process.argv.indexOf('--port');
 if (portArgIndex !== -1 && process.argv[portArgIndex + 1]) {
   argPort = Number(process.argv[portArgIndex + 1]);
 }
-const PORT = Number(process.env.PORT) || argPort || 3000;
+// Render provides PORT env variable; if unset on Render default is 10000, locally default is 3000
+const PORT = Number(process.env.PORT) || argPort || (process.env.RENDER ? 10000 : 3000);
+
+// Global protection against unhandled crashes (prevents Render WORKER TIMEOUT / SIGKILL 502 Bad Gateway)
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ Uncaught Exception intercepted to keep service alive:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.warn('⚠️ Unhandled Rejection intercepted at:', promise, 'reason:', reason);
+});
 
 async function startServer() {
   const app = express();
@@ -153,12 +162,34 @@ async function startServer() {
     }
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n  VITE v8.3.0  ready in 150 ms\n`);
     console.log(`  ➜  Local:   http://localhost:${PORT}/`);
     console.log(`  ➜  Network: http://0.0.0.0:${PORT}/\n`);
     console.log(`🚀 DeviceMonitor Server running on http://0.0.0.0:${PORT}`);
   });
+
+  // Prevent 502 Bad Gateway on Render (Connection reset by peer):
+  // Render load balancer keep-alive timeout is ~90-100s. Node.js default is 5s.
+  // keepAliveTimeout must exceed reverse proxy timeout, and headersTimeout must exceed keepAliveTimeout.
+  server.keepAliveTimeout = 120000; // 120s
+  server.headersTimeout = 125000;   // 125s
+  server.requestTimeout = 300000;   // 300s (5 minutes)
+
+  const gracefulShutdown = (signal: string) => {
+    console.log(`Received ${signal}. Gracefully closing HTTP server...`);
+    server.close(() => {
+      console.log('HTTP server closed cleanly.');
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.error('Forced shutdown after timeout.');
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 startServer().catch((err) => {
