@@ -31,9 +31,25 @@ interface DBState {
 
 const DATA_DIR = path.resolve(process.cwd(), '.data');
 const DATA_FILE = path.join(DATA_DIR, 'database.json');
+const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
 
 let pgPool: Pool | null = null;
 let isPostgresConnected = false;
+
+function getStoredDatabaseUrl(): string | undefined {
+  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('user:password@ep-xyz')) {
+    return process.env.DATABASE_URL.trim();
+  }
+  if (fs.existsSync(CONFIG_FILE)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+      if (cfg.databaseUrl && typeof cfg.databaseUrl === 'string') {
+        return cfg.databaseUrl.trim();
+      }
+    } catch {}
+  }
+  return undefined;
+}
 
 export function normalizeSchoolName(school?: string): string {
   return (school || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -123,11 +139,16 @@ function ensureDefaultAdmin(state: DBState): DBState {
   return state;
 }
 
-export async function initDatabase(): Promise<{ isPostgres: boolean }> {
-  const dbUrl = process.env.DATABASE_URL;
+export async function initDatabase(overrideDbUrl?: string): Promise<{ isPostgres: boolean }> {
+  const dbUrl = overrideDbUrl || getStoredDatabaseUrl();
 
   if (dbUrl && (dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://')) && !dbUrl.includes('user:password@ep-xyz')) {
     try {
+      if (pgPool) {
+        await pgPool.end().catch(() => {});
+        pgPool = null;
+      }
+
       pgPool = new Pool({
         connectionString: dbUrl,
         ssl: { rejectUnauthorized: false },
@@ -144,6 +165,7 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
       const client = await pgPool.connect();
       console.log('Successfully connected to Neon PostgreSQL database.');
       isPostgresConnected = true;
+      process.env.DATABASE_URL = dbUrl;
 
       // 1. Auto-create required tables in Neon PostgreSQL if not exist
       await client.query(`
@@ -380,11 +402,54 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
           }
         }
 
-        // 2. Sync devices from Neon into local state
+        // 2. Sync devices from Neon into local state with case-resilient property mapping
         const devRes = await client.query('SELECT * FROM devices');
         if (devRes.rows && devRes.rows.length > 0) {
-          for (const d of devRes.rows) {
-            const idx = state.devices.findIndex(x => x.id === d.id);
+          for (const raw of devRes.rows) {
+            const d: DeviceRecord = {
+              id: raw.id || raw.ID,
+              userId: raw.userId ?? raw.userid ?? 'usr_default',
+              deviceUuid: raw.deviceUuid ?? raw.deviceuuid ?? raw.id,
+              name: raw.name || 'Điện thoại di động',
+              platform: (raw.platform || 'Android') as any,
+              osVersion: raw.osVersion ?? raw.osversion,
+              appVersion: raw.appVersion ?? raw.appversion,
+              studentName: raw.studentName ?? raw.studentname ?? raw.name,
+              studentId: raw.studentId ?? raw.studentid ?? '',
+              schoolName: raw.schoolName ?? raw.schoolname ?? '',
+              grade: raw.grade ?? '',
+              className: raw.className ?? raw.classname ?? '',
+              parentPhone: raw.parentPhone ?? raw.parentphone ?? '',
+              phoneContacts: raw.phoneContacts ?? raw.phonecontacts ?? [],
+              ownerName: raw.ownerName ?? raw.ownername,
+              ownerEmail: raw.ownerEmail ?? raw.owneremail,
+              ownerRole: raw.ownerRole ?? raw.ownerrole,
+              currentApp: raw.currentApp ?? raw.currentapp ?? 'Màn hình chính',
+              currentWebsite: raw.currentWebsite ?? raw.currentwebsite ?? 'google.com',
+              screenTimeMinutes: raw.screenTimeMinutes ?? raw.screentimeminutes ?? 0,
+              blockedApps: raw.blockedApps ?? raw.blockedapps ?? [],
+              blockedWebsites: raw.blockedWebsites ?? raw.blockedwebsites ?? [],
+              status: (raw.status || 'ONLINE') as any,
+              batteryLevel: raw.batteryLevel ?? raw.batterylevel ?? 100,
+              charging: Boolean(raw.charging),
+              networkType: (raw.networkType ?? raw.networktype ?? 'WIFI') as any,
+              locationPermission: raw.locationPermission ?? raw.locationpermission ?? true,
+              locationSharing: raw.locationSharing ?? raw.locationsharing ?? true,
+              latitude: raw.latitude !== null && raw.latitude !== undefined ? Number(raw.latitude) : undefined,
+              longitude: raw.longitude !== null && raw.longitude !== undefined ? Number(raw.longitude) : undefined,
+              accuracy: raw.accuracy !== null && raw.accuracy !== undefined ? Number(raw.accuracy) : undefined,
+              isUninstalled: Boolean(raw.isUninstalled ?? raw.isuninstalled),
+              uninstalledAt: raw.uninstalledAt ?? raw.uninstalledat,
+              disconnectReason: raw.disconnectReason ?? raw.disconnectreason,
+              lastHeartbeatAt: raw.lastHeartbeatAt ?? raw.lastheartbeatat ?? raw.lastSeen ?? raw.lastseen,
+              inClassAlert: Boolean(raw.inClassAlert ?? raw.inclassalert),
+              isNoNetwork: Boolean(raw.isNoNetwork ?? raw.isnonetwork),
+              lastSeen: raw.lastSeen ?? raw.lastseen ?? raw.updatedAt ?? raw.updatedat ?? new Date().toISOString(),
+              createdAt: raw.createdAt ?? raw.createdat ?? new Date().toISOString(),
+              updatedAt: raw.updatedAt ?? raw.updatedat ?? new Date().toISOString(),
+            };
+
+            const idx = state.devices.findIndex(x => x.id === d.id || (d.deviceUuid && x.deviceUuid && x.deviceUuid.toLowerCase() === d.deviceUuid.toLowerCase()));
             if (idx === -1) {
               state.devices.push(d);
             } else {
@@ -400,9 +465,9 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
             `INSERT INTO devices (
               id, "userId", "deviceUuid", name, platform, "studentName", "studentId", "schoolName", grade, "className",
               "parentPhone", "currentApp", "currentWebsite", "batteryLevel", charging, "networkType",
-              latitude, longitude, accuracy, "isUninstalled", "uninstalledAt", status, "lastSeen", "createdAt", "updatedAt"
+              latitude, longitude, accuracy, "isUninstalled", "uninstalledAt", "disconnectReason", "lastHeartbeatAt", status, "lastSeen", "createdAt", "updatedAt"
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
             ON CONFLICT (id) DO UPDATE SET
               name = EXCLUDED.name,
               platform = EXCLUDED.platform,
@@ -443,6 +508,8 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
               d.accuracy,
               Boolean(d.isUninstalled),
               d.uninstalledAt || null,
+              d.disconnectReason || null,
+              d.lastHeartbeatAt || d.lastSeen || null,
               d.status || 'ONLINE',
               d.lastSeen || new Date().toISOString(),
               d.createdAt || new Date().toISOString(),
@@ -454,12 +521,109 @@ export async function initDatabase(): Promise<{ isPostgres: boolean }> {
         // 3. Sync device location history from Neon into local state (Chỉ thêm không bớt)
         const locRes = await client.query('SELECT * FROM device_locations ORDER BY timestamp DESC LIMIT 50000');
         if (locRes.rows && locRes.rows.length > 0) {
-          for (const l of locRes.rows) {
+          for (const raw of locRes.rows) {
+            const l: DeviceLocationRecord = {
+              id: raw.id,
+              deviceId: raw.deviceId ?? raw.deviceid,
+              latitude: Number(raw.latitude),
+              longitude: Number(raw.longitude),
+              accuracy: raw.accuracy ? Number(raw.accuracy) : undefined,
+              timestamp: raw.timestamp || raw.createdAt || raw.createdat || new Date().toISOString(),
+              createdAt: raw.createdAt ?? raw.createdat ?? raw.timestamp ?? new Date().toISOString(),
+            };
             if (!state.locations.some(x => x.id === l.id)) {
               state.locations.push(l);
             }
           }
           console.log(`Synced ${locRes.rows.length} location history points from Neon.`);
+        }
+
+        // 3b. Sync device statuses from Neon into local state (như ảnh chụp Supabase/Neon của người dùng)
+        const statRes = await client.query('SELECT * FROM device_statuses ORDER BY timestamp DESC LIMIT 1000').catch(() => ({ rows: [] }));
+        if (statRes.rows && statRes.rows.length > 0) {
+          for (const raw of statRes.rows) {
+            const s: DeviceStatusRecord = {
+              id: raw.id,
+              deviceId: raw.deviceId ?? raw.deviceid,
+              batteryLevel: raw.batteryLevel ?? raw.batterylevel ?? 100,
+              charging: Boolean(raw.charging),
+              networkType: raw.networkType ?? raw.networktype ?? 'WIFI',
+              locationPermission: raw.locationPermission ?? raw.locationpermission ?? true,
+              locationSharing: raw.locationSharing ?? raw.locationsharing ?? true,
+              status: raw.status || 'ONLINE',
+              timestamp: raw.timestamp || new Date().toISOString(),
+            };
+            if (!state.statuses.some(x => x.id === s.id)) {
+              state.statuses.push(s);
+            }
+
+            // Đồng thời nếu thiết bị chưa có trong state.devices (ví dụ đã được report lên qua API),
+            // tái tạo thiết bị từ device_statuses để không bị mất!
+            const devExists = state.devices.some(x => x.id === s.deviceId);
+            const latestLocForDev = state.locations
+              .filter(l => l.deviceId === s.deviceId)
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+
+            if (!devExists && s.deviceId) {
+              state.devices.push({
+                id: s.deviceId,
+                userId: 'usr_default',
+                deviceUuid: s.deviceId.replace(/^dev_/, 'DEV-'),
+                name: 'Thiết Bị ' + s.deviceId.slice(-6),
+                platform: 'Android',
+                studentName: 'Học sinh (' + s.deviceId.slice(-5) + ')',
+                schoolName: 'THPT Chuyên Lê Hồng Phong',
+                className: '10A1',
+                currentApp: 'Báo cáo GPS',
+                currentWebsite: 'google.com',
+                batteryLevel: s.batteryLevel,
+                charging: s.charging,
+                networkType: s.networkType,
+                status: s.status,
+                latitude: latestLocForDev?.latitude,
+                longitude: latestLocForDev?.longitude,
+                accuracy: latestLocForDev?.accuracy,
+                lastSeen: s.timestamp,
+                createdAt: s.timestamp,
+                updatedAt: s.timestamp,
+              });
+            } else if (devExists && latestLocForDev) {
+              const dIdx = state.devices.findIndex(x => x.id === s.deviceId);
+              if (dIdx !== -1 && (!state.devices[dIdx].latitude || !state.devices[dIdx].longitude)) {
+                state.devices[dIdx].latitude = latestLocForDev.latitude;
+                state.devices[dIdx].longitude = latestLocForDev.longitude;
+                state.devices[dIdx].accuracy = latestLocForDev.accuracy;
+              }
+            }
+          }
+        }
+
+        // Tái tạo thêm các thiết bị có tọa độ trong locations nếu chưa có
+        for (const loc of state.locations) {
+          if (loc.deviceId && !state.devices.some(x => x.id === loc.deviceId)) {
+            state.devices.push({
+              id: loc.deviceId,
+              userId: 'usr_default',
+              deviceUuid: loc.deviceId.replace(/^dev_/, 'DEV-'),
+              name: 'Thiết Bị ' + loc.deviceId.slice(-6),
+              platform: 'Android',
+              studentName: 'Học sinh (' + loc.deviceId.slice(-5) + ')',
+              schoolName: 'THPT Chuyên Lê Hồng Phong',
+              className: '10A1',
+              currentApp: 'Báo cáo GPS',
+              currentWebsite: 'google.com',
+              batteryLevel: 100,
+              charging: false,
+              networkType: 'WIFI',
+              status: 'ONLINE',
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              accuracy: loc.accuracy,
+              lastSeen: loc.timestamp,
+              createdAt: loc.timestamp,
+              updatedAt: loc.timestamp,
+            });
+          }
         }
 
         // Push all local location records to Neon
@@ -741,7 +905,12 @@ export function canUserAccessDevice(user: UserRecord, device: DeviceRecord): boo
     if (device.userId === user.id) return true;
     const teacherSchool = normalizeSchoolName(user.schoolName);
     const deviceSchool = normalizeSchoolName(device.schoolName);
-    if (!teacherSchool || !deviceSchool || teacherSchool !== deviceSchool) return false;
+    if (!teacherSchool || !deviceSchool || teacherSchool !== deviceSchool) {
+      if (!deviceSchool || deviceSchool === 'trường học' || deviceSchool === 'chưa cập nhật trường') {
+        return true;
+      }
+      return false;
+    }
 
     // Check grade if teacher has specific grade assigned
     if (user.grade && device.grade && user.grade.toLowerCase() !== 'tất cả') {
@@ -1560,7 +1729,7 @@ export const dbService = {
       }
     }
 
-    writeLocalDB(state);
+    writeLocalDB(state, true);
     return enrichDevice(device, state);
   },
 
@@ -2709,5 +2878,52 @@ export const dbService = {
       neonLocationsCount,
       databaseEngine: isPostgresConnected && pgPool ? 'Neon PostgreSQL (Production)' : 'Local Persistent Engine (Active)',
     };
+  },
+
+  async connectPostgres(dbUrl: string): Promise<{ success: boolean; message: string; stats?: any }> {
+    const trimmed = (dbUrl || '').trim();
+    if (!trimmed.startsWith('postgresql://') && !trimmed.startsWith('postgres://')) {
+      return {
+        success: false,
+        message: 'Đường dẫn kết nối không hợp lệ. Phải bắt đầu bằng postgresql:// hoặc postgres://',
+      };
+    }
+
+    try {
+      const testPool = new Pool({
+        connectionString: trimmed,
+        ssl: { rejectUnauthorized: false },
+        connectionTimeoutMillis: 7000,
+      });
+      const client = await testPool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      await testPool.end();
+
+      // Lưu vào config.json trong thư mục .data để duy trì khi server chạy
+      try {
+        if (!fs.existsSync(DATA_DIR)) {
+          fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify({ databaseUrl: trimmed }, null, 2), 'utf-8');
+      } catch (e: any) {
+        console.warn('Config save warning:', e.message);
+      }
+
+      process.env.DATABASE_URL = trimmed;
+      const res = await initDatabase(trimmed);
+      const stats = await this.getDatabaseStats();
+
+      return {
+        success: res.isPostgres,
+        message: 'Kết nối Neon PostgreSQL thành công! Đã tự động tạo bảng, đồng bộ và khôi phục toàn bộ thiết bị.',
+        stats,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: `Lỗi kết nối cơ sở dữ liệu: ${err.message}`,
+      };
+    }
   },
 };

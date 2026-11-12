@@ -53,6 +53,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const [tick, setTick] = useState(0);
+  const [dbStats, setDbStats] = useState<{ isNeonConnected: boolean; databaseEngine: string } | null>(null);
 
   const reportUrl = typeof window !== 'undefined' && window.location?.origin
     ? `${window.location.origin}/report`
@@ -86,6 +87,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       if (actRes.success && actRes.data) {
         setActivities(actRes.data.slice(0, 10));
+      }
+
+      if (isInitial) {
+        api.getDatabaseStats().then((res) => {
+          if (res.success && res.data) {
+            setDbStats(res.data);
+          }
+        });
       }
     } catch (err: any) {
       if (isInitial) setErrorMsg(err.message || 'Lỗi tải dữ liệu');
@@ -164,9 +173,34 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <strong className="text-indigo-600 dark:text-indigo-400 font-mono">
             https://qu-n-l-s1k1.onrender.com
           </strong>{' '}
-          · Giám sát App & Website học sinh trực tuyến
+          ·{' '}
+          {dbStats?.isNeonConnected ? (
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold inline-flex items-center gap-1">
+              🟢 Đã kết nối Neon PostgreSQL vĩnh cửu
+            </span>
+          ) : (
+            <span className="text-amber-600 dark:text-amber-400 font-semibold inline-flex items-center gap-1">
+              ⚠️ Đang dùng ổ đĩa tạm (Cần cấu hình DATABASE_URL để không mất khi Render ngủ)
+            </span>
+          )}
         </p>
       </div>
+
+      {/* Cảnh báo cấu hình Database nếu chưa kết nối Neon */}
+      {dbStats && !dbStats.isNeonConnected && (
+        <div
+          onClick={() => navigate('/settings')}
+          className="p-3 px-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-center justify-between text-xs cursor-pointer hover:bg-amber-500/15 transition"
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+            <span>
+              <strong>CẢNH BÁO MẤT DỮ LIỆU:</strong> Render sẽ tự reset thiết bị sau mỗi 15 phút nếu chưa cấu hình Neon PostgreSQL. Bấm vào đây để cấu hình DATABASE_URL ngay!
+            </span>
+          </div>
+          <ArrowRight className="w-4 h-4 shrink-0" />
+        </div>
+      )}
 
       {/* Banner Cảnh Báo Khẩn Cấp (Image 1) */}
       {uninstalledCount > 0 ? (
@@ -589,9 +623,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                             : 'bg-slate-500/10 text-slate-500 border border-slate-500/20'
                         }`}
+                        title={d.disconnectReason || (isUninstalled ? 'Mất kết nối / Có thể đã gỡ cài đặt' : undefined)}
                       >
                         {isUninstalled
-                          ? '⚠️ ĐÃ GỠ APP'
+                          ? (d.disconnectReason ? `⚠️ ${d.disconnectReason}` : '⚠️ MẤT KẾT NỐI / ĐÃ GỠ')
                           : inClass
                           ? '🚨 DÙNG GIỜ HỌC'
                           : isNoNet

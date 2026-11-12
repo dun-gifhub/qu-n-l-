@@ -58,9 +58,32 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
-  // Health
+  // Health & Database
   checkHealth: () =>
     request<{ message: string; timestamp: string; database: { type: string; status: string } }>('/health'),
+
+  getDatabaseStats: () =>
+    request<{
+      isNeonConnected: boolean;
+      totalUsers: number;
+      totalDevices: number;
+      totalLocations: number;
+      neonUsersCount?: number;
+      neonDevicesCount?: number;
+      neonLocationsCount?: number;
+      databaseEngine: string;
+    }>('/health/stats'),
+
+  connectDatabase: (databaseUrl: string) =>
+    request<{
+      isNeonConnected: boolean;
+      totalUsers: number;
+      totalDevices: number;
+      totalLocations: number;
+    }>('/health/connect-db', {
+      method: 'POST',
+      body: JSON.stringify({ databaseUrl }),
+    }),
 
   // Auth
   register: (body: {
@@ -324,15 +347,4 @@ export const api = {
     request<PhoneContact[]>(`/devices/${deviceId}/contacts`, {
       method: 'DELETE',
     }),
-
-  // Database Stats (Neon PostgreSQL / Local)
-  getDatabaseStats: () =>
-    request<{
-      isNeonConnected: boolean;
-      totalUsers: number;
-      totalDevices: number;
-      neonUsersCount?: number;
-      neonDevicesCount?: number;
-      databaseEngine: string;
-    }>('/health/stats'),
 };

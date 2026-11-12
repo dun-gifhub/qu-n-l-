@@ -390,6 +390,42 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </form>
       )}
 
+      {/* Alert Banner nếu thiết bị mất kết nối / nghi vấn gỡ cài đặt */}
+      {(device.isUninstalled || device.heartbeatTimeout) && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-900 dark:text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-extrabold text-sm text-rose-950 dark:text-rose-100 flex items-center gap-2">
+                <span>⚠️ {device.disconnectReason || 'Mất kết nối / Có thể đã gỡ cài đặt'}</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-mono font-bold">MDM CẢNH BÁO</span>
+              </div>
+              <div className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5">
+                {device.heartbeatTimeout
+                  ? 'Thiết bị không gửi tín hiệu nhịp tim định kỳ quá 3 phút. Hệ thống máy chủ đã tự động cập nhật cảnh báo MDM.'
+                  : 'Học sinh đã chủ động gửi tín hiệu gỡ cài đặt hoặc ngừng chia sẻ vị trí trên điện thoại.'}
+                {device.lastSeen && ` (Lần cuối hoạt động: ${new Date(device.lastSeen).toLocaleString('vi-VN')})`}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={async () => {
+              const res = await api.restoreDeviceStatus(deviceId);
+              if (res.success && res.data) {
+                setDevice(res.data);
+              }
+            }}
+            className="py-2 px-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition shrink-0 cursor-pointer self-start sm:self-center"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Khôi phục trạng thái hoạt động</span>
+          </button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto gap-2">
         {[

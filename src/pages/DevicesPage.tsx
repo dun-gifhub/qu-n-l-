@@ -543,7 +543,7 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
                         }`}
                       >
                         {isUninstalled
-                          ? '⚠️ ĐÃ GỠ APP'
+                          ? (device.disconnectReason ? `⚠️ ${device.disconnectReason}` : '⚠️ MẤT KẾT NỐI / ĐÃ GỠ')
                           : inClass
                           ? '🚨 DÙNG GIỜ HỌC'
                           : isNoNet
