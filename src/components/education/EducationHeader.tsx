@@ -7,18 +7,10 @@ import {
   User as UserIcon,
   ChevronDown,
   Menu,
-  X,
   ShieldCheck,
   Smartphone,
 } from 'lucide-react';
 import { EducationBadge } from './EducationBadge.tsx';
-
-interface NavItem {
-  label: string;
-  path: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
-}
 
 interface EducationHeaderProps {
   role: 'TEACHER' | 'STUDENT' | 'PARENT';
@@ -31,7 +23,6 @@ interface EducationHeaderProps {
 
 export const EducationHeader: React.FC<EducationHeaderProps> = ({
   role,
-  currentPath,
   navigate,
   onOpenMobileMenu,
   unreadNotificationsCount = 0,
@@ -42,96 +33,88 @@ export const EducationHeader: React.FC<EducationHeaderProps> = ({
 
   const roleLabel =
     role === 'TEACHER'
-      ? 'Giáo Viên'
+      ? 'Giáo viên'
       : role === 'STUDENT'
-      ? 'Học Sinh'
-      : 'Phụ Huynh';
+      ? 'Học sinh'
+      : 'Phụ huynh';
 
-  const roleBadgeVariant = role === 'TEACHER' ? 'primary' : 'accent';
+  const roleBadgeVariant = role === 'TEACHER' ? 'primary' : 'neutral';
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#DCE7F2] shadow-2xs font-education">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-18">
-          {/* Left: Mobile hamburger & Logo */}
+    <header className="sticky top-0 z-40 bg-[var(--surface)] border-b border-[var(--border)]">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Left: Mobile hamburger & Brand */}
           <div className="flex items-center gap-3">
             <button
               onClick={onOpenMobileMenu}
-              className="md:hidden p-2 rounded-xl text-[#172B4D] hover:bg-[#EAF5FF] transition cursor-pointer"
+              className="md:hidden p-2 rounded-[var(--radius-control)] text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition-colors duration-[var(--duration-fast)] cursor-pointer"
               aria-label="Mở menu"
             >
-              <Menu className="w-5 h-5 text-[#0057B8]" />
+              <Menu className="w-5 h-5 text-[var(--text-secondary)]" strokeWidth={1.5} />
             </button>
 
             <div
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2.5 cursor-pointer group"
+              className="flex items-center gap-3 cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-[14px] bg-[#0057B8] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition">
-                <GraduationCap className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-[var(--radius-control)] bg-[var(--accent)] flex items-center justify-center text-[var(--on-accent)]">
+                <GraduationCap className="w-4 h-4" strokeWidth={1.5} />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-lg text-[#003B7A] tracking-tight">
-                    EduMonitor
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-[#FFD200] text-[#172B4D]">
-                    PRO
-                  </span>
-                </div>
-                <p className="text-[10px] text-[#60758D] font-medium hidden sm:block">
-                  Cổng Thông Tin Học Đường Thông Minh
+                <span className="font-semibold text-base text-[var(--text-primary)] block leading-tight">
+                  EduMonitor
+                </span>
+                <p className="text-xs text-[var(--text-muted)] hidden sm:block">
+                  Điều phối thiết bị học đường
                 </p>
               </div>
             </div>
           </div>
 
           {/* Right: Actions & User Profile */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Quick Phone Connect Link */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/report')}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#EAF5FF] hover:bg-[#d6ecff] text-[#0057B8] text-xs font-bold transition border border-[#DCE7F2] cursor-pointer"
+              className="hidden lg:inline-flex items-center gap-2 px-3 h-9 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] text-xs font-medium transition-colors duration-[var(--duration-fast)] border border-[var(--border)] cursor-pointer"
               title="Mở đường dẫn báo cáo trên điện thoại"
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Link ĐT Học Sinh</span>
+              <Smartphone className="w-4 h-4 text-[var(--text-secondary)]" strokeWidth={1.5} />
+              <span>Cổng báo cáo điện thoại</span>
             </button>
 
-            {/* Notification Button */}
             <button
               onClick={onToggleNotifications}
-              className="relative p-2.5 rounded-full bg-[#F5F9FD] hover:bg-[#EAF5FF] text-[#172B4D] hover:text-[#0057B8] transition cursor-pointer border border-[#DCE7F2]"
+              className="relative w-9 h-9 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition-colors duration-[var(--duration-fast)] cursor-pointer border border-[var(--border)]"
               aria-label="Xem thông báo"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-4 h-4" strokeWidth={1.5} />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#DC2626] text-white text-[9px] font-black flex items-center justify-center animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-[4px] bg-[var(--danger)] text-[var(--on-accent)] text-[11px] font-mono font-medium tabular-nums flex items-center justify-center">
                   {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                 </span>
               )}
             </button>
 
-            {/* User Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setProfileDropdownOpen((prev) => !prev)}
-                className="flex items-center gap-2 p-1.5 pl-2.5 rounded-full hover:bg-[#F5F9FD] border border-transparent hover:border-[#DCE7F2] transition cursor-pointer"
+                className="flex items-center gap-2 p-1.5 rounded-[var(--radius-control)] hover:bg-[var(--surface-muted)] border border-transparent hover:border-[var(--border)] transition-colors duration-[var(--duration-fast)] cursor-pointer"
               >
-                <div className="text-right hidden sm:block">
-                  <div className="text-xs font-bold text-[#172B4D] truncate max-w-[140px]">
+                <div className="text-right hidden sm:block px-1">
+                  <div className="text-xs font-medium text-[var(--text-primary)] truncate max-w-[160px]">
                     {user?.name || 'Tài khoản'}
                   </div>
-                  <div className="text-[10px] text-[#0057B8] font-semibold">
+                  <div className="text-[11px] text-[var(--text-muted)]">
                     {roleLabel} {user?.className ? `· Lớp ${user.className}` : ''}
                   </div>
                 </div>
 
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#087FEA] to-[#003B7A] text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs ring-2 ring-[#EAF5FF]">
-                  {user?.name ? user.name.charAt(0) : 'U'}
+                <div className="w-8 h-8 rounded-[var(--radius-control)] bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)] flex items-center justify-center font-medium text-xs">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
 
-                <ChevronDown className="w-3.5 h-3.5 text-[#60758D] hidden sm:block" />
+                <ChevronDown className="w-4 h-4 text-[var(--text-muted)] hidden sm:block" strokeWidth={1.5} />
               </button>
 
               {profileDropdownOpen && (
@@ -140,20 +123,20 @@ export const EducationHeader: React.FC<EducationHeaderProps> = ({
                     className="fixed inset-0 z-40"
                     onClick={() => setProfileDropdownOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-[20px] border border-[#DCE7F2] shadow-[0_12px_32px_rgba(0,59,122,0.12)] p-2 z-50 animate-in fade-in duration-150">
-                    <div className="p-3 border-b border-[#DCE7F2]/70 bg-[#F5F9FD] rounded-[14px] mb-1.5">
-                      <div className="font-extrabold text-sm text-[#172B4D] truncate">
+                  <div className="absolute right-0 mt-2 w-64 bg-[var(--surface)] rounded-[var(--radius-card)] border border-[var(--border-strong)] shadow-[var(--shadow-elevated)] p-2 z-50">
+                    <div className="p-3 border-b border-[var(--border)] bg-[var(--surface-muted)] rounded-[var(--radius-control)] mb-2">
+                      <div className="font-semibold text-sm text-[var(--text-primary)] truncate">
                         {user?.name}
                       </div>
-                      <div className="text-xs text-[#60758D] font-mono truncate mt-0.5">
+                      <div className="text-xs text-[var(--text-muted)] font-mono truncate mt-0.5">
                         {user?.email}
                       </div>
-                      <div className="mt-2 flex items-center gap-1.5">
+                      <div className="mt-2 flex items-center gap-2">
                         <EducationBadge variant={roleBadgeVariant}>
                           {roleLabel}
                         </EducationBadge>
                         {user?.schoolName && (
-                          <span className="text-[11px] text-[#60758D] truncate">
+                          <span className="text-[11px] text-[var(--text-secondary)] truncate">
                             {user.schoolName}
                           </span>
                         )}
@@ -165,9 +148,9 @@ export const EducationHeader: React.FC<EducationHeaderProps> = ({
                         navigate('/profile');
                         setProfileDropdownOpen(false);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] text-xs font-bold text-[#172B4D] hover:bg-[#EAF5FF] hover:text-[#0057B8] transition cursor-pointer text-left"
+                      className="w-full h-9 flex items-center gap-2 px-3 rounded-[var(--radius-control)] text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition-colors duration-[var(--duration-fast)] cursor-pointer text-left"
                     >
-                      <UserIcon className="w-4 h-4 text-[#0057B8]" />
+                      <UserIcon className="w-4 h-4 text-[var(--text-secondary)]" strokeWidth={1.5} />
                       <span>Thông tin hồ sơ</span>
                     </button>
 
@@ -176,13 +159,13 @@ export const EducationHeader: React.FC<EducationHeaderProps> = ({
                         navigate('/settings');
                         setProfileDropdownOpen(false);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] text-xs font-bold text-[#172B4D] hover:bg-[#EAF5FF] hover:text-[#0057B8] transition cursor-pointer text-left"
+                      className="w-full h-9 flex items-center gap-2 px-3 rounded-[var(--radius-control)] text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--surface-muted)] transition-colors duration-[var(--duration-fast)] cursor-pointer text-left"
                     >
-                      <ShieldCheck className="w-4 h-4 text-[#0057B8]" />
+                      <ShieldCheck className="w-4 h-4 text-[var(--text-secondary)]" strokeWidth={1.5} />
                       <span>Cài đặt & Đổi mật khẩu</span>
                     </button>
 
-                    <div className="my-1 border-t border-[#DCE7F2]/70" />
+                    <div className="my-1 border-t border-[var(--border)]" />
 
                     <button
                       onClick={async () => {
@@ -190,9 +173,9 @@ export const EducationHeader: React.FC<EducationHeaderProps> = ({
                         await logout();
                         navigate('/login');
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-[12px] text-xs font-bold text-[#DC2626] hover:bg-[#FEECEC] transition cursor-pointer text-left"
+                      className="w-full h-9 flex items-center gap-2 px-3 rounded-[var(--radius-control)] text-xs font-medium text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors duration-[var(--duration-fast)] cursor-pointer text-left"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-4 h-4" strokeWidth={1.5} />
                       <span>Đăng xuất</span>
                     </button>
                   </div>

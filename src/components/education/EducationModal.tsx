@@ -42,30 +42,30 @@ export const EducationModal: React.FC<EducationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#001D40]/40 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--surface-overlay)]">
       <div
-        className={`w-full ${maxWidthStyles[maxWidth]} bg-white rounded-[24px] border border-[#DCE7F2] shadow-[0_20px_50px_rgba(0,59,122,0.2)] overflow-hidden scale-in-95 duration-200`}
+        className={`w-full ${maxWidthStyles[maxWidth]} bg-[var(--surface)] rounded-[var(--radius-panel)] border border-[var(--border-strong)] shadow-[var(--shadow-elevated)] overflow-hidden`}
       >
-        <div className="flex items-start justify-between p-5 md:p-6 border-b border-[#DCE7F2]/70 bg-[#F5F9FD]/60">
+        <div className="flex items-start justify-between p-5 border-b border-[var(--border)] bg-[var(--surface-muted)]/60">
           <div>
-            <h3 className="text-lg md:text-xl font-extrabold text-[#172B4D] tracking-tight">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
               {title}
             </h3>
             {subtitle && (
-              <p className="text-xs text-[#60758D] mt-0.5 font-medium">
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
                 {subtitle}
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white hover:bg-[#EAF5FF] text-[#60758D] hover:text-[#0057B8] flex items-center justify-center border border-[#DCE7F2] transition cursor-pointer"
+            className="w-8 h-8 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center border border-[var(--border)] transition-colors duration-[var(--duration-fast)] cursor-pointer"
             aria-label="Đóng cửa sổ"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
-        <div className="p-5 md:p-6 max-h-[80vh] overflow-y-auto">{children}</div>
+        <div className="p-5 max-h-[80vh] overflow-y-auto">{children}</div>
       </div>
     </div>
   );

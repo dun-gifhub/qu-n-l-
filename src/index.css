@@ -1,68 +1,190 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Typography */
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Warm-Paper Academic Neutral Ramp (Light) */
+  --bg: #F7F6F2;
+  --surface: #FFFFFF;
+  --surface-muted: #EFECE5;
+  --surface-hover: #E7E3DA;
+  --surface-overlay: rgba(24, 28, 36, 0.48);
+
+  /* Text Roles */
+  --text-primary: #181C24;
+  --text-secondary: #4E5664;
+  --text-muted: #666E7C;
+
+  /* Quiet Hairline Borders */
+  --border: rgba(24, 28, 36, 0.09);
+  --border-strong: rgba(24, 28, 36, 0.16);
+
+  /* Single World Accent (Academic Cobalt, >= 4.5:1 contrast) */
+  --accent: #0B4F9C;
+  --accent-hover: #083C78;
+  --accent-ink: #0B4F9C;
+  --accent-soft: rgba(11, 79, 156, 0.08);
+  --accent-border: rgba(11, 79, 156, 0.22);
+  --on-accent: #FFFFFF;
+
+  /* Primary Button Tokens (Light: accent fill, Dark: off-white fill) */
+  --btn-primary-bg: #0B4F9C;
+  --btn-primary-hover: #083C78;
+  --btn-primary-text: #FFFFFF;
+
+  /* Desaturated Semantics */
+  --success: #1B6E47;
+  --success-soft: rgba(27, 110, 71, 0.10);
+  --success-border: rgba(27, 110, 71, 0.22);
+
+  --warning: #9A5B0A;
+  --warning-soft: rgba(154, 91, 10, 0.10);
+  --warning-border: rgba(154, 91, 10, 0.22);
+
+  --danger: #A82834;
+  --danger-soft: rgba(168, 40, 52, 0.10);
+  --danger-border: rgba(168, 40, 52, 0.22);
+
+  /* Elevation & Motion */
+  --shadow-card: 0 1px 2px rgba(24, 28, 36, 0.04);
+  --shadow-elevated: 0 8px 24px -4px rgba(24, 28, 36, 0.09), 0 2px 6px rgba(24, 28, 36, 0.04);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+
+  /* Nested Radii */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-panel: 16px;
+}
+
+.dark {
+  /* Night-Shift Monitoring Graphite Ramp (Dark) */
+  --bg: #121417;
+  --surface: #191C21;
+  --surface-muted: #21252B;
+  --surface-hover: #2A2F37;
+  --surface-overlay: rgba(0, 0, 0, 0.65);
+
+  /* Text Roles */
+  --text-primary: #F0F2F5;
+  --text-secondary: #A6AEBA;
+  --text-muted: #7C8492;
+
+  /* Quiet Hairline Borders */
+  --border: rgba(240, 242, 245, 0.09);
+  --border-strong: rgba(240, 242, 245, 0.16);
+
+  /* Single World Accent */
+  --accent: #6CA4EB;
+  --accent-hover: #84B4F0;
+  --accent-ink: #7EB1F2;
+  --accent-soft: rgba(108, 164, 235, 0.13);
+  --accent-border: rgba(108, 164, 235, 0.28);
+  --on-accent: #121417;
+
+  /* Primary Button Tokens (Off-white primary button on dark) */
+  --btn-primary-bg: #EAECEF;
+  --btn-primary-hover: #FFFFFF;
+  --btn-primary-text: #121417;
+
+  /* Desaturated Semantics */
+  --success: #56B484;
+  --success-soft: rgba(86, 180, 132, 0.12);
+  --success-border: rgba(86, 180, 132, 0.24);
+
+  --warning: #D69E45;
+  --warning-soft: rgba(214, 158, 69, 0.12);
+  --warning-border: rgba(214, 158, 69, 0.24);
+
+  --danger: #DF6A72;
+  --danger-soft: rgba(223, 106, 114, 0.12);
+  --danger-border: rgba(223, 106, 114, 0.24);
+
+  /* Dark uses surface steps + hairlines instead of shadows */
+  --shadow-card: none;
+  --shadow-elevated: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
 
 @layer base {
-  body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  html, body {
+    font-family: var(--font-sans);
+    background-color: var(--bg);
+    color: var(--text-primary);
+    font-size: 16px;
+    line-height: 1.5;
   }
+
   .font-education {
-    font-family: 'Be Vietnam Pro', Arial, sans-serif;
+    font-family: var(--font-sans);
   }
-  code, pre {
-    font-family: 'JetBrains Mono', monospace;
+
+  code, pre, .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 }
 
-/* EdTech Design Tokens */
-:root {
-  --ed-primary-blue: #0057B8;
-  --ed-deep-blue: #003B7A;
-  --ed-bright-blue: #087FEA;
-  --ed-light-blue: #EAF5FF;
-  --ed-yellow-accent: #FFD200;
-  --ed-dark-yellow: #F5B800;
-  --ed-bg: #F5F9FD;
-  --ed-text-primary: #172B4D;
-  --ed-text-secondary: #60758D;
-  --ed-border: #DCE7F2;
+/* Numeric columns */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Custom map popups and pins styling */
 .leaflet-popup-content-wrapper {
-  background: rgb(15 23 42 / 0.95);
-  color: #f8fafc;
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-elevated);
+  border: 1px solid var(--border-strong);
   padding: 0;
 }
 
 .leaflet-popup-tip {
-  background: rgb(15 23 42 / 0.95);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
 }
 
 .leaflet-popup-content {
-  margin: 0.75rem 1rem;
-  line-height: 1.4;
+  margin: 12px 16px;
+  line-height: 1.45;
 }
 
-/* Pulse animation for active online marker */
-@keyframes radar-pulse {
+/* Signature Live Telemetry Dot — used ONLY on genuine active GPS-reporting devices */
+@keyframes telemetry-heartbeat {
   0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    box-shadow: 0 0 0 0 rgba(27, 110, 71, 0.45);
   }
   70% {
-    transform: scale(1.1);
-    box-shadow: 0 0 0 12px rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 6px rgba(27, 110, 71, 0);
   }
   100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 0 rgba(27, 110, 71, 0);
   }
 }
 
-.pulse-marker-online {
-  animation: radar-pulse 2s infinite;
+.telemetry-live-dot {
+  animation: telemetry-heartbeat 2.4s var(--ease-standard) infinite;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: page-enter var(--duration-base) var(--ease-standard);
 }

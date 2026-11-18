@@ -11,24 +11,24 @@ interface EducationBadgeProps {
 
 export const EducationBadge: React.FC<EducationBadgeProps> = ({
   children,
-  variant = 'primary',
+  variant = 'neutral',
   className = '',
   icon,
 }) => {
   const variantStyles: Record<EducationBadgeVariant, string> = {
-    primary: 'bg-[#EAF5FF] text-[#0057B8] border border-[#DCE7F2]',
-    accent: 'bg-[#FFF9D6] text-[#8C6B00] border border-[#FFE770]',
-    success: 'bg-[#EBFBF0] text-[#16A34A] border border-[#BDECC9]',
-    warning: 'bg-[#FFF6E5] text-[#D97706] border border-[#FED7AA]',
-    danger: 'bg-[#FEECEC] text-[#DC2626] border border-[#FECACA]',
-    neutral: 'bg-[#F5F9FD] text-[#60758D] border border-[#DCE7F2]',
+    primary: 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)]',
+    accent: 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)]',
+    success: 'bg-[var(--success-soft)] text-[var(--success)] border border-[var(--success-border)]',
+    warning: 'bg-[var(--warning-soft)] text-[var(--warning)] border border-[var(--warning-border)]',
+    danger: 'bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger-border)]',
+    neutral: 'bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)]',
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-xs font-medium leading-5 ${variantStyles[variant]} ${className}`}
     >
-      {icon && <span className="shrink-0">{icon}</span>}
+      {icon && <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">{icon}</span>}
       <span>{children}</span>
     </span>
   );

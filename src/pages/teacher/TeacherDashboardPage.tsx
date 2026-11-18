@@ -9,25 +9,20 @@ import { EducationBadge } from '../../components/education/EducationBadge.tsx';
 import { DeviceMap } from '../../components/Map/DeviceMap.tsx';
 import {
   Users,
-  BookOpen,
-  Wifi,
   BellRing,
   MapPin,
   ExternalLink,
   Smartphone,
   Plus,
   Search,
-  Filter,
   ArrowRight,
   Battery,
   Zap,
-  Sparkles,
   School,
-  AlertTriangle,
   RefreshCw,
   Clock,
-  Radio,
-  Trash2,
+  Wifi,
+  Info,
 } from 'lucide-react';
 
 interface TeacherDashboardPageProps {
@@ -94,91 +89,78 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
   const totalStudents = devices.length;
   const onlineCount = devices.filter((d) => d.status === 'ONLINE').length;
   const inClassCount = devices.filter((d) => d.inClassAlert).length;
-  const totalClasses = availableClasses.length || 1;
+  const totalClasses = availableClasses.length;
 
   return (
-    <div className="space-y-6">
-      {/* Hero Welcome Banner */}
-      <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-r from-[#003B7A] via-[#0057B8] to-[#087FEA] text-white p-6 sm:p-8 shadow-sm">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[#FFD200] text-xs font-bold border border-white/20">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Cổng Thông Tin Giảng Dạy & Giám Sát Lớp Học</span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
-              Xin chào, Thầy/Cô {user?.name || 'Giáo viên'} 👋
-            </h1>
-
-            <p className="text-sm text-blue-100 font-medium leading-relaxed">
-              Chúc Thầy/Cô có một ngày giảng dạy hiệu quả! Theo dõi trực tuyến an toàn, mức pin và vị trí GPS của học sinh trong trường.
-            </p>
-
-            <div className="pt-2 flex flex-wrap items-center gap-3">
-              <span className="text-xs bg-white/10 px-3 py-1.5 rounded-xl border border-white/15 font-semibold flex items-center gap-1.5">
-                <School className="w-3.5 h-3.5 text-[#FFD200]" />
-                <span>{user?.schoolName || 'Trường THPT Chuyên'}</span>
+    <div className="space-y-6 animate-page-enter">
+      {/* Contextual Overview Header */}
+      <div className="rounded-[var(--radius-panel)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <span className="inline-flex items-center gap-2 px-2 py-1 rounded-[6px] bg-[var(--surface-muted)] border border-[var(--border)] font-medium text-[var(--text-primary)]">
+              <School className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+              <span>{user?.schoolName || 'Trường học chưa cập nhật'}</span>
+            </span>
+            {user?.className && (
+              <span className="px-2 py-1 rounded-[6px] bg-[var(--accent-soft)] border border-[var(--accent-border)] font-medium text-[var(--accent-ink)]">
+                Chủ nhiệm lớp {user.className}
               </span>
-              {user?.className && (
-                <span className="text-xs bg-white/10 px-3 py-1.5 rounded-xl border border-white/15 font-semibold">
-                  Chủ nhiệm: Lớp {user.className}
-                </span>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Quick Actions in Hero */}
-          <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
-            <EducationButton
-              variant="accent"
-              pill
-              icon={<Plus className="w-4 h-4" />}
-              onClick={() => {
-                if (onOpenAddDevice) onOpenAddDevice();
-                else navigate('/devices');
-              }}
-            >
-              Thêm Học Sinh
-            </EducationButton>
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+            Giám sát lớp học và thiết bị học sinh
+          </h1>
 
-            <EducationButton
-              variant="secondary"
-              pill
-              icon={<Smartphone className="w-4 h-4" />}
-              onClick={() => navigate('/report')}
-            >
-              Mở Link Báo Cáo ĐT
-            </EducationButton>
-          </div>
+          <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+            Theo dõi trạng thái kết nối, mức pin, vị trí GPS và cảnh báo sử dụng trong giờ học của học sinh thuộc đơn vị giảng dạy.
+          </p>
         </div>
 
-        {/* Decorative Background Elements */}
-        <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 w-64 h-64 rounded-full bg-white/5 pointer-events-none blur-xl" />
-        <div className="absolute top-0 right-1/4 -translate-y-8 w-40 h-40 rounded-full bg-[#FFD200]/10 pointer-events-none blur-lg" />
+        {/* Quick Actions */}
+        <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
+          <EducationButton
+            variant="primary"
+            icon={<Plus className="w-4 h-4" strokeWidth={1.5} />}
+            onClick={() => {
+              if (onOpenAddDevice) onOpenAddDevice();
+              else navigate('/devices');
+            }}
+          >
+            Thêm học sinh
+          </EducationButton>
+
+          <EducationButton
+            variant="outline"
+            icon={<Smartphone className="w-4 h-4" strokeWidth={1.5} />}
+            onClick={() => navigate('/report')}
+          >
+            Mở trang báo cáo trên điện thoại
+          </EducationButton>
+        </div>
       </div>
 
       {/* Critical Alert Bar if any */}
       {inClassCount > 0 && (
         <div
           onClick={() => setStatusFilter('IN_CLASS')}
-          className="p-4 rounded-[20px] bg-[#FFF6E5] border border-[#FED7AA] flex items-center justify-between gap-4 cursor-pointer hover:bg-[#ffeed1] transition shadow-2xs"
+          className="p-4 rounded-[var(--radius-card)] bg-[var(--warning-soft)] border border-[var(--warning-border)] flex items-center justify-between gap-4 cursor-pointer hover:opacity-95 transition-[opacity] duration-[var(--duration-fast)] ease-[var(--ease-standard)]"
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-[14px] bg-[#D97706] text-white flex items-center justify-center shrink-0">
-              <BellRing className="w-5 h-5 animate-pulse" />
+            <div className="w-9 h-9 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--warning-border)] text-[var(--warning)] flex items-center justify-center shrink-0">
+              <BellRing className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div className="min-w-0">
-              <h4 className="text-xs md:text-sm font-extrabold text-[#9A3412] uppercase tracking-wide">
-                Cảnh Báo: Học sinh hoạt động trong khung giờ học!
+              <h4 className="text-xs font-semibold text-[var(--warning)]">
+                Cảnh báo học sinh sử dụng thiết bị trong giờ học
               </h4>
-              <p className="text-xs text-[#B45309] truncate mt-0.5">
-                Phát hiện <strong>{inClassCount} thiết bị</strong> đang trực tuyến và tương tác trong giờ học.
+              <p className="text-xs text-[var(--text-primary)] truncate mt-1">
+                Phát hiện <strong className="font-mono tabular-nums font-semibold">{inClassCount} thiết bị</strong> đang trực tuyến và tương tác trong khung giờ học.
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold text-[#D97706] shrink-0 hover:underline">
-            Lọc xem ngay ↗
+          <span className="text-xs font-medium text-[var(--warning)] shrink-0 hover:underline">
+            Lọc xem ngay
           </span>
         </div>
       )}
@@ -186,49 +168,43 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <EducationStatCard
-          label="Tổng Số Lớp"
+          label="Tổng số lớp"
           value={totalClasses.toString().padStart(2, '0')}
-          subtext="Lớp học phụ trách"
-          icon={<BookOpen className="w-6 h-6" />}
-          highlightColor="blue"
+          subtext="Lớp có thiết bị liên kết"
           onClick={() => navigate('/classes')}
         />
         <EducationStatCard
-          label="Tổng Học Sinh"
+          label="Tổng học sinh"
           value={totalStudents.toString().padStart(2, '0')}
-          subtext="Học sinh trong danh sách"
-          icon={<Users className="w-6 h-6" />}
-          highlightColor="yellow"
+          subtext="Thiết bị trong danh sách"
           onClick={() => navigate('/devices')}
         />
         <EducationStatCard
-          label="Đang Trực Tuyến"
+          label="Đang trực tuyến"
           value={onlineCount.toString().padStart(2, '0')}
-          subtext="Đang phát tín hiệu GPS"
-          icon={<Wifi className="w-6 h-6" />}
+          subtext="Đang truyền tín hiệu GPS"
           highlightColor="green"
           onClick={() => setStatusFilter('ONLINE')}
         />
         <EducationStatCard
-          label="Cảnh Báo Giờ Học"
+          label="Cảnh báo giờ học"
           value={inClassCount.toString().padStart(2, '0')}
-          subtext="Cần giáo viên lưu ý"
-          icon={<BellRing className="w-6 h-6" />}
-          highlightColor={inClassCount > 0 ? 'red' : 'blue'}
+          subtext="Thiết bị mở trong giờ học"
+          highlightColor={inClassCount > 0 ? 'red' : undefined}
           onClick={() => setStatusFilter('IN_CLASS')}
         />
       </div>
 
-      {/* Interactive Map Section */}
+      {/* Interactive Map Section (Moment #1) */}
       <EducationCard
-        title="Bản Đồ Định Vị GPS Học Sinh Trực Tuyến"
-        subtitle="Hiển thị vị trí thực của học sinh theo từng lớp học trên nền Google Maps vệ tinh"
-        icon={<MapPin className="w-5 h-5 text-[#0057B8]" />}
+        title="Bản đồ định vị GPS học sinh"
+        subtitle="Vị trí thực tế của học sinh theo lớp trên bản đồ vệ tinh và đường phố"
+        icon={<MapPin className="w-4 h-4" strokeWidth={1.5} />}
         action={
           <EducationButton
             variant="ghost"
             size="sm"
-            icon={<ExternalLink className="w-3.5 h-3.5" />}
+            icon={<ExternalLink className="w-4 h-4" strokeWidth={1.5} />}
             iconPosition="right"
             onClick={() => navigate('/map')}
           >
@@ -236,7 +212,7 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
           </EducationButton>
         }
       >
-        <div className="rounded-[18px] overflow-hidden border border-[#DCE7F2]">
+        <div className="rounded-[var(--radius-control)] overflow-hidden border border-[var(--border)]">
           <DeviceMap devices={filteredDevices} height="360px" />
         </div>
       </EducationCard>
@@ -246,22 +222,21 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
         {/* Left Column: Monitoring List */}
         <div className="lg:col-span-2 space-y-4">
           {/* Header & Filter Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-[20px] border border-[#DCE7F2]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--surface)] p-4 rounded-[var(--radius-card)] border border-[var(--border)] shadow-[var(--shadow-card)]">
             <div className="flex items-center gap-2">
-              <h2 className="text-base md:text-lg font-extrabold text-[#172B4D]">
-                Danh Sách Giám Sát Học Sinh
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">
+                Danh sách giám sát học sinh
               </h2>
               <EducationBadge variant="primary">
-                {filteredDevices.length} máy
+                <span className="font-mono tabular-nums">{filteredDevices.length}</span> máy
               </EducationBadge>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Class selector */}
               <select
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
-                className="bg-[#F5F9FD] border border-[#DCE7F2] rounded-xl text-xs font-semibold px-3 py-2 text-[#172B4D] focus:outline-none cursor-pointer"
+                className="h-9 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-medium px-3 text-[var(--text-primary)] focus:outline-none cursor-pointer"
               >
                 <option value="ALL">Tất cả các lớp</option>
                 {availableClasses.map((c) => (
@@ -271,11 +246,10 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
                 ))}
               </select>
 
-              {/* Status filter button */}
               {statusFilter !== 'ALL' && (
                 <button
                   onClick={() => setStatusFilter('ALL')}
-                  className="text-xs font-bold text-[#DC2626] hover:underline"
+                  className="text-xs font-medium text-[var(--danger)] hover:underline cursor-pointer"
                 >
                   Xóa lọc
                 </button>
@@ -285,46 +259,48 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
 
           {/* Search bar */}
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#60758D]" />
+            <Search
+              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+              strokeWidth={1.5}
+            />
             <input
               type="text"
-              placeholder="Tìm theo tên học sinh, lớp, mã máy..."
+              placeholder="Tìm theo tên học sinh, lớp hoặc mã máy"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white text-[#172B4D] placeholder-[#60758D]/60 text-xs md:text-sm font-medium rounded-[14px] border border-[#DCE7F2] pl-10 pr-4 py-2.5 focus:outline-none focus:border-[#0057B8] focus:ring-2 focus:ring-[#0057B8]/20"
+              className="w-full h-10 bg-[var(--surface)] text-[var(--text-primary)] placeholder-[var(--text-muted)] text-xs rounded-[var(--radius-control)] border border-[var(--border-strong)] pl-9 pr-4 focus:outline-none"
             />
           </div>
 
           {/* Device Cards */}
           {isLoading ? (
-            <div className="py-16 text-center text-[#60758D] text-xs flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-[#0057B8]" />
-              <span>Đang tải thông tin học sinh...</span>
+            <div className="py-16 text-center text-[var(--text-muted)] text-xs flex items-center justify-center gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin text-[var(--accent-ink)]" strokeWidth={1.5} />
+              <span>Đang tải thông tin học sinh</span>
             </div>
           ) : filteredDevices.length === 0 ? (
-            <div className="p-8 text-center bg-white rounded-[20px] border border-[#DCE7F2] space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#EAF5FF] text-[#0057B8] flex items-center justify-center mx-auto">
-                <Users className="w-6 h-6" />
+            <div className="p-8 text-center bg-[var(--surface)] rounded-[var(--radius-card)] border border-[var(--border)] space-y-3">
+              <div className="w-10 h-10 rounded-[var(--radius-control)] bg-[var(--accent-soft)] text-[var(--accent-ink)] flex items-center justify-center mx-auto">
+                <Users className="w-4 h-4" strokeWidth={1.5} />
               </div>
-              <h3 className="font-extrabold text-sm text-[#172B4D]">
+              <h3 className="font-semibold text-sm text-[var(--text-primary)]">
                 Không tìm thấy học sinh phù hợp
               </h3>
-              <p className="text-xs text-[#60758D] max-w-sm mx-auto">
+              <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
                 Hãy thử chọn lớp khác hoặc mở liên kết báo cáo trên điện thoại học sinh để bắt đầu truyền dữ liệu.
               </p>
               <div className="pt-2 flex justify-center gap-2">
                 <EducationButton
                   variant="primary"
                   size="sm"
-                  pill
                   onClick={() => navigate('/report')}
                 >
-                  Mở Link Báo Cáo
+                  Mở link báo cáo
                 </EducationButton>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredDevices.map((d) => {
                 const isOnline = d.status === 'ONLINE';
                 const inClass = Boolean(d.inClassAlert);
@@ -335,120 +311,128 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
                   <div
                     key={d.id}
                     onClick={() => navigate(`/devices/${d.id}`)}
-                    className={`p-5 rounded-[22px] bg-white border transition-all duration-200 cursor-pointer space-y-3 shadow-xs hover:-translate-y-1 hover:shadow-md hover:border-[#087FEA]/50 ${
+                    className={`p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border transition-[border-color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer space-y-3 shadow-[var(--shadow-card)] hover:border-[var(--border-strong)] ${
                       inClass
-                        ? 'border-[#FED7AA] bg-[#FFF9F0]'
+                        ? 'border-[var(--warning-border)]'
                         : isUninstalled
-                        ? 'border-[#FECACA] bg-[#FFF5F5]'
-                        : 'border-[#DCE7F2]'
+                        ? 'border-[var(--danger-border)]'
+                        : 'border-[var(--border)]'
                     }`}
                   >
                     {/* Header info */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={`w-10 h-10 rounded-[14px] flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs ${
-                            inClass
-                              ? 'bg-[#D97706] text-white'
-                              : isUninstalled
-                              ? 'bg-[#DC2626] text-white'
-                              : isOnline
-                              ? 'bg-[#EBFBF0] text-[#16A34A] border border-[#BDECC9]'
-                              : 'bg-[#F5F9FD] text-[#60758D] border border-[#DCE7F2]'
-                          }`}
-                        >
-                          <Smartphone className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-[var(--radius-control)] bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--text-secondary)] flex items-center justify-center shrink-0">
+                          <Smartphone className="w-4 h-4" strokeWidth={1.5} />
                         </div>
                         <div className="min-w-0">
-                          <h4 className="font-extrabold text-sm text-[#172B4D] truncate">
+                          <h4 className="font-semibold text-sm text-[var(--text-primary)] truncate">
                             {d.studentName || d.name}
                           </h4>
-                          <p className="text-xs text-[#60758D] truncate mt-0.5">
+                          <p className="text-xs text-[var(--text-secondary)] truncate mt-1">
                             {d.schoolName || 'Chưa rõ trường'}{' '}
                             {d.className ? `· Lớp ${d.className}` : ''}
                           </p>
                         </div>
                       </div>
 
-                      {/* Status Badge */}
+                      {/* Status Indicator */}
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0 ${
+                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-medium border shrink-0 ${
                           isUninstalled
-                            ? 'bg-[#FEECEC] text-[#DC2626] border border-[#FECACA]'
-                            : inClass
-                            ? 'bg-[#FFF6E5] text-[#D97706] border border-[#FED7AA] animate-pulse'
-                            : isNoNet
-                            ? 'bg-[#FFF6E5] text-[#D97706] border border-[#FED7AA]'
+                            ? 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger-border)]'
+                            : inClass || isNoNet
+                            ? 'bg-[var(--warning-soft)] text-[var(--warning)] border-[var(--warning-border)]'
                             : isOnline
-                            ? 'bg-[#EBFBF0] text-[#16A34A] border border-[#BDECC9]'
-                            : 'bg-[#F5F9FD] text-[#60758D] border border-[#DCE7F2]'
+                            ? 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success-border)]'
+                            : 'bg-[var(--surface-muted)] text-[var(--text-muted)] border-[var(--border)]'
                         }`}
                       >
-                        {isUninstalled
-                          ? '⚠️ ĐÃ GỠ APP'
-                          : inClass
-                          ? '🚨 DÙNG GIỜ HỌC'
-                          : isNoNet
-                          ? '🔴 MẤT MẠNG'
-                          : isOnline
-                          ? '🟢 ONLINE'
-                          : 'OFFLINE'}
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isUninstalled
+                              ? 'bg-[var(--danger)]'
+                              : inClass || isNoNet
+                              ? 'bg-[var(--warning)]'
+                              : isOnline
+                              ? 'bg-[var(--success)] telemetry-live-dot'
+                              : 'bg-[var(--text-muted)]'
+                          }`}
+                        />
+                        <span>
+                          {isUninstalled
+                            ? 'Đã gỡ ứng dụng'
+                            : inClass
+                            ? 'Dùng giờ học'
+                            : isNoNet
+                            ? 'Mất mạng'
+                            : isOnline
+                            ? 'Trực tuyến'
+                            : 'Ngoại tuyến'}
+                        </span>
                       </span>
                     </div>
 
                     {/* Sensor Data */}
-                    <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-[#DCE7F2]/70 text-xs">
-                      <div className="flex items-center gap-1.5 text-[#172B4D]">
+                    <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[var(--border)] text-xs">
+                      <div className="flex items-center gap-2 text-[var(--text-primary)]">
                         {d.charging ? (
-                          <Zap className="w-3.5 h-3.5 text-[#D97706] shrink-0" />
+                          <Zap className="w-4 h-4 text-[var(--warning)] shrink-0" strokeWidth={1.5} />
                         ) : (
-                          <Battery className="w-3.5 h-3.5 text-[#16A34A] shrink-0" />
+                          <Battery className="w-4 h-4 text-[var(--success)] shrink-0" strokeWidth={1.5} />
                         )}
-                        <span className="font-semibold">Pin: {d.batteryLevel ?? 100}%</span>
+                        <span className="font-mono tabular-nums font-medium">
+                          Pin {d.batteryLevel ?? 100}%
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[#172B4D]">
-                        <Wifi className="w-3.5 h-3.5 text-[#0057B8] shrink-0" />
-                        <span className="font-semibold">{d.networkType || 'WIFI'}</span>
+                      <div className="flex items-center gap-2 text-[var(--text-primary)]">
+                        <Wifi className="w-4 h-4 text-[var(--accent-ink)] shrink-0" strokeWidth={1.5} />
+                        <span className="font-mono font-medium">{d.networkType || 'WIFI'}</span>
                       </div>
                     </div>
 
                     {/* GPS Coordinates & Google Maps Link */}
                     {d.latitude && d.longitude ? (
-                      <div className="flex items-center justify-between text-[11px] pt-2 border-t border-[#DCE7F2]/70 text-[#60758D]">
-                        <span className="font-mono truncate">
-                          GPS: {d.latitude.toFixed(4)}, {d.longitude.toFixed(4)}
+                      <div className="flex items-center justify-between text-[11px] pt-2 border-t border-[var(--border)] text-[var(--text-secondary)]">
+                        <span className="font-mono tabular-nums truncate">
+                          {d.latitude.toFixed(4)}, {d.longitude.toFixed(4)}
                         </span>
                         <a
                           href={`https://www.google.com/maps?q=${d.latitude},${d.longitude}`}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="text-[#0057B8] font-bold hover:underline flex items-center gap-1 shrink-0"
+                          className="text-[var(--accent-ink)] font-medium hover:underline flex items-center gap-1 shrink-0"
                         >
                           <span>Google Maps</span>
-                          <ExternalLink className="w-3 h-3" />
+                          <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.5} />
                         </a>
                       </div>
                     ) : (
-                      <div className="text-[11px] pt-2 border-t border-[#DCE7F2]/70 text-[#60758D]">
-                        GPS: Chưa cập nhật tọa độ
+                      <div className="text-[11px] pt-2 border-t border-[var(--border)] text-[var(--text-muted)]">
+                        Chưa cập nhật tọa độ GPS
                       </div>
                     )}
 
-                    {/* Card Footer: Detail Button */}
-                    <div className="pt-2 border-t border-[#DCE7F2]/70 flex items-center justify-between">
-                      <span className="text-[11px] text-[#60758D] font-mono">
-                        Cập nhật: {d.lastSeen ? new Date(d.lastSeen).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                    {/* Card Footer */}
+                    <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between">
+                      <span className="text-[11px] text-[var(--text-muted)] font-mono tabular-nums">
+                        {d.lastSeen
+                          ? new Date(d.lastSeen).toLocaleTimeString('vi-VN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : 'Chưa có'}
                       </span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/devices/${d.id}`);
                         }}
-                        className="py-1 px-3 rounded-full bg-[#EAF5FF] hover:bg-[#0057B8] text-[#0057B8] hover:text-white font-bold text-xs transition flex items-center gap-1 cursor-pointer"
+                        className="h-7 px-3 rounded-[6px] bg-[var(--accent-soft)] hover:bg-[var(--btn-primary-bg)] text-[var(--accent-ink)] hover:text-[var(--btn-primary-text)] font-medium text-xs transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] flex items-center gap-1 cursor-pointer"
                       >
                         <span>Chi tiết</span>
-                        <ArrowRight className="w-3 h-3" />
+                        <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
                       </button>
                     </div>
                   </div>
@@ -461,41 +445,41 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
         {/* Right Column: Live Event Activity Stream */}
         <div className="space-y-4">
           <EducationCard
-            title="Nhật Ký Lớp Học Mới Nhất"
-            subtitle="Sự kiện trực tiếp từ thiết bị học sinh"
-            icon={<Clock className="w-5 h-5 text-[#0057B8]" />}
+            title="Nhật ký lớp học mới nhất"
+            subtitle="Sự kiện ghi nhận từ thiết bị học sinh"
+            icon={<Clock className="w-4 h-4" strokeWidth={1.5} />}
             action={
               <button
                 onClick={() => navigate('/activity')}
-                className="text-xs font-bold text-[#0057B8] hover:underline cursor-pointer"
+                className="text-xs font-medium text-[var(--accent-ink)] hover:underline cursor-pointer"
               >
-                Xem tất cả ↗
+                Xem tất cả
               </button>
             }
           >
             <div className="space-y-3 mt-2">
               {activities.length === 0 ? (
-                <p className="text-xs text-[#60758D] text-center py-6">
+                <p className="text-xs text-[var(--text-muted)] text-center py-6">
                   Chưa có nhật ký hoạt động nào
                 </p>
               ) : (
                 activities.map((act) => (
                   <div
                     key={act.id}
-                    className="p-3 rounded-[16px] bg-[#F5F9FD] border border-[#DCE7F2] text-xs space-y-1"
+                    className="p-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] text-xs space-y-1"
                   >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="font-extrabold text-[#172B4D] truncate">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-[var(--text-primary)] truncate">
                         {act.studentName || act.deviceName}
                       </span>
-                      <span className="text-[10px] text-[#60758D] font-mono shrink-0">
+                      <span className="text-[11px] text-[var(--text-muted)] font-mono tabular-nums shrink-0">
                         {new Date(act.timestamp).toLocaleTimeString('vi-VN', {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
                       </span>
                     </div>
-                    <p className="text-[#60758D] leading-relaxed line-clamp-2">
+                    <p className="text-[var(--text-secondary)] leading-relaxed line-clamp-2">
                       {act.description}
                     </p>
                   </div>
@@ -505,22 +489,20 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
           </EducationCard>
 
           {/* Quick Notice Card */}
-          <div className="p-5 rounded-[22px] bg-gradient-to-br from-[#FFF9D6] to-[#FFF0A0] border border-[#FFE770] text-[#172B4D] space-y-2.5 shadow-2xs">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">💡</span>
-              <h4 className="font-extrabold text-sm">Gợi ý dành cho Thầy/Cô</h4>
+          <div className="p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] space-y-3">
+            <div className="flex items-center gap-2 text-[var(--text-primary)]">
+              <Info className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+              <h4 className="font-semibold text-sm">Liên kết báo cáo nhanh cho lớp</h4>
             </div>
-            <p className="text-xs text-[#60758D] leading-relaxed font-medium">
-              Thầy/Cô có thể gửi trực tiếp link <strong className="text-[#003B7A] font-mono">/report</strong> tới nhóm Zalo phụ huynh hoặc lớp học để học sinh bật định vị chỉ trong 5 giây mà không cần cài đặt ứng dụng phức tạp.
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              Thầy/Cô có thể chia sẻ đường dẫn <span className="font-mono font-medium text-[var(--accent-ink)]">/report</span> tới phụ huynh hoặc học sinh để kết nối báo cáo định vị trực tiếp trên trình duyệt mà không cần cài thêm tệp cài đặt ngoài.
             </p>
             <EducationButton
               variant="outline"
               size="sm"
-              pill
-              className="bg-white hover:bg-slate-50 text-xs"
               onClick={() => navigate('/report')}
             >
-              Mở Trang Báo Cáo
+              Mở trang báo cáo
             </EducationButton>
           </div>
         </div>

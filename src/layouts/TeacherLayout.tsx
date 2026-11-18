@@ -25,22 +25,21 @@ export const TeacherLayout: React.FC<TeacherLayoutProps> = ({
     {
       id: 'notif-1',
       title: 'Hệ thống định vị GPS đang hoạt động',
-      description: 'Máy chủ tiếp nhận thông số GPS và trạng thái học sinh mỗi giây.',
-      timestamp: 'Vừa xong',
+      description: 'Máy chủ tiếp nhận tọa độ và trạng thái thiết bị theo chu kỳ kết nối',
+      timestamp: 'Trực tuyến',
       isRead: false,
       type: 'info',
     },
     {
       id: 'notif-2',
-      title: 'Lịch giảng dạy & Quản lý lớp học',
-      description: 'Đã đồng bộ danh sách học sinh theo khối và lớp niên khóa 2026-2027.',
-      timestamp: '15 phút trước',
+      title: 'Danh sách lớp học niên khóa 2026-2027',
+      description: 'Đã đồng bộ dữ liệu thiết bị học sinh theo phân công lớp',
+      timestamp: 'Hôm nay',
       isRead: false,
       type: 'success',
     },
   ]);
 
-  // Load activities to convert into real-time notifications
   useEffect(() => {
     api.getAllActivity().then((res) => {
       if (res.success && res.data && res.data.length > 0) {
@@ -63,8 +62,7 @@ export const TeacherLayout: React.FC<TeacherLayoutProps> = ({
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="min-h-screen bg-[#F5F9FD] text-[#172B4D] font-education flex flex-col antialiased">
-      {/* Top Sticky Header */}
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] flex flex-col antialiased">
       <EducationHeader
         role="TEACHER"
         currentPath={activePath}
@@ -74,9 +72,7 @@ export const TeacherLayout: React.FC<TeacherLayoutProps> = ({
         onToggleNotifications={() => setNotificationsOpen(true)}
       />
 
-      {/* Main Body with Sidebar */}
       <div className="flex-1 flex w-full">
-        {/* Sidebar Desktop & Mobile */}
         <EducationSidebar
           role="TEACHER"
           currentPath={activePath}
@@ -85,20 +81,18 @@ export const TeacherLayout: React.FC<TeacherLayoutProps> = ({
           onCloseMobile={() => setMobileMenuOpen(false)}
         />
 
-        {/* Content Area with left padding on desktop to accommodate sidebar */}
-        <main className="flex-1 md:pl-[260px] flex flex-col min-w-0">
-          <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        <main className="flex-1 md:pl-64 flex flex-col min-w-0">
+          <div className="flex-1 max-w-[1440px] w-full mx-auto p-6 lg:p-8 space-y-6">
             {children}
           </div>
         </main>
       </div>
 
-      {/* Notifications Modal */}
       <EducationModal
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
-        title="Trung Tâm Thông Báo Giáo Viên"
-        subtitle="Cảnh báo sử dụng thiết bị, trạng thái lớp học và cập nhật mới"
+        title="Thông báo giáo viên"
+        subtitle="Cảnh báo sử dụng thiết bị và cập nhật lớp học"
         maxWidth="md"
       >
         <EducationNotification

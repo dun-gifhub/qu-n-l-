@@ -11,11 +11,8 @@ import {
   Users,
   Eye,
   EyeOff,
-  Phone,
   School,
   BookOpen,
-  CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
 import { EducationButton } from '../components/education/EducationButton.tsx';
 import { EducationInput } from '../components/education/EducationInput.tsx';
@@ -36,7 +33,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
   const [role, setRole] = useState<UserRole>('TEACHER');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone] = useState('');
   const [schoolName, setSchoolName] = useState('THPT Chuyên Lê Hồng Phong');
   const [className, setClassName] = useState('10A1');
   const [studentName, setStudentName] = useState('');
@@ -59,7 +56,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
     const isPhone = /^(\+?84|0)?[0-9]{8,12}$/.test(cleanInput.replace(/[\s.-]/g, ''));
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!cleanInput || (!isPhone && !emailRegex.test(cleanInput))) {
-      errs.email = 'Vui lòng nhập Email hoặc Số điện thoại hợp lệ (VD: 0901234567)';
+      errs.email = 'Vui lòng nhập Email hoặc Số điện thoại hợp lệ (ví dụ 0901234567)';
     }
 
     if (!password || password.length < 6) {
@@ -88,9 +85,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
     const cleanInput = email.trim();
     const isPhone = /^(\+?84|0)?[0-9]{8,12}$/.test(cleanInput.replace(/[\s.-]/g, ''));
     const resolvedPhone = phone.trim() || (isPhone ? cleanInput : undefined);
-    const resolvedEmail = isPhone && !cleanInput.includes('@')
-      ? `${cleanInput.replace(/\D/g, '')}@phone.devicemonitor.com`
-      : cleanInput;
+    const resolvedEmail =
+      isPhone && !cleanInput.includes('@')
+        ? `${cleanInput.replace(/\D/g, '')}@phone.devicemonitor.com`
+        : cleanInput;
 
     const res = await register({
       name: name.trim(),
@@ -109,35 +107,33 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
       navigate('/login', {
         message:
           res.message ||
-          'Đăng ký tài khoản thành công! Hồ sơ đã được gửi đến Ban Giám Hiệu / Quản Trị Viên để phê duyệt.',
+          'Đăng ký tài khoản thành công. Hồ sơ đã được gửi đến Quản trị viên để phê duyệt.',
       });
     } else {
       if (res.errors) {
         setErrors(res.errors);
       }
       setGeneralError(
-        res.message ||
-          'Không thể hoàn tất đăng ký. Vui lòng kiểm tra lại thông tin đã nhập.'
+        res.message || 'Không thể hoàn tất đăng ký. Vui lòng kiểm tra lại thông tin đã nhập.'
       );
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5F9FD] via-[#EAF5FF]/40 to-[#F5F9FD] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-education">
-      <div className="max-w-4xl w-full bg-white rounded-[28px] border border-[#DCE7F2] shadow-[0_20px_50px_rgba(0,59,122,0.08)] overflow-hidden">
-        {/* Top Header Banner */}
-        <div className="bg-gradient-to-r from-[#003B7A] via-[#0057B8] to-[#087FEA] text-white p-6 sm:p-8 relative overflow-hidden">
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl w-full bg-[var(--surface)] rounded-[var(--radius-panel)] border border-[var(--border)] shadow-[var(--shadow-elevated)] overflow-hidden">
+        {/* Top Header */}
+        <div className="bg-[var(--surface-muted)] border-b border-[var(--border)] p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-[#FFD200] text-xs font-bold border border-white/20">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Cổng Đăng Ký Tài Khoản Học Đường</span>
+              <div className="text-xs font-medium text-[var(--accent-ink)]">
+                Cổng đăng ký tài khoản học đường
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Đăng Ký Tài Khoản Mới
+              <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
+                Đăng ký tài khoản mới
               </h1>
-              <p className="text-xs sm:text-sm text-blue-100 font-medium">
-                Tham gia hệ thống quản lý học sinh & giảng dạy thông minh EduMonitor
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
+                Tham gia hệ thống điều phối thiết bị và lớp học EduMonitor
               </p>
             </div>
 
@@ -145,56 +141,54 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="px-4 py-2 rounded-full bg-white text-[#003B7A] hover:bg-[#FFD200] text-xs font-bold transition shadow-xs cursor-pointer"
+                className="h-9 px-4 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border-strong)] text-xs font-medium transition-colors cursor-pointer"
               >
-                Đã có tài khoản? Đăng nhập →
+                Đã có tài khoản · Đăng nhập
               </button>
             </div>
           </div>
-
-          <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-48 h-48 rounded-full bg-[#FFD200]/15 pointer-events-none blur-xl" />
         </div>
 
         {/* Form Body */}
-        <div className="p-6 sm:p-8 md:p-10">
+        <div className="p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             {generalError && (
-              <div className="p-4 rounded-[16px] bg-[#FEECEC] border border-[#FECACA] text-[#DC2626] text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+              <div className="p-4 rounded-[var(--radius-control)] bg-[var(--danger-soft)] border border-[var(--danger-border)] text-[var(--danger)] text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                 <span>{generalError}</span>
               </div>
             )}
 
             {/* Role Selection Switcher */}
             <div>
-              <label className="block text-xs font-bold text-[#172B4D] uppercase tracking-wider mb-2.5">
-                1. Chọn vai trò đăng ký:
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2">
+                1. Chọn vai trò đăng ký
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setRole('TEACHER')}
-                  className={`p-4 rounded-[18px] border text-left flex items-start gap-3 transition cursor-pointer ${
+                  className={`p-4 rounded-[var(--radius-card)] border text-left flex items-start gap-3 transition-colors duration-[var(--duration-fast)] cursor-pointer ${
                     role === 'TEACHER'
-                      ? 'border-[#0057B8] bg-[#EAF5FF] shadow-xs'
-                      : 'border-[#DCE7F2] bg-white hover:bg-[#F5F9FD]'
+                      ? 'border-[var(--accent-border)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]/60'
                   }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 ${
+                    className={`w-9 h-9 rounded-[var(--radius-control)] flex items-center justify-center shrink-0 ${
                       role === 'TEACHER'
-                        ? 'bg-[#0057B8] text-white'
-                        : 'bg-[#F5F9FD] text-[#60758D]'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)]'
+                        : 'bg-[var(--surface-muted)] text-[var(--text-secondary)]'
                     }`}
                   >
-                    <BookOpen className="w-5 h-5" />
+                    <BookOpen className="w-4 h-4" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <span className="font-extrabold text-sm text-[#172B4D] block">
-                      Giáo Viên Chủ Nhiệm
+                    <span className="font-semibold text-sm text-[var(--text-primary)] block">
+                      Giáo viên chủ nhiệm
                     </span>
-                    <span className="text-xs text-[#60758D] mt-0.5 block">
-                      Quản lý lớp học, giám sát học sinh và gửi cảnh báo
+                    <span className="text-xs text-[var(--text-secondary)] mt-0.5 block">
+                      Quản lý lớp học, giám sát học sinh cùng trường và nhận cảnh báo
                     </span>
                   </div>
                 </button>
@@ -202,27 +196,27 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
                 <button
                   type="button"
                   onClick={() => setRole('PARENT')}
-                  className={`p-4 rounded-[18px] border text-left flex items-start gap-3 transition cursor-pointer ${
+                  className={`p-4 rounded-[var(--radius-card)] border text-left flex items-start gap-3 transition-colors duration-[var(--duration-fast)] cursor-pointer ${
                     role === 'PARENT'
-                      ? 'border-[#0057B8] bg-[#EAF5FF] shadow-xs'
-                      : 'border-[#DCE7F2] bg-white hover:bg-[#F5F9FD]'
+                      ? 'border-[var(--accent-border)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]/60'
                   }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 ${
+                    className={`w-9 h-9 rounded-[var(--radius-control)] flex items-center justify-center shrink-0 ${
                       role === 'PARENT'
-                        ? 'bg-[#0057B8] text-white'
-                        : 'bg-[#F5F9FD] text-[#60758D]'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)]'
+                        : 'bg-[var(--surface-muted)] text-[var(--text-secondary)]'
                     }`}
                   >
-                    <Users className="w-5 h-5" />
+                    <Users className="w-4 h-4" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <span className="font-extrabold text-sm text-[#172B4D] block">
-                      Học Sinh / Phụ Huynh
+                    <span className="font-semibold text-sm text-[var(--text-primary)] block">
+                      Học sinh / Phụ huynh
                     </span>
-                    <span className="text-xs text-[#60758D] mt-0.5 block">
-                      Theo dõi vị trí GPS, tiến trình học và bảo vệ thiết bị
+                    <span className="text-xs text-[var(--text-secondary)] mt-0.5 block">
+                      Theo dõi vị trí GPS, ứng dụng đang mở và bảo vệ thiết bị của con
                     </span>
                   </div>
                 </button>
@@ -231,28 +225,28 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
 
             {/* Basic Information */}
             <div className="space-y-4">
-              <label className="block text-xs font-bold text-[#172B4D] uppercase tracking-wider">
-                2. Thông tin cá nhân & Tài khoản:
+              <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                2. Thông tin cá nhân và tài khoản
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <EducationInput
                   label="Họ và tên"
-                  placeholder="VD: Nguyễn Văn An"
+                  placeholder="Nguyễn Văn An"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   error={errors.name}
-                  icon={<User className="w-4 h-4" />}
+                  icon={<User className="w-4 h-4" strokeWidth={1.5} />}
                   required
                 />
 
                 <EducationInput
-                  label="Email hoặc Số điện thoại"
-                  placeholder="VD: gv.an@truong.edu.vn hoặc 0901234567"
+                  label="Email hoặc số điện thoại"
+                  placeholder="gv.an@truong.edu.vn hoặc 0901234567"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   error={errors.email}
-                  icon={<Mail className="w-4 h-4" />}
+                  icon={<Mail className="w-4 h-4" strokeWidth={1.5} />}
                   helperText="Dùng để đăng nhập vào hệ thống"
                   required
                 />
@@ -260,13 +254,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-2 space-y-1.5 text-left">
-                  <label className="block text-xs md:text-sm font-semibold text-[#172B4D]">
-                    Đơn vị trường học <span className="text-[#DC2626]">*</span>
+                  <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                    Đơn vị trường học <span className="text-[var(--danger)]">*</span>
                   </label>
                   <select
                     value={schoolName}
                     onChange={(e) => setSchoolName(e.target.value)}
-                    className="w-full bg-white text-[#172B4D] text-sm font-medium rounded-[14px] border border-[#DCE7F2] px-4 py-3 focus:outline-none focus:border-[#0057B8] focus:ring-2 focus:ring-[#0057B8]/20"
+                    className="w-full h-10 bg-[var(--surface)] text-[var(--text-primary)] text-sm font-normal rounded-[var(--radius-control)] border border-[var(--border-strong)] px-3 focus:outline-none focus:border-[var(--accent)]"
                   >
                     {SCHOOL_SUGGESTIONS.map((s) => (
                       <option key={s} value={s}>
@@ -278,10 +272,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
 
                 <EducationInput
                   label="Lớp học"
-                  placeholder="VD: 10A1"
+                  placeholder="10A1"
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
-                  icon={<School className="w-4 h-4" />}
+                  icon={<School className="w-4 h-4" strokeWidth={1.5} />}
                   required
                 />
               </div>
@@ -289,36 +283,40 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
               {role === 'PARENT' && (
                 <EducationInput
                   label="Tên học sinh (con của bạn)"
-                  placeholder="VD: Nguyễn Văn Bình"
+                  placeholder="Nguyễn Văn Bình"
                   value={studentName}
                   onChange={(e) => setStudentName(e.target.value)}
-                  icon={<GraduationCap className="w-4 h-4" />}
+                  icon={<GraduationCap className="w-4 h-4" strokeWidth={1.5} />}
                 />
               )}
             </div>
 
             {/* Password Section */}
             <div className="space-y-4">
-              <label className="block text-xs font-bold text-[#172B4D] uppercase tracking-wider">
-                3. Thiết lập mật khẩu:
+              <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                3. Thiết lập mật khẩu
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <EducationInput
-                  label="Mật khẩu (ít nhất 6 ký tự)"
+                  label="Mật khẩu (tối thiểu 6 ký tự)"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Nhập mật khẩu..."
+                  placeholder="Nhập mật khẩu"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   error={errors.password}
-                  icon={<Lock className="w-4 h-4" />}
+                  icon={<Lock className="w-4 h-4" strokeWidth={1.5} />}
                   rightElement={
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-[#60758D] hover:text-[#0057B8] cursor-pointer"
+                      className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" strokeWidth={1.5} />
+                      ) : (
+                        <Eye className="w-4 h-4" strokeWidth={1.5} />
+                      )}
                     </button>
                   }
                   required
@@ -327,18 +325,22 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
                 <EducationInput
                   label="Xác nhận lại mật khẩu"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Nhập lại mật khẩu..."
+                  placeholder="Nhập lại mật khẩu"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   error={errors.confirmPassword}
-                  icon={<Lock className="w-4 h-4" />}
+                  icon={<Lock className="w-4 h-4" strokeWidth={1.5} />}
                   rightElement={
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="text-[#60758D] hover:text-[#0057B8] cursor-pointer"
+                      className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                     >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" strokeWidth={1.5} />
+                      ) : (
+                        <Eye className="w-4 h-4" strokeWidth={1.5} />
+                      )}
                     </button>
                   }
                   required
@@ -346,18 +348,17 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ navigate }) => {
               </div>
             </div>
 
-            {/* Submit Button */}
             <div className="pt-2">
               <EducationButton
                 type="submit"
                 variant="primary"
-                pill
-                className="w-full py-4 text-base shadow-md"
-                icon={<ArrowRight className="w-5 h-5" />}
+                size="lg"
+                className="w-full"
+                icon={<ArrowRight className="w-4 h-4" strokeWidth={1.5} />}
                 iconPosition="right"
                 isLoading={isLoading}
               >
-                Hoàn Tất Đăng Ký Tài Khoản
+                Hoàn tất đăng ký tài khoản
               </EducationButton>
             </div>
           </form>

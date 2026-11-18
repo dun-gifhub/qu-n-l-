@@ -7,7 +7,7 @@ import { StudentLayout } from './layouts/StudentLayout.tsx';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
 
-// Admin Pages (100% giữ nguyên cho Admin)
+// Admin Pages
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { DevicesPage } from './pages/DevicesPage.tsx';
 import { DeviceDetailPage } from './pages/DeviceDetailPage.tsx';
@@ -19,19 +19,19 @@ import { AccountsManagementPage } from './pages/AccountsManagementPage.tsx';
 import { AddDeviceModal } from './components/Device/AddDeviceModal.tsx';
 import { PhoneReportPage } from './pages/PhoneReportPage.tsx';
 
-// Teacher Pages (EdTech Design System mới)
+// Teacher Pages
 import { TeacherDashboardPage } from './pages/teacher/TeacherDashboardPage.tsx';
 import { TeacherClassesPage } from './pages/teacher/TeacherClassesPage.tsx';
 import { TeacherProfilePage } from './pages/teacher/TeacherProfilePage.tsx';
 
-// Student Pages (EdTech Design System mới)
+// Student Pages
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage.tsx';
 import { StudentClassesPage } from './pages/student/StudentClassesPage.tsx';
 import { StudentProfilePage } from './pages/student/StudentProfilePage.tsx';
 
 import { Device } from './types/index.ts';
 import { api } from './services/api.ts';
-import { Clock, ShieldAlert, LogOut, RefreshCw, School, AlertCircle, GraduationCap } from 'lucide-react';
+import { Clock, ShieldAlert, LogOut, RefreshCw } from 'lucide-react';
 import { EducationButton } from './components/education/EducationButton.tsx';
 import { EducationBadge } from './components/education/EducationBadge.tsx';
 
@@ -41,7 +41,6 @@ function AppContent() {
   const [navMessage, setNavMessage] = useState<string | undefined>(undefined);
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
 
-  // Global modals
   const [isAddDeviceOpen, setIsAddDeviceOpen] = useState(false);
   const [devices, setDevices] = useState<Device[]>([]);
 
@@ -80,16 +79,16 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center font-education">
-        <div className="w-10 h-10 border-4 border-[#0057B8] border-t-transparent rounded-full animate-spin" />
-        <p className="mt-4 text-xs font-semibold text-[#60758D]">
-          Đang xác thực hệ thống Giáo Dục EduMonitor...
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+        <p className="mt-4 text-xs font-medium text-[var(--text-secondary)]">
+          Đang xác thực hệ thống EduMonitor
         </p>
       </div>
     );
   }
 
-  // 1. Mobile Phone Reporter Routes (dành cho điện thoại học sinh truyền tọa độ)
+  // 1. Mobile Phone Reporter Routes
   if (
     currentPath === '/report' ||
     currentPath === '/tracker' ||
@@ -104,7 +103,7 @@ function AppContent() {
     return <RegisterPage navigate={navigate} />;
   }
 
-  // 3. BẮT BUỘC PHẢI ĐĂNG NHẬP MỚI CÓ THỂ XEM
+  // 3. Authentication Gate
   if (!isAuthenticated || !user) {
     return (
       <LoginPage
@@ -112,93 +111,95 @@ function AppContent() {
         message={
           navMessage ||
           (currentPath !== '/login'
-            ? 'Bắt buộc phải đăng nhập để xem thông tin và bản đồ học sinh.'
+            ? 'Yêu cầu đăng nhập để xem thông tin thiết bị và bản đồ học sinh.'
             : undefined)
         }
       />
     );
   }
 
-  // 4. Nếu tài khoản chưa được phê duyệt hoặc bị từ chối
+  // 4. Approval Gate
   if (user.role !== 'ADMIN' && user.approvalStatus !== 'APPROVED') {
     const isPending = user.approvalStatus === 'PENDING';
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#F5F9FD] via-[#EAF5FF]/50 to-[#F5F9FD] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 font-education">
-        <div className="max-w-md w-full bg-white rounded-[26px] p-8 border border-[#DCE7F2] shadow-[0_20px_50px_rgba(0,59,122,0.08)] text-center space-y-4">
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full bg-[var(--surface)] rounded-[var(--radius-panel)] p-6 border border-[var(--border)] shadow-[var(--shadow-elevated)] text-center space-y-5">
           <div
-            className={`w-16 h-16 rounded-[20px] mx-auto flex items-center justify-center ${
+            className={`w-12 h-12 rounded-[var(--radius-card)] mx-auto flex items-center justify-center ${
               isPending
-                ? 'bg-[#FFF9D6] text-[#8C6B00] border border-[#FFE770]'
-                : 'bg-[#FEECEC] text-[#DC2626] border border-[#FECACA]'
+                ? 'bg-[var(--warning-soft)] text-[var(--warning)] border border-[var(--warning-border)]'
+                : 'bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger-border)]'
             }`}
           >
-            {isPending ? <Clock className="w-8 h-8" /> : <ShieldAlert className="w-8 h-8" />}
+            {isPending ? (
+              <Clock className="w-5 h-5" strokeWidth={1.5} />
+            ) : (
+              <ShieldAlert className="w-5 h-5" strokeWidth={1.5} />
+            )}
           </div>
 
-          <div className="space-y-1">
-            <h2 className="text-xl font-extrabold text-[#172B4D]">
-              {isPending ? 'Tài Khoản Đang Chờ Phê Duyệt' : 'Tài Khoản Chưa Được Kích Hoạt'}
+          <div className="space-y-1.5">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              {isPending ? 'Tài khoản đang chờ phê duyệt' : 'Tài khoản chưa được kích hoạt'}
             </h2>
-            <p className="text-xs text-[#60758D] leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               {isPending
-                ? 'Hồ sơ Giáo viên / Học sinh của bạn đã được đăng ký thành công và đang chờ Quản trị viên (Admin) xét duyệt. Vui lòng liên hệ Admin nhà trường để được kích hoạt quyền truy cập.'
-                : 'Tài khoản của bạn đã bị từ chối hoặc tạm khóa. Vui lòng liên hệ Admin để được hỗ trợ.'}
+                ? 'Hồ sơ Giáo viên hoặc Phụ huynh của bạn đã được đăng ký và đang chờ Quản trị viên xét duyệt. Vui lòng liên hệ Quản trị viên nhà trường để kích hoạt quyền truy cập.'
+                : 'Tài khoản của bạn đã bị từ chối hoặc tạm khóa. Vui lòng liên hệ Quản trị viên để được hỗ trợ.'}
             </p>
           </div>
 
-          <div className="p-4 rounded-[18px] bg-[#F5F9FD] border border-[#DCE7F2] text-left text-xs space-y-2.5">
+          <div className="p-4 rounded-[var(--radius-card)] bg-[var(--surface-muted)] border border-[var(--border)] text-left text-xs space-y-2.5">
             <div className="flex justify-between items-center">
-              <span className="text-[#60758D]">Họ và tên:</span>
-              <span className="font-extrabold text-[#172B4D]">{user.name}</span>
+              <span className="text-[var(--text-secondary)]">Họ và tên</span>
+              <span className="font-medium text-[var(--text-primary)]">{user.name}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[#60758D]">Tài khoản:</span>
-              <span className="font-mono text-[#172B4D]">{user.email}</span>
+              <span className="text-[var(--text-secondary)]">Tài khoản</span>
+              <span className="font-mono text-[var(--text-primary)]">{user.email}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[#60758D]">Vai trò:</span>
+              <span className="text-[var(--text-secondary)]">Vai trò</span>
               <EducationBadge variant="primary">
-                {user.role === 'TEACHER' ? 'Giáo Viên' : 'Học Sinh / PH'}
+                {user.role === 'TEACHER' ? 'Giáo viên' : 'Phụ huynh'}
               </EducationBadge>
             </div>
             {user.schoolName && (
               <div className="flex justify-between items-center">
-                <span className="text-[#60758D]">Trường học:</span>
-                <span className="font-semibold text-[#172B4D]">{user.schoolName}</span>
+                <span className="text-[var(--text-secondary)]">Trường học</span>
+                <span className="font-medium text-[var(--text-primary)]">{user.schoolName}</span>
               </div>
             )}
-            <div className="flex justify-between items-center pt-2 border-t border-[#DCE7F2]">
-              <span className="text-[#60758D]">Trạng thái:</span>
+            <div className="flex justify-between items-center pt-2 border-t border-[var(--border)]">
+              <span className="text-[var(--text-secondary)]">Trạng thái</span>
               <EducationBadge variant={isPending ? 'warning' : 'danger'}>
-                {isPending ? 'ĐANG CHỜ DUYỆT' : 'CHƯA ĐƯỢC DUYỆT'}
+                {isPending ? 'Đang chờ duyệt' : 'Chưa được duyệt'}
               </EducationBadge>
             </div>
           </div>
 
-          <div className="pt-2 flex flex-col gap-2.5">
+          <div className="pt-1 flex flex-col gap-2">
             <EducationButton
               variant="primary"
-              pill
               className="w-full"
               isLoading={isRefreshingStatus}
-              icon={<RefreshCw className={`w-4 h-4 ${isRefreshingStatus ? 'animate-spin' : ''}`} />}
+              icon={<RefreshCw className={`w-4 h-4 ${isRefreshingStatus ? 'animate-spin' : ''}`} strokeWidth={1.5} />}
               onClick={async () => {
                 setIsRefreshingStatus(true);
                 if (refreshUser) await refreshUser();
                 setIsRefreshingStatus(false);
               }}
             >
-              Kiểm Tra Lại Trạng Thái
+              Kiểm tra lại trạng thái
             </EducationButton>
 
             <EducationButton
               variant="outline"
-              pill
               className="w-full"
-              icon={<LogOut className="w-4 h-4" />}
+              icon={<LogOut className="w-4 h-4" strokeWidth={1.5} />}
               onClick={() => logout()}
             >
-              Đăng Xuất
+              Đăng xuất
             </EducationButton>
           </div>
         </div>
@@ -206,14 +207,11 @@ function AppContent() {
     );
   }
 
-  // Parse device detail routes: /devices/:id or /devices/:id/(location|history|usage)
   const deviceDetailMatch = currentPath.match(
     /^\/devices\/([^\/]+)(?:\/(location|history|usage))?$/
   );
 
-  // =========================================================================
-  // XXI. ADMIN — TUYỆT ĐỐI GIỮ NGUYÊN 100% GIAO DIỆN HIỆN TẠI
-  // =========================================================================
+  // ADMIN
   if (user.role === 'ADMIN') {
     return (
       <AppLayout activePath={currentPath} navigate={navigate}>
@@ -255,7 +253,6 @@ function AppContent() {
 
         {currentPath === '/settings' && <SettingsPage />}
 
-        {/* Global Add Device Modal */}
         <AddDeviceModal
           isOpen={isAddDeviceOpen}
           onClose={() => setIsAddDeviceOpen(false)}
@@ -268,9 +265,7 @@ function AppContent() {
     );
   }
 
-  // =========================================================================
-  // TEACHER LAYOUT & EDTECH PAGES
-  // =========================================================================
+  // TEACHER
   if (user.role === 'TEACHER') {
     return (
       <TeacherLayout activePath={currentPath} navigate={navigate}>
@@ -314,7 +309,6 @@ function AppContent() {
           <TeacherProfilePage />
         )}
 
-        {/* Global Add Device Modal */}
         <AddDeviceModal
           isOpen={isAddDeviceOpen}
           onClose={() => setIsAddDeviceOpen(false)}
@@ -327,9 +321,7 @@ function AppContent() {
     );
   }
 
-  // =========================================================================
-  // STUDENT / PARENT LAYOUT & EDTECH PAGES
-  // =========================================================================
+  // STUDENT / PARENT
   return (
     <StudentLayout activePath={currentPath} navigate={navigate}>
       {(currentPath === '/' || currentPath === '/dashboard') && (

@@ -24,11 +24,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
   const [notifications, setNotifications] = useState<EducationNotificationItem[]>([
     {
       id: 'notif-stu-1',
-      title: 'Chào mừng bạn đến với Cổng Giáo Dục Thông Minh',
-      description: 'Theo dõi tiến trình học tập, vị trí an toàn và thời gian học tập hiệu quả.',
+      title: 'Theo dõi thiết bị & lịch học',
+      description: 'Hiển thị trạng thái thiết bị, vị trí an toàn và thời lượng sử dụng trong ngày',
       timestamp: 'Hôm nay',
       isRead: false,
-      type: 'success',
+      type: 'info',
     },
   ]);
 
@@ -54,8 +54,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="min-h-screen bg-[#F5F9FD] text-[#172B4D] font-education flex flex-col antialiased">
-      {/* Top Sticky Header */}
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] flex flex-col antialiased">
       <EducationHeader
         role="STUDENT"
         currentPath={activePath}
@@ -65,9 +64,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
         onToggleNotifications={() => setNotificationsOpen(true)}
       />
 
-      {/* Main Body with Sidebar */}
       <div className="flex-1 flex w-full">
-        {/* Sidebar Desktop & Mobile */}
         <EducationSidebar
           role="STUDENT"
           currentPath={activePath}
@@ -76,19 +73,17 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
           onCloseMobile={() => setMobileMenuOpen(false)}
         />
 
-        {/* Content Area */}
-        <main className="flex-1 md:pl-[260px] flex flex-col min-w-0">
-          <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        <main className="flex-1 md:pl-64 flex flex-col min-w-0">
+          <div className="flex-1 max-w-[1440px] w-full mx-auto p-6 lg:p-8 space-y-6">
             {children}
           </div>
         </main>
       </div>
 
-      {/* Notifications Modal */}
       <EducationModal
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
-        title="Thông Báo Của Bạn"
+        title="Thông báo học sinh"
         subtitle="Cập nhật mới từ giáo viên và nhà trường"
         maxWidth="md"
       >

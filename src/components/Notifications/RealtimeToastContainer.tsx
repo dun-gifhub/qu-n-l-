@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BellRing, WifiOff, Trash2, Smartphone, Wifi, X, ExternalLink, ShieldAlert } from 'lucide-react';
+import { BellRing, WifiOff, Trash2, Smartphone, Wifi, X, ExternalLink } from 'lucide-react';
 
 export interface ToastItem {
   id: string;
@@ -48,13 +48,12 @@ export const RealtimeToastContainer: React.FC<RealtimeToastContainerProps> = ({ 
 
               setToasts((prev) => [newToast, ...prev.slice(0, 4)]);
 
-              // Auto dismiss after 8s
               setTimeout(() => {
                 setToasts((prev) => prev.filter((t) => t.id !== newToast.id));
               }, 8000);
             }
-          } catch (e) {
-            // Ignore parse errors (e.g. keepalive comments)
+          } catch {
+            // Ignore keepalive parse
           }
         };
 
@@ -62,11 +61,9 @@ export const RealtimeToastContainer: React.FC<RealtimeToastContainerProps> = ({ 
           if (eventSource) {
             eventSource.close();
           }
-          // Reconnect after 5 seconds if connection dropped
           reconnectTimeout = setTimeout(connectSSE, 5000);
         };
-      } catch (err) {
-        // Fallback reconnection
+      } catch {
         reconnectTimeout = setTimeout(connectSSE, 10000);
       }
     };
@@ -86,7 +83,7 @@ export const RealtimeToastContainer: React.FC<RealtimeToastContainerProps> = ({ 
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0">
+    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none px-4 sm:px-0">
       {toasts.map((toast) => {
         const isEmergency = toast.severity === 'emergency' || toast.type === 'APP_UNINSTALLED';
         const isWarning = toast.severity === 'warning';
@@ -94,54 +91,59 @@ export const RealtimeToastContainer: React.FC<RealtimeToastContainerProps> = ({ 
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto rounded-2xl p-4 shadow-xl border backdrop-blur-md transition-all animate-in slide-in-from-top-3 duration-200 ${
+            className={`pointer-events-auto rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-elevated)] border bg-[var(--surface)] transition-[opacity,transform] duration-[var(--duration-base)] ease-[var(--ease-standard)] ${
               isEmergency
-                ? 'bg-rose-950/95 border-rose-500/80 text-white'
+                ? 'border-[var(--danger-border)]'
                 : isWarning
-                ? 'bg-amber-950/95 border-amber-500/80 text-white'
-                : 'bg-slate-900/95 border-slate-700/80 text-white'
+                ? 'border-[var(--warning-border)]'
+                : 'border-[var(--border-strong)]'
             }`}
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-start gap-3">
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  className={`w-8 h-8 rounded-[var(--radius-control)] flex items-center justify-center shrink-0 ${
                     isEmergency
-                      ? 'bg-rose-600 text-white animate-pulse'
+                      ? 'bg-[var(--danger-soft)] text-[var(--danger)]'
                       : isWarning
-                      ? 'bg-amber-600 text-white'
-                      : 'bg-indigo-600 text-white'
+                      ? 'bg-[var(--warning-soft)] text-[var(--warning)]'
+                      : 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
                   }`}
                 >
                   {isEmergency ? (
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                   ) : toast.type === 'NO_NETWORK' ? (
-                    <WifiOff className="w-5 h-5" />
+                    <WifiOff className="w-4 h-4" strokeWidth={1.5} />
                   ) : toast.type === 'WIFI_CONNECTED' ? (
-                    <Wifi className="w-5 h-5" />
+                    <Wifi className="w-4 h-4" strokeWidth={1.5} />
                   ) : toast.type === 'IN_CLASS_USAGE' ? (
-                    <BellRing className="w-5 h-5" />
+                    <BellRing className="w-4 h-4" strokeWidth={1.5} />
                   ) : (
-                    <Smartphone className="w-5 h-5" />
+                    <Smartphone className="w-4 h-4" strokeWidth={1.5} />
                   )}
                 </div>
 
                 <div>
-                  <h4 className="font-bold text-xs leading-snug">{toast.title}</h4>
-                  <p className="text-[11px] opacity-90 mt-0.5 leading-relaxed">{toast.message}</p>
+                  <h4 className="font-semibold text-xs text-[var(--text-primary)] leading-snug">
+                    {toast.title}
+                  </h4>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                    {toast.message}
+                  </p>
                 </div>
               </div>
 
               <button
                 onClick={() => dismissToast(toast.id)}
-                className="p-1 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition cursor-pointer shrink-0"
+                className="w-6 h-6 flex items-center justify-center rounded-[6px] hover:bg-[var(--surface-muted)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer shrink-0"
+                aria-label="Đóng thông báo"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" strokeWidth={1.5} />
               </button>
             </div>
 
-            <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
-              <span className="opacity-70 font-mono">
+            <div className="mt-3 pt-2 border-t border-[var(--border)] flex items-center justify-between text-[11px]">
+              <span className="text-[var(--text-muted)] font-mono tabular-nums">
                 {new Date(toast.timestamp).toLocaleTimeString('vi-VN')}
               </span>
               {toast.deviceId && (
@@ -150,10 +152,10 @@ export const RealtimeToastContainer: React.FC<RealtimeToastContainerProps> = ({ 
                     navigate(`/devices/${toast.deviceId}`);
                     dismissToast(toast.id);
                   }}
-                  className="font-bold underline hover:opacity-80 flex items-center gap-1 cursor-pointer"
+                  className="font-medium text-[var(--accent-ink)] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <span>Xem trên bản đồ</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.5} />
                 </button>
               )}
             </div>

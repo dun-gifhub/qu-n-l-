@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
-import { api } from '../../services/api.ts';
 import { EducationCard } from '../../components/education/EducationCard.tsx';
 import { EducationButton } from '../../components/education/EducationButton.tsx';
 import { EducationInput } from '../../components/education/EducationInput.tsx';
@@ -8,11 +7,9 @@ import { EducationBadge } from '../../components/education/EducationBadge.tsx';
 import {
   User,
   Mail,
-  School,
   KeyRound,
   CheckCircle2,
   AlertCircle,
-  Smartphone,
   Phone,
 } from 'lucide-react';
 
@@ -44,48 +41,44 @@ export const StudentProfilePage: React.FC = () => {
     setIsLoading(false);
 
     if (res.success) {
-      setStatusMsg({ type: 'success', text: 'Đổi mật khẩu thành công!' });
+      setStatusMsg({ type: 'success', text: 'Đổi mật khẩu thành công' });
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } else {
-      setStatusMsg({ type: 'error', text: res.message || 'Không thể đổi mật khẩu.' });
+      setStatusMsg({ type: 'error', text: res.message || 'Không thể đổi mật khẩu' });
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 animate-page-enter">
       {/* Header Profile Card */}
-      <div className="p-6 md:p-8 rounded-[24px] bg-white border border-[#DCE7F2] shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#087FEA] to-[#0057B8] text-white flex items-center justify-center font-extrabold text-3xl shadow-md ring-4 ring-[#EAF5FF] shrink-0">
-          {user?.name ? user.name.charAt(0) : 'S'}
+      <div className="p-6 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <div className="w-20 h-20 rounded-[var(--radius-panel)] bg-[var(--surface-muted)] border border-[var(--border-strong)] text-[var(--text-primary)] flex items-center justify-center font-semibold text-2xl shrink-0">
+          {user?.name ? user.name.charAt(0).toUpperCase() : 'H'}
         </div>
 
         <div className="space-y-2 text-center sm:text-left flex-1 min-w-0">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-            <h1 className="text-2xl md:text-3xl font-extrabold text-[#172B4D] tracking-tight">
+            <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
               {user?.studentName || user?.name}
             </h1>
-            <EducationBadge variant="accent">
-              Học Sinh / Phụ Huynh
-            </EducationBadge>
-            <EducationBadge variant="success">
-              Đã Kích Hoạt
-            </EducationBadge>
+            <EducationBadge variant="accent">Học sinh và phụ huynh</EducationBadge>
+            <EducationBadge variant="success">Đã kích hoạt</EducationBadge>
           </div>
 
-          <p className="text-xs md:text-sm text-[#60758D] font-medium">
-            Học sinh Lớp {user?.className || '10A1'} · {user?.schoolName || 'THPT Chuyên'}
+          <p className="text-sm text-[var(--text-secondary)]">
+            Học sinh lớp {user?.className || '10A1'} · {user?.schoolName || 'THPT Chuyên'}
           </p>
 
-          <div className="pt-2 flex flex-wrap justify-center sm:justify-start items-center gap-4 text-xs text-[#60758D]">
-            <span className="flex items-center gap-1.5 font-mono">
-              <Mail className="w-4 h-4 text-[#0057B8]" />
+          <div className="pt-2 flex flex-wrap justify-center sm:justify-start items-center gap-4 text-xs text-[var(--text-secondary)]">
+            <span className="flex items-center gap-2 font-mono">
+              <Mail className="w-4 h-4 text-[var(--text-muted)]" strokeWidth={1.5} />
               <span>{user?.email}</span>
             </span>
             {user?.phone && (
-              <span className="flex items-center gap-1.5 font-mono">
-                <Phone className="w-4 h-4 text-[#0057B8]" />
+              <span className="flex items-center gap-2 font-mono">
+                <Phone className="w-4 h-4 text-[var(--text-muted)]" strokeWidth={1.5} />
                 <span>{user.phone}</span>
               </span>
             )}
@@ -96,53 +89,53 @@ export const StudentProfilePage: React.FC = () => {
       {/* Grid: Info & Password */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <EducationCard
-          title="Thông Tin Học Sinh & Lớp Học"
+          title="Thông tin học sinh và lớp học"
           subtitle="Chi tiết tài khoản đang hoạt động"
-          icon={<User className="w-5 h-5 text-[#0057B8]" />}
+          icon={<User className="w-4 h-4" strokeWidth={1.5} />}
         >
-          <div className="space-y-3.5 text-sm">
-            <div className="p-3.5 rounded-[16px] bg-[#F5F9FD] border border-[#DCE7F2] space-y-1">
-              <span className="text-xs text-[#60758D] font-semibold">Tên học sinh</span>
-              <p className="font-extrabold text-[#172B4D]">
+          <div className="space-y-3 text-sm">
+            <div className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] space-y-1">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">Tên học sinh</span>
+              <p className="font-semibold text-[var(--text-primary)]">
                 {user?.studentName || user?.name}
               </p>
             </div>
 
-            <div className="p-3.5 rounded-[16px] bg-[#F5F9FD] border border-[#DCE7F2] space-y-1">
-              <span className="text-xs text-[#60758D] font-semibold">Lớp học</span>
-              <p className="font-bold text-[#0057B8]">Lớp {user?.className || '10A1'}</p>
+            <div className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] space-y-1">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">Lớp học</span>
+              <p className="font-medium text-[var(--accent-ink)]">Lớp {user?.className || '10A1'}</p>
             </div>
 
-            <div className="p-3.5 rounded-[16px] bg-[#F5F9FD] border border-[#DCE7F2] space-y-1">
-              <span className="text-xs text-[#60758D] font-semibold">Trường theo học</span>
-              <p className="font-bold text-[#172B4D]">{user?.schoolName || 'THPT Chuyên'}</p>
+            <div className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] space-y-1">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">Trường theo học</span>
+              <p className="font-medium text-[var(--text-primary)]">{user?.schoolName || 'THPT Chuyên'}</p>
             </div>
 
-            <div className="p-3.5 rounded-[16px] bg-[#F5F9FD] border border-[#DCE7F2] space-y-1">
-              <span className="text-xs text-[#60758D] font-semibold">Tài khoản đăng nhập</span>
-              <p className="font-mono text-xs text-[#172B4D]">{user?.email}</p>
+            <div className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] space-y-1">
+              <span className="text-xs font-medium text-[var(--text-secondary)]">Tài khoản đăng nhập</span>
+              <p className="font-mono text-xs text-[var(--text-primary)]">{user?.email}</p>
             </div>
           </div>
         </EducationCard>
 
         <EducationCard
-          title="Đổi Mật Khẩu"
+          title="Đổi mật khẩu"
           subtitle="Bảo vệ tài khoản học tập"
-          icon={<KeyRound className="w-5 h-5 text-[#0057B8]" />}
+          icon={<KeyRound className="w-4 h-4" strokeWidth={1.5} />}
         >
           <form onSubmit={handlePasswordChange} className="space-y-4">
             {statusMsg && (
               <div
-                className={`p-3.5 rounded-[14px] text-xs font-semibold flex items-center gap-2 ${
+                className={`p-4 rounded-[var(--radius-control)] text-xs font-medium flex items-center gap-2 border ${
                   statusMsg.type === 'success'
-                    ? 'bg-[#EBFBF0] text-[#16A34A] border border-[#BDECC9]'
-                    : 'bg-[#FEECEC] text-[#DC2626] border border-[#FECACA]'
+                    ? 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success-border)]'
+                    : 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger-border)]'
                 }`}
               >
                 {statusMsg.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                 ) : (
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                 )}
                 <span>{statusMsg.text}</span>
               </div>
@@ -151,7 +144,7 @@ export const StudentProfilePage: React.FC = () => {
             <EducationInput
               label="Mật khẩu hiện tại"
               type="password"
-              placeholder="Nhập mật khẩu hiện tại..."
+              placeholder="Nhập mật khẩu hiện tại"
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
               required
@@ -160,7 +153,7 @@ export const StudentProfilePage: React.FC = () => {
             <EducationInput
               label="Mật khẩu mới (tối thiểu 6 ký tự)"
               type="password"
-              placeholder="Nhập mật khẩu mới..."
+              placeholder="Nhập mật khẩu mới"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
@@ -169,7 +162,7 @@ export const StudentProfilePage: React.FC = () => {
             <EducationInput
               label="Xác nhận mật khẩu mới"
               type="password"
-              placeholder="Nhập lại mật khẩu mới..."
+              placeholder="Nhập lại mật khẩu mới"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -179,11 +172,10 @@ export const StudentProfilePage: React.FC = () => {
               <EducationButton
                 type="submit"
                 variant="primary"
-                pill
                 className="w-full"
                 isLoading={isLoading}
               >
-                Cập Nhật Mật Khẩu
+                Cập nhật mật khẩu
               </EducationButton>
             </div>
           </form>

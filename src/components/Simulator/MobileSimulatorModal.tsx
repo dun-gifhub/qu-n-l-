@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Device } from '../../types/index.ts';
 import { api } from '../../services/api.ts';
-import { Smartphone, Send, Battery, Zap, X, Check, RefreshCw } from 'lucide-react';
+import { Smartphone, Send, X, Check, RefreshCw } from 'lucide-react';
 
 interface MobileSimulatorModalProps {
   isOpen: boolean;
@@ -67,13 +67,12 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
   );
   const [lat, setLat] = useState<number>(10.7638);
   const [lng, setLng] = useState<number>(106.6822);
-  const [accuracy, setAccuracy] = useState<number>(4.5);
+  const [accuracy] = useState<number>(4.5);
   const [battery, setBattery] = useState<number>(82);
-  const [charging, setCharging] = useState<boolean>(false);
+  const [charging] = useState<boolean>(false);
   const [networkType, setNetworkType] = useState<string>('WIFI');
   const [status, setStatus] = useState<string>('ONLINE');
 
-  // App & Web telemetry fields
   const [appName, setAppName] = useState<string>('TikTok');
   const [appCategory, setAppCategory] = useState<string>('SOCIAL');
   const [websiteUrl, setWebsiteUrl] = useState<string>('https://www.tiktok.com/@study');
@@ -150,55 +149,55 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--surface-overlay)]">
+      <div className="relative w-full max-w-lg bg-[var(--surface)] rounded-[var(--radius-panel)] shadow-[var(--shadow-elevated)] border border-[var(--border-strong)] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <Smartphone className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-[var(--radius-control)] bg-[var(--accent-soft)] text-[var(--accent-ink)] flex items-center justify-center">
+              <Smartphone className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">
-                Mô Phỏng Điện Thoại Học Sinh (App, Web & GPS)
+              <h3 className="font-semibold text-[var(--text-primary)] text-base">
+                Mô phỏng điện thoại học sinh
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Bơm dữ liệu đang dùng App gì, vào Web gì, Pin và Tọa độ GPS
+              <p className="text-xs text-[var(--text-secondary)]">
+                Gửi dữ liệu ứng dụng, trang web, pin và tọa độ GPS kiểm thử
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+            className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[6px] cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
 
         {/* Content */}
         <form onSubmit={handleSendTelemetry} className="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
           {errorMsg && (
-            <div className="p-3 text-xs bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl">
+            <div className="p-3 text-xs bg-[var(--danger-soft)] border border-[var(--danger-border)] text-[var(--danger)] rounded-[var(--radius-control)]">
               {errorMsg}
             </div>
           )}
 
           {sendSuccess && (
-            <div className="p-3 text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center gap-2">
-              <Check className="w-4 h-4 shrink-0" />
-              <span>Đã cập nhật App đang mở, Website vừa vào, Pin và Vị trí GPS thành công!</span>
+            <div className="p-3 text-xs bg-[var(--success-soft)] border border-[var(--success-border)] text-[var(--success)] rounded-[var(--radius-control)] flex items-center gap-2">
+              <Check className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+              <span>Đã cập nhật ứng dụng, website, pin và vị trí GPS</span>
             </div>
           )}
 
           {/* Device Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Chọn điện thoại học sinh cần mô phỏng
             </label>
             <select
               value={selectedDeviceId}
               onChange={(e) => setSelectedDeviceId(e.target.value)}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100"
+              className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-medium text-[var(--text-primary)]"
               required
             >
               {devices.map((d) => (
@@ -210,40 +209,38 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
           </div>
 
           {/* App & Web Usage Simulation */}
-          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                1. Giả lập mở App & truy cập Web trên điện thoại
-              </span>
-            </div>
+          <div className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] space-y-3">
+            <span className="text-xs font-semibold text-[var(--text-primary)] block">
+              1. Giả lập mở ứng dụng và truy cập website
+            </span>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {PRESET_APP_WEB.map((p, i) => (
                 <button
                   type="button"
                   key={i}
                   onClick={() => applyAppWebPreset(p)}
-                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-indigo-500 cursor-pointer"
+                  className="h-8 px-3 text-[11px] font-medium rounded-[var(--radius-control)] border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer"
                 >
                   {p.label}
                 </button>
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1">
-                  Ứng dụng đang mở (App)
+                <label className="block text-[11px] text-[var(--text-secondary)] mb-1">
+                  Ứng dụng đang mở
                 </label>
                 <input
                   type="text"
                   value={appName}
                   onChange={(e) => setAppName(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs"
+                  className="w-full h-9 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
                 />
               </div>
               <div>
-                <label className="block text-[11px] text-slate-500 mb-1">
+                <label className="block text-[11px] text-[var(--text-secondary)] mb-1">
                   Thời gian dùng thêm (phút)
                 </label>
                 <input
@@ -252,36 +249,36 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
                   max={180}
                   value={durationMinutes}
                   onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono"
+                  className="w-full h-9 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-mono text-[var(--text-primary)]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] text-slate-500 mb-1">
-                Trang Web đang truy cập (URL / Tên miền)
+              <label className="block text-[11px] text-[var(--text-secondary)] mb-1">
+                Trang web đang truy cập
               </label>
               <input
                 type="text"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
-                className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono"
+                className="w-full h-9 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-mono text-[var(--text-primary)]"
               />
             </div>
           </div>
 
           {/* Preset location chips */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               2. Vị trí GPS nhanh (Trường học / Địa điểm)
             </label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {PRESET_LOCATIONS.map((preset, idx) => (
                 <button
                   type="button"
                   key={idx}
                   onClick={() => applyPreset(preset)}
-                  className="px-2.5 py-1 text-[11px] rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
+                  className="h-8 px-3 text-[11px] rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer"
                 >
                   {preset.name}
                 </button>
@@ -292,7 +289,7 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
           {/* Latitude & Longitude inputs */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Vĩ độ (Latitude)
               </label>
               <input
@@ -300,12 +297,12 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
                 step="0.0001"
                 value={lat}
                 onChange={(e) => setLat(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono"
+                className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-mono tabular-nums text-[var(--text-primary)]"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Kinh độ (Longitude)
               </label>
               <input
@@ -313,17 +310,17 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
                 step="0.0001"
                 value={lng}
                 onChange={(e) => setLng(parseFloat(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono"
+                className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-mono tabular-nums text-[var(--text-primary)]"
                 required
               />
             </div>
           </div>
 
           {/* Battery & Network */}
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Mức Pin ({battery}%)
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+                Mức pin ({battery}%)
               </label>
               <input
                 type="number"
@@ -331,17 +328,17 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
                 max={100}
                 value={battery}
                 onChange={(e) => setBattery(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono"
+                className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-mono tabular-nums text-[var(--text-primary)]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Loại mạng
               </label>
               <select
                 value={networkType}
                 onChange={(e) => setNetworkType(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
               >
                 <option value="WIFI">WiFi</option>
                 <option value="5G">5G</option>
@@ -349,13 +346,13 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Trạng thái
               </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
               >
                 <option value="ONLINE">ONLINE</option>
                 <option value="IDLE">IDLE</option>
@@ -368,17 +365,17 @@ export const MobileSimulatorModal: React.FC<MobileSimulatorModalProps> = ({
             <button
               type="submit"
               disabled={isSending || devices.length === 0}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full h-10 px-4 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 text-[var(--btn-primary-text)] rounded-[var(--radius-control)] font-medium text-xs transition-[background-color,opacity] duration-[var(--duration-fast)] ease-[var(--ease-standard)] flex items-center justify-center gap-2 cursor-pointer"
             >
               {isSending ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Đang đồng bộ dữ liệu...</span>
+                  <RefreshCw className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+                  <span>Đang đồng bộ dữ liệu</span>
                 </>
               ) : (
                 <>
-                  <Send className="w-4 h-4" />
-                  <span>Cập Nhật App, Web, Pin & GPS Lên Hệ Thống</span>
+                  <Send className="w-4 h-4" strokeWidth={1.5} />
+                  <span>Cập nhật ứng dụng, web, pin và GPS</span>
                 </>
               )}
             </button>

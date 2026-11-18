@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Device, DeviceLocation } from '../../types/index.ts';
-import { MapPin, Battery, Wifi, Navigation, ExternalLink, Layers, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 interface DeviceMapProps {
   devices?: Device[];
@@ -22,6 +22,9 @@ const GOOGLE_TILE_URLS: Record<GoogleMapType, string> = {
   terrain: 'https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
 };
 
+const SMARTPHONE_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>`;
+const PIN_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
+
 export const DeviceMap: React.FC<DeviceMapProps> = ({
   devices = [],
   selectedDevice = null,
@@ -37,9 +40,7 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
   const [mapType, setMapType] = useState<GoogleMapType>('hybrid');
-  const [showLayerMenu, setShowLayerMenu] = useState(false);
 
-  // Determine items to display
   const itemsWithLocation = (selectedDevice ? [selectedDevice] : devices).filter(
     (d) => typeof d.latitude === 'number' && typeof d.longitude === 'number'
   );
@@ -47,7 +48,6 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
   const hasHistory = historyLocations.length > 0;
   const hasLocations = itemsWithLocation.length > 0 || hasHistory;
 
-  // Initialize Map with Google Maps Tiles
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -57,7 +57,7 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
         mapInstanceRef.current = null;
       }
 
-      const defaultCenter: [number, number] = center || [10.7769, 106.7009]; // Default Ho Chi Minh City
+      const defaultCenter: [number, number] = center || [10.7769, 106.7009];
       const map = L.map(mapContainerRef.current, {
         center: defaultCenter,
         zoom: zoom,
@@ -85,13 +85,12 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
           mapInstanceRef.current.remove();
           mapInstanceRef.current = null;
         }
-      } catch (err) {
+      } catch {
         // Safe disposal
       }
     };
   }, []);
 
-  // Handle Layer Type Change (Google Roadmap, Satellite, Hybrid, Terrain)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -108,13 +107,11 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
 
     tileLayerRef.current = newTile;
 
-    // Ensure markers sit on top of new tiles
     if (layerGroupRef.current) {
       layerGroupRef.current.addTo(map);
     }
   }, [mapType]);
 
-  // Update Markers and Polylines
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layers = layerGroupRef.current;
@@ -132,10 +129,9 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
       const latlngs: [number, number][] = sortedHistory.map((loc) => [loc.latitude, loc.longitude]);
 
       if (latlngs.length > 0) {
-        // Draw route polyline with Google Maps blue style
         const polyline = L.polyline(latlngs, {
-          color: '#1a73e8',
-          weight: 5,
+          color: '#0B4F9C',
+          weight: 4,
           opacity: 0.9,
           lineJoin: 'round',
         });
@@ -146,31 +142,35 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
           const isLatest = index === sortedHistory.length - 1;
           const isStart = index === 0;
 
+          const markerBg = isLatest ? '#A82834' : isStart ? '#1B6E47' : '#0B4F9C';
+          const size = isLatest ? 28 : 20;
+
           const markerHtml = `
             <div style="
-              width: ${isLatest ? '30px' : '20px'};
-              height: ${isLatest ? '30px' : '20px'};
-              background: ${isLatest ? '#ea4335' : isStart ? '#34a853' : '#1a73e8'};
+              width: ${size}px;
+              height: ${size}px;
+              background: ${markerBg};
               border: 2px solid #ffffff;
               border-radius: 50%;
-              box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+              box-shadow: 0 2px 8px rgba(0,0,0,0.35);
               display: flex;
               align-items: center;
               justify-content: center;
-              color: white;
+              color: #ffffff;
               font-size: 11px;
-              font-weight: bold;
-              font-family: sans-serif;
+              font-weight: 600;
+              font-family: var(--font-mono);
+              font-variant-numeric: tabular-nums;
             ">
-              ${isLatest ? '📍' : index + 1}
+              ${isLatest ? PIN_SVG : index + 1}
             </div>
           `;
 
           const customIcon = L.divIcon({
             html: markerHtml,
             className: 'google-history-marker',
-            iconSize: [isLatest ? 30 : 20, isLatest ? 30 : 20],
-            iconAnchor: [isLatest ? 15 : 10, isLatest ? 15 : 10],
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
           });
 
           const timeStr = new Date(loc.timestamp).toLocaleTimeString('vi-VN', {
@@ -185,17 +185,21 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
 
           const marker = L.marker([loc.latitude, loc.longitude], { icon: customIcon });
           marker.bindPopup(`
-            <div class="text-xs p-1" style="min-width: 190px; font-family: sans-serif;">
-              <div class="font-bold text-slate-900 flex items-center justify-between mb-1 border-b pb-1">
+            <div style="min-width: 200px; font-family: var(--font-sans); color: var(--text-primary); font-size: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border); font-weight: 600;">
                 <span>Điểm #${index + 1}</span>
-                ${isLatest ? '<span class="px-1.5 py-0.2 bg-red-100 text-red-700 rounded text-[10px] font-bold">Vị trí mới nhất</span>' : ''}
+                ${
+                  isLatest
+                    ? '<span style="padding: 1px 6px; border-radius: 4px; background: var(--danger-soft); color: var(--danger); font-size: 11px; font-weight: 500;">Vị trí mới nhất</span>'
+                    : ''
+                }
               </div>
-              <div class="text-slate-700">Tọa độ: <b>${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}</b></div>
-              ${loc.accuracy ? `<div class="text-slate-500 text-[11px]">Sai số: ±${Math.round(loc.accuracy)}m</div>` : ''}
-              <div class="text-slate-500 mt-1 text-[11px]">🕒 ${timeStr}</div>
-              <div class="mt-2 pt-1.5 border-t">
-                <a href="${googleMapsLink}" target="_blank" rel="noreferrer" style="color: #1a73e8; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 4px; font-size: 11px;">
-                  🗺️ Mở trên Google Maps ↗
+              <div style="color: var(--text-secondary);">Tọa độ: <span style="font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-primary);">${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}</span></div>
+              ${loc.accuracy ? `<div style="color: var(--text-muted); font-size: 11px; font-family: var(--font-mono); margin-top: 2px;">Sai số: ±${Math.round(loc.accuracy)}m</div>` : ''}
+              <div style="color: var(--text-muted); margin-top: 4px; font-size: 11px; font-family: var(--font-mono);">${timeStr}</div>
+              <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border);">
+                <a href="${googleMapsLink}" target="_blank" rel="noreferrer" style="color: var(--accent-ink); font-weight: 500; text-decoration: none; font-size: 11px;">
+                  Mở trên Google Maps
                 </a>
               </div>
             </div>
@@ -215,76 +219,55 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
         const inClass = Boolean(d.inClassAlert);
         const isNoNet = Boolean(d.isNoNetwork || d.networkType === 'NONE' || d.status === 'OFFLINE');
         const isOnline = d.status === 'ONLINE' && !isNoNet && !isUninstalled;
-        const isUsingDevice = isOnline && (
-          inClass ||
-          Boolean(d.currentApp && d.currentApp !== 'Màn hình chính' && d.currentApp !== 'Khóa màn hình' && d.currentApp !== 'Tắt màn hình')
-        );
+        const isUsingDevice =
+          isOnline &&
+          (inClass ||
+            Boolean(
+              d.currentApp &&
+                d.currentApp !== 'Màn hình chính' &&
+                d.currentApp !== 'Khóa màn hình' &&
+                d.currentApp !== 'Tắt màn hình'
+            ));
 
-        // Required Color Coding:
-        // 🟢 Đang trực tuyến / Kết nối bình thường
-        // 🟡 Đang sử dụng thiết bị
-        // 🔴 Mất kết nối / Đã gỡ ứng dụng
-        let pinColor = '#16a34a'; // 🟢 Green
-        let badgeEmoji = '🟢';
+        let pinColor = '#1B6E47';
         let statusBadgeText = 'Trực tuyến';
-        let statusBg = '#dcfce7';
-        let statusColor = '#166534';
+        let statusBg = 'rgba(27, 110, 71, 0.12)';
+        let statusColor = '#1B6E47';
 
         if (isUninstalled) {
-          pinColor = '#dc2626'; // 🔴 Red
-          badgeEmoji = '🔴';
-          statusBadgeText = 'ĐÃ GỠ ỨNG DỤNG';
-          statusBg = '#fee2e2';
-          statusColor = '#991b1b';
+          pinColor = '#A82834';
+          statusBadgeText = 'Đã gỡ ứng dụng';
+          statusBg = 'rgba(168, 40, 52, 0.12)';
+          statusColor = '#A82834';
         } else if (isNoNet) {
-          pinColor = '#dc2626'; // 🔴 Red
-          badgeEmoji = '🔴';
-          statusBadgeText = 'MẤT KẾT NỐI MẠNG';
-          statusBg = '#fee2e2';
-          statusColor = '#991b1b';
+          pinColor = '#A82834';
+          statusBadgeText = 'Mất kết nối mạng';
+          statusBg = 'rgba(168, 40, 52, 0.12)';
+          statusColor = '#A82834';
         } else if (isUsingDevice) {
-          pinColor = '#eab308'; // 🟡 Yellow
-          badgeEmoji = '🟡';
-          statusBadgeText = d.inClassAlert ? 'DÙNG TRONG GIỜ' : 'ĐANG SỬ DỤNG';
-          statusBg = '#fef9c3';
-          statusColor = '#854d0e';
+          pinColor = '#9A5B0A';
+          statusBadgeText = d.inClassAlert ? 'Dùng trong giờ' : 'Đang sử dụng';
+          statusBg = 'rgba(154, 91, 10, 0.12)';
+          statusColor = '#9A5B0A';
         }
 
-        const pulseClass = isOnline ? 'pulse-marker-online' : '';
+        const pulseClass = isOnline ? 'telemetry-live-dot' : '';
 
         const iconHtml = `
           <div style="position: relative; display: flex; align-items: center; justify-content: center;">
             <div class="${pulseClass}" style="
-              width: 40px;
-              height: 40px;
+              width: 36px;
+              height: 36px;
               background: ${pinColor};
-              border: 3px solid #ffffff;
+              border: 2px solid #ffffff;
               border-radius: 50%;
-              box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+              box-shadow: 0 3px 10px rgba(0,0,0,0.35);
               display: flex;
               align-items: center;
               justify-content: center;
-              color: white;
+              color: #ffffff;
             ">
-              <span style="font-size: 18px;">
-                ${d.platform === 'iOS' ? '🍎' : d.platform === 'Android' ? '🤖' : '📱'}
-              </span>
-            </div>
-            <div style="
-              position: absolute;
-              top: -6px;
-              right: -6px;
-              background: #ffffff;
-              border-radius: 50%;
-              width: 18px;
-              height: 18px;
-              font-size: 11px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.25);
-            ">
-              ${badgeEmoji}
+              ${SMARTPHONE_SVG}
             </div>
           </div>
         `;
@@ -292,8 +275,8 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
         const customIcon = L.divIcon({
           html: iconHtml,
           className: 'google-device-marker',
-          iconSize: [40, 40],
-          iconAnchor: [20, 20],
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
         });
 
         const marker = L.marker([lat, lng], { icon: customIcon });
@@ -309,64 +292,64 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
         const googleDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
         marker.bindPopup(`
-          <div class="p-1 min-w-[230px]" style="font-family: sans-serif;">
-            <div class="flex items-center justify-between border-b pb-1.5 mb-2">
+          <div style="min-width: 232px; font-family: var(--font-sans); color: var(--text-primary); font-size: 12px;">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px;">
               <div>
-                <h4 style="font-weight: 700; font-size: 13px; color: #1e293b; margin: 0;">${d.studentName || d.name}</h4>
-                <div style="font-size: 10px; color: #64748b;">
+                <h4 style="font-weight: 600; font-size: 13px; color: var(--text-primary); margin: 0;">${d.studentName || d.name}</h4>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
                   ${d.schoolName || 'Chưa cập nhật trường'} ${d.className ? `· Lớp ${d.className}` : ''}
                 </div>
               </div>
-              <span style="font-size: 10px; padding: 2px 8px; border-radius: 9999px; font-weight: 700; background: ${statusBg}; color: ${statusColor};">
+              <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 500; background: ${statusBg}; color: ${statusColor}; white-space: nowrap;">
                 ${statusBadgeText}
               </span>
             </div>
 
             ${
               inClass
-                ? `<div style="background: #ffe4e6; border-left: 3px solid #e11d48; padding: 4px 8px; margin-bottom: 6px; border-radius: 4px; font-size: 11px; color: #9f1239; font-weight: 600;">
-                    🚨 Cảnh báo: Thiết bị đang hoạt động trong giờ học!
+                ? `<div style="background: rgba(168, 40, 52, 0.1); border-left: 2px solid #A82834; padding: 4px 8px; margin-bottom: 8px; border-radius: 4px; font-size: 11px; color: #A82834; font-weight: 500;">
+                    Thiết bị đang hoạt động trong giờ học
                    </div>`
                 : ''
             }
 
             ${
               isUninstalled
-                ? `<div style="background: #fef2f2; border-left: 3px solid #dc2626; padding: 4px 8px; margin-bottom: 6px; border-radius: 4px; font-size: 11px; color: #991b1b; font-weight: 600;">
-                    ⚠️ Cảnh báo: Học sinh đã gỡ app hoặc tắt định vị!
+                ? `<div style="background: rgba(168, 40, 52, 0.1); border-left: 2px solid #A82834; padding: 4px 8px; margin-bottom: 8px; border-radius: 4px; font-size: 11px; color: #A82834; font-weight: 500;">
+                    Thiết bị đã gỡ ứng dụng hoặc ngừng chia sẻ
                    </div>`
                 : ''
             }
 
-            <div style="space-y: 4px; font-size: 11px; color: #334155;">
-              <div style="display: flex; justify-content: space-between;">
-                <span style="color: #64748b;">Thiết bị:</span>
-                <b>${d.name}</b>
+            <div style="display: grid; gap: 4px; font-size: 11px; color: var(--text-secondary);">
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span style="color: var(--text-muted);">Thiết bị</span>
+                <span style="font-weight: 500; color: var(--text-primary);">${d.name}</span>
               </div>
-              <div style="display: flex; justify-content: space-between;">
-                <span style="color: #64748b;">Pin:</span>
-                <b>${d.batteryLevel ?? 100}% ${d.charging ? '⚡ (Đang sạc)' : ''}</b>
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span style="color: var(--text-muted);">Pin</span>
+                <span style="font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-primary);">${d.batteryLevel ?? 100}% ${d.charging ? '(Đang sạc)' : ''}</span>
               </div>
-              <div style="display: flex; justify-content: space-between;">
-                <span style="color: #64748b;">Mạng:</span>
-                <b>${d.networkType || 'WIFI'}</b>
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span style="color: var(--text-muted);">Mạng</span>
+                <span style="font-family: var(--font-mono); font-weight: 500; color: var(--text-primary);">${d.networkType || 'WIFI'}</span>
               </div>
-              <div style="display: flex; justify-content: space-between;">
-                <span style="color: #64748b;">Tọa độ GPS:</span>
-                <span style="font-family: monospace; color: #1a73e8;">${lat.toFixed(5)}, ${lng.toFixed(5)}</span>
+              <div style="display: flex; justify-content: space-between; gap: 8px;">
+                <span style="color: var(--text-muted);">Tọa độ GPS</span>
+                <span style="font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent-ink);">${lat.toFixed(5)}, ${lng.toFixed(5)}</span>
               </div>
-              <div style="display: flex; justify-content: space-between; padding-top: 4px; border-top: 1px solid #f1f5f9; font-size: 10px; color: #94a3b8;">
-                <span>Cập nhật:</span>
-                <span>${lastSeenStr}</span>
+              <div style="display: flex; justify-content: space-between; gap: 8px; padding-top: 4px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted);">
+                <span>Cập nhật</span>
+                <span style="font-family: var(--font-mono); font-variant-numeric: tabular-nums;">${lastSeenStr}</span>
               </div>
             </div>
 
-            <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; display: flex; gap: 6px;">
-              <a href="${googleMapsUrl}" target="_blank" rel="noreferrer" style="flex: 1; text-align: center; background: #1a73e8; color: white; padding: 5px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; text-decoration: none;">
-                🗺️ Google Maps
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; gap: 8px;">
+              <a href="${googleMapsUrl}" target="_blank" rel="noreferrer" style="flex: 1; text-align: center; background: #0B4F9C; color: #ffffff; padding: 6px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; text-decoration: none;">
+                Google Maps
               </a>
-              <a href="${googleDirectionsUrl}" target="_blank" rel="noreferrer" style="flex: 1; text-align: center; background: #0f9d58; color: white; padding: 5px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; text-decoration: none;">
-                🧭 Chỉ đường
+              <a href="${googleDirectionsUrl}" target="_blank" rel="noreferrer" style="flex: 1; text-align: center; background: #1B6E47; color: #ffffff; padding: 6px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; text-decoration: none;">
+                Chỉ đường
               </a>
             </div>
           </div>
@@ -382,7 +365,6 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
     }
   }, [devices, selectedDevice, historyLocations]);
 
-  // Clean map on unmount
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
@@ -394,68 +376,59 @@ export const DeviceMap: React.FC<DeviceMapProps> = ({
 
   return (
     <div
-      className="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm dark:border-slate-800"
+      className="relative w-full rounded-[var(--radius-card)] overflow-hidden border border-[var(--border)] shadow-[var(--shadow-card)] bg-[var(--surface-muted)]"
       style={{ height }}
     >
       {/* Status Legend Overlay */}
-      <div className="absolute top-3 left-3 z-[500] hidden sm:flex items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-md text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-        <div className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+      <div className="absolute top-3 left-3 z-[500] hidden sm:flex items-center gap-3 bg-[var(--surface)] px-3 py-1.5 rounded-[var(--radius-control)] border border-[var(--border-strong)] shadow-[var(--shadow-card)] text-xs font-medium text-[var(--text-secondary)]">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[var(--success)] inline-block" />
           <span>Trực tuyến</span>
         </div>
-        <span className="text-slate-300 dark:text-slate-600">|</span>
-        <div className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+        <span className="text-[var(--border-strong)]">·</span>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[var(--warning)] inline-block" />
           <span>Đang sử dụng</span>
         </div>
-        <span className="text-slate-300 dark:text-slate-600">|</span>
-        <div className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+        <span className="text-[var(--border-strong)]">·</span>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[var(--danger)] inline-block" />
           <span>Mất mạng / Gỡ app</span>
         </div>
       </div>
 
       {/* Top Google Maps Layer Switcher */}
-      <div className="absolute top-3 right-3 z-[500] flex items-center gap-1.5">
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-md text-xs font-semibold flex items-center gap-1.5">
-          <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-            <span className="text-red-500 font-extrabold">G</span>
-            <span>Google Maps:</span>
-          </span>
+      <div className="absolute top-3 right-3 z-[500] flex items-center">
+        <div className="bg-[var(--surface)] px-3 py-1.5 rounded-[var(--radius-control)] border border-[var(--border-strong)] shadow-[var(--shadow-card)] text-xs font-medium flex items-center gap-2">
+          <span className="text-xs text-[var(--text-secondary)]">Lớp bản đồ:</span>
           <select
             value={mapType}
             onChange={(e) => setMapType(e.target.value as GoogleMapType)}
-            className="bg-transparent text-xs font-bold text-indigo-600 dark:text-indigo-400 focus:outline-none cursor-pointer"
+            className="bg-transparent text-xs font-medium text-[var(--accent-ink)] focus:outline-none cursor-pointer"
           >
-            <option value="hybrid">Vệ tinh có đường (Hybrid)</option>
-            <option value="roadmap">Bản đồ chuẩn (Roadmap)</option>
-            <option value="satellite">Ảnh vệ tinh (Satellite)</option>
-            <option value="terrain">Địa hình (Terrain)</option>
+            <option value="hybrid">Vệ tinh có đường</option>
+            <option value="roadmap">Bản đồ chuẩn</option>
+            <option value="satellite">Ảnh vệ tinh</option>
+            <option value="terrain">Địa hình</option>
           </select>
         </div>
       </div>
 
-      {/* Google Maps Attribution Watermark Badge (bottom left) */}
-      <div className="absolute bottom-2 left-2 z-[400] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 shadow-xs pointer-events-none">
-        <span className="text-blue-500 font-black">G</span>
-        <span className="text-red-500 font-black">o</span>
-        <span className="text-amber-500 font-black">o</span>
-        <span className="text-blue-500 font-black">g</span>
-        <span className="text-emerald-500 font-black">l</span>
-        <span className="text-red-500 font-black">e</span>
-        <span className="text-slate-500 font-medium">Maps Live View</span>
+      {/* Quiet Monochrome Attribution */}
+      <div className="absolute bottom-2 left-2 z-[400] bg-[var(--surface)] px-2.5 py-1 rounded-[6px] border border-[var(--border)] text-[11px] font-medium text-[var(--text-secondary)] pointer-events-none">
+        Google Maps · Chế độ trực tiếp
       </div>
 
       {!hasLocations && (
-        <div className="absolute inset-0 z-[400] flex flex-col items-center justify-center bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-xs p-6 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">
-            <MapPin className="w-7 h-7" />
+        <div className="absolute inset-0 z-[400] flex flex-col items-center justify-center bg-[var(--surface-muted)] p-6 text-center">
+          <div className="w-12 h-12 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] flex items-center justify-center mb-3">
+            <MapPin className="w-5 h-5" strokeWidth={1.5} />
           </div>
-          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200 mb-1">
-            Chưa có tọa độ GPS để hiển thị trên Google Maps
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">
+            Chưa có tọa độ GPS để hiển thị trên bản đồ
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-            Mở link báo cáo trên điện thoại để truyền tọa độ GPS thời gian thực lên bản đồ vệ tinh Google Maps.
+          <p className="text-xs text-[var(--text-secondary)] max-w-sm">
+            Mở liên kết báo cáo trên điện thoại để truyền tọa độ GPS lên bản đồ vệ tinh
           </p>
         </div>
       )}

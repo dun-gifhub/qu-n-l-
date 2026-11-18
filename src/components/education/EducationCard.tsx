@@ -28,39 +28,39 @@ export const EducationCard: React.FC<EducationCardProps> = ({
   const paddingStyles = {
     none: 'p-0',
     sm: 'p-4',
-    md: 'p-5 md:p-6',
-    lg: 'p-6 md:p-8',
+    md: 'p-5',
+    lg: 'p-6',
   };
 
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-[20px] md:rounded-[24px] border transition-all duration-200 ${
+      className={`bg-[var(--surface)] rounded-[var(--radius-card)] border transition-[border-color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] ${
         accentBorder
-          ? 'border-t-4 border-t-[#FFD200] border-x-[#DCE7F2] border-b-[#DCE7F2]'
-          : 'border-[#DCE7F2]'
-      } shadow-[0_2px_8px_rgba(23,43,77,0.04)] ${
+          ? 'border-t-2 border-t-[var(--accent)] border-x-[var(--border)] border-b-[var(--border)]'
+          : 'border-[var(--border)]'
+      } shadow-[var(--shadow-card)] ${
         hoverEffect
-          ? 'hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(0,87,184,0.08)] hover:border-[#087FEA]/40 cursor-pointer'
+          ? 'hover:border-[var(--border-strong)] hover:bg-[var(--surface-muted)]/30 cursor-pointer'
           : ''
       } ${paddingStyles[padding]} ${className}`}
     >
       {(title || action || icon) && (
-        <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-[#DCE7F2]/60">
+        <div className="flex items-start justify-between gap-4 mb-4 pb-3 border-b border-[var(--border)]">
           <div className="flex items-center gap-3 min-w-0">
             {icon && (
-              <div className="w-10 h-10 rounded-[14px] bg-[#EAF5FF] text-[#0057B8] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-[var(--radius-control)] bg-[var(--surface-muted)] text-[var(--text-secondary)] flex items-center justify-center shrink-0">
                 {icon}
               </div>
             )}
             <div className="min-w-0">
               {title && (
-                <h3 className="text-lg font-bold text-[#172B4D] tracking-tight truncate">
+                <h3 className="text-base font-semibold text-[var(--text-primary)] truncate">
                   {title}
                 </h3>
               )}
               {subtitle && (
-                <p className="text-xs text-[#60758D] mt-0.5 truncate">
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 truncate">
                   {subtitle}
                 </p>
               )}

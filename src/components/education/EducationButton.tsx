@@ -16,7 +16,7 @@ export const EducationButton: React.FC<EducationButtonProps> = ({
   children,
   variant = 'primary',
   size = 'md',
-  pill = false,
+  pill: _pill = false,
   icon,
   iconPosition = 'left',
   isLoading = false,
@@ -24,38 +24,45 @@ export const EducationButton: React.FC<EducationButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-bold tracking-tight transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]';
+  const baseStyles =
+    'inline-flex items-center justify-center font-medium rounded-[var(--radius-control)] transition-[color,background-color,border-color,opacity,transform] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.99]';
 
   const sizeStyles: Record<EducationButtonSize, string> = {
-    sm: 'text-xs px-3.5 py-2 gap-1.5',
-    md: 'text-sm px-5 py-2.5 gap-2',
-    lg: 'text-base px-6 py-3.5 gap-2.5',
+    sm: 'text-xs px-3 h-8 gap-2',
+    md: 'text-sm px-4 h-10 gap-2',
+    lg: 'text-sm px-5 h-11 gap-2',
   };
 
-  const roundedStyles = pill ? 'rounded-full' : 'rounded-[14px]';
-
   const variantStyles: Record<EducationButtonVariant, string> = {
-    primary: 'bg-[#0057B8] hover:bg-[#003B7A] text-white shadow-xs hover:shadow-md hover:shadow-[#0057B8]/20',
-    accent: 'bg-[#FFD200] hover:bg-[#F5B800] text-[#172B4D] shadow-xs hover:shadow-md hover:shadow-[#FFD200]/30',
-    secondary: 'bg-[#EAF5FF] hover:bg-[#d6ecff] text-[#0057B8]',
-    danger: 'bg-[#DC2626] hover:bg-[#b91c1c] text-white shadow-xs',
-    outline: 'bg-white hover:bg-[#F5F9FD] text-[#172B4D] border border-[#DCE7F2] hover:border-[#0057B8]/40 shadow-2xs',
-    ghost: 'bg-transparent hover:bg-[#EAF5FF] text-[#0057B8]',
+    primary:
+      'bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)]',
+    accent:
+      'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)]',
+    secondary:
+      'bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] border border-[var(--border)]',
+    danger:
+      'bg-[var(--danger)] hover:opacity-90 text-[var(--on-accent)]',
+    outline:
+      'bg-[var(--surface)] hover:bg-[var(--surface-muted)] text-[var(--text-primary)] border border-[var(--border-strong)]',
+    ghost:
+      'bg-transparent hover:bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
   };
 
   return (
     <button
-      className={`${baseStyles} ${sizeStyles[size]} ${roundedStyles} ${variantStyles[variant]} ${className}`}
+      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
       disabled={disabled || isLoading}
       {...props}
     >
       {isLoading ? (
         <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
       ) : (
-        icon && iconPosition === 'left' && <span className="shrink-0">{icon}</span>
+        icon && iconPosition === 'left' && <span className="w-4 h-4 flex items-center justify-center shrink-0">{icon}</span>
       )}
       <span>{children}</span>
-      {!isLoading && icon && iconPosition === 'right' && <span className="shrink-0">{icon}</span>}
+      {!isLoading && icon && iconPosition === 'right' && (
+        <span className="w-4 h-4 flex items-center justify-center shrink-0">{icon}</span>
+      )}
     </button>
   );
 };

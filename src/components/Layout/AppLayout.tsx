@@ -16,7 +16,6 @@ import {
   X,
   Radio,
   Globe,
-  Share2,
   ExternalLink,
   Users,
 } from 'lucide-react';
@@ -47,34 +46,22 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   }, []);
 
   const navItems = [
-    { label: 'Dashboard Giám Sát', path: '/dashboard', icon: LayoutDashboard },
-    {
-      label: '📱 Link ĐT Báo Vào',
-      path: '/report',
-      icon: Radio,
-      badge: 'Render',
-      isHighlight: true,
-    },
-    {
-      label: 'Danh Sách Giám Sát',
-      path: '/devices',
-      icon: Smartphone,
-    },
-    { label: 'Bản Đồ Google Maps', path: '/map', icon: MapPin },
+    { label: 'Tổng quan giám sát', path: '/dashboard', icon: LayoutDashboard },
+    { label: 'Cổng điện thoại báo vào', path: '/report', icon: Radio },
+    { label: 'Danh sách thiết bị', path: '/devices', icon: Smartphone },
+    { label: 'Bản đồ Google Maps', path: '/map', icon: MapPin },
     ...(user?.role === 'ADMIN'
       ? [
           {
-            label: 'Duyệt Tài Khoản (Admin)',
+            label: 'Duyệt tài khoản',
             path: '/accounts',
             icon: Users,
-            badge: 'Admin',
-            isHighlight: true,
           },
         ]
       : []),
-    { label: 'Giám Sát App & Web', path: '/app-usage', icon: Globe },
-    { label: 'Nhật Ký Hoạt Động', path: '/activity', icon: Activity },
-    { label: 'Cài Đặt Hệ Thống', path: '/settings', icon: Settings },
+    { label: 'Giám sát App & Web', path: '/app-usage', icon: Globe },
+    { label: 'Nhật ký hoạt động', path: '/activity', icon: Activity },
+    { label: 'Cài đặt hệ thống', path: '/settings', icon: Settings },
   ];
 
   const handleNavClick = (path: string) => {
@@ -88,14 +75,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] flex flex-col md:flex-row">
       {/* Mobile Header */}
-      <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold">
-            <Radio className="w-4 h-4" />
+      <header className="md:hidden flex items-center justify-between px-4 h-14 bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-30">
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => navigate('/dashboard')}
+        >
+          <div className="w-8 h-8 rounded-[var(--radius-control)] bg-[var(--accent)] flex items-center justify-center text-[var(--on-accent)]">
+            <Radio className="w-4 h-4" strokeWidth={1.5} />
           </div>
-          <span className="font-bold text-slate-900 dark:text-slate-100 tracking-tight text-base">
+          <span className="font-semibold text-[var(--text-primary)] text-base">
             DeviceMonitor
           </span>
         </div>
@@ -103,23 +93,33 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/report')}
-            className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1 border border-emerald-200 dark:border-emerald-800"
+            className="h-8 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] text-[var(--text-primary)] text-xs font-medium flex items-center gap-2 border border-[var(--border)] cursor-pointer"
             title="Mở link để điện thoại báo vào"
           >
-            <Radio className="w-3.5 h-3.5" />
+            <Radio className="w-4 h-4 text-[var(--text-secondary)]" strokeWidth={1.5} />
             <span>Link ĐT</span>
           </button>
           <button
             onClick={toggleTheme}
-            className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+            className="w-8 h-8 flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] rounded-[var(--radius-control)] cursor-pointer"
+            aria-label="Chuyển giao diện sáng tối"
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4" strokeWidth={1.5} />
+            ) : (
+              <Moon className="w-4 h-4" strokeWidth={1.5} />
+            )}
           </button>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+            className="w-8 h-8 flex items-center justify-center text-[var(--text-primary)] hover:bg-[var(--surface-muted)] rounded-[var(--radius-control)] cursor-pointer"
+            aria-label="Menu"
           >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileMenuOpen ? (
+              <X className="w-4 h-4" strokeWidth={1.5} />
+            ) : (
+              <Menu className="w-4 h-4" strokeWidth={1.5} />
+            )}
           </button>
         </div>
       </header>
@@ -127,56 +127,59 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* Mobile Drawer Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs"
+          className="md:hidden fixed inset-0 z-40 bg-[var(--surface-overlay)]"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar (256px) */}
       <aside
-        className={`fixed md:sticky top-0 left-0 bottom-0 z-40 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 ${
+        className={`fixed md:sticky top-0 left-0 bottom-0 md:h-screen z-40 w-64 bg-[var(--surface)] border-r border-[var(--border)] flex flex-col justify-between transition-transform duration-[var(--duration-base)] ease-[var(--ease-standard)] md:translate-x-0 shrink-0 ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div>
+        <div className="flex flex-col flex-1 overflow-y-auto">
           {/* Brand */}
           <div
-            className="h-16 flex items-center gap-3 px-6 border-b border-slate-100 dark:border-slate-800/80 cursor-pointer"
+            className="h-16 flex items-center gap-3 px-4 border-b border-[var(--border)] cursor-pointer"
             onClick={() => handleNavClick('/dashboard')}
           >
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/20">
-              <Radio className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-[var(--radius-control)] bg-[var(--accent)] flex items-center justify-center text-[var(--on-accent)] shrink-0">
+              <Radio className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div className="min-w-0">
-              <span className="font-extrabold text-slate-900 dark:text-white tracking-tight text-lg block leading-none">
+              <span className="font-semibold text-[var(--text-primary)] text-base block leading-tight">
                 DeviceMonitor
               </span>
-              <span className="block text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                Neon PostgreSQL & Render
+              <span className="block text-[11px] font-mono text-[var(--text-muted)] truncate">
+                {dbStatus?.type || 'Neon PostgreSQL'}
               </span>
             </div>
           </div>
 
           {/* Quick Action: Link để ĐT báo vào */}
-          <div className="p-3 mx-3 mt-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/60 text-xs">
-            <div className="flex items-center gap-2 font-bold text-indigo-900 dark:text-indigo-200">
-              <Radio className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 animate-pulse" />
-              <span>Điện thoại báo vào:</span>
+          <div className="p-4 mx-3 mt-4 rounded-[var(--radius-card)] bg-[var(--surface-muted)] border border-[var(--border)] text-xs space-y-2">
+            <div className="flex items-center gap-2 font-medium text-[var(--text-primary)]">
+              <span className="w-2 h-2 rounded-full bg-[var(--success)] telemetry-live-dot shrink-0" />
+              <span>Điện thoại báo vào</span>
             </div>
-            <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-1 leading-relaxed">
-              Mở link trên điện thoại học sinh để định vị GPS & tình trạng pin tự động báo về.
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              Mở link trên điện thoại học sinh để gửi tọa độ GPS và tình trạng pin
             </p>
             <button
               onClick={() => handleNavClick('/report')}
-              className="mt-2 w-full py-1.5 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-[11px] flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
+              className="w-full h-8 px-3 rounded-[var(--radius-control)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-medium text-xs flex items-center justify-center gap-2 transition-colors duration-[var(--duration-fast)] cursor-pointer"
             >
-              <span>Mở Link Báo Cáo</span>
-              <ExternalLink className="w-3 h-3" />
+              <span>Mở cổng báo cáo</span>
+              <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.5} />
             </button>
           </div>
 
-          {/* Nav Items */}
-          <div className="p-3 space-y-1">
+          {/* Nav Items (36px row height, 4px gap, 16px stroke 1.5 icons) */}
+          <div className="px-4 pt-6 pb-2 text-xs font-medium text-[var(--text-muted)]">
+            Điều hướng quản trị
+          </div>
+          <nav className="px-3 pb-4 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -186,55 +189,47 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 <button
                   key={item.path}
                   onClick={() => handleNavClick(item.path)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                  className={`w-full h-9 flex items-center gap-2 px-3 rounded-[var(--radius-control)] text-xs font-medium transition-[color,background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer text-left ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : item.isHighlight
-                      ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-950/60'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)]'
+                      : 'text-[var(--text-secondary)] border border-transparent hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <span className="flex items-center gap-3 truncate">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                  </span>
-                  {item.badge && (
-                    <span
-                      className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold ${
-                        isActive
-                          ? 'bg-white text-indigo-600'
-                          : 'bg-emerald-500 text-white'
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Icon
+                      className={`w-4 h-4 ${
+                        isActive ? 'text-[var(--accent-ink)]' : 'text-[var(--text-muted)]'
                       }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
+                      strokeWidth={1.5}
+                    />
+                  </span>
+                  <span className="truncate">{item.label}</span>
                 </button>
               );
             })}
-          </div>
+          </nav>
         </div>
 
         {/* Database Status & Footer */}
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
-          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-800 text-[11px] flex items-center justify-between">
-            <span className="text-slate-500 dark:text-slate-400">Database:</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              {dbStatus?.type || 'Neon PostgreSQL'}
+        <div className="p-4 border-t border-[var(--border)] space-y-3">
+          <div className="p-2.5 rounded-[var(--radius-control)] bg-[var(--surface-muted)] border border-[var(--border)] text-xs flex items-center justify-between">
+            <span className="text-[var(--text-secondary)]">Lưu trữ</span>
+            <span className="font-mono text-[11px] font-medium text-[var(--text-primary)] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" />
+              <span>{dbStatus?.type || 'PostgreSQL'}</span>
             </span>
           </div>
 
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-[var(--radius-control)] bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)] font-medium text-xs flex items-center justify-center shrink-0">
                 {user?.name ? user.name.charAt(0).toUpperCase() : 'M'}
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                  {user?.name || 'Quản lý Hệ thống'}
+                <div className="text-xs font-medium text-[var(--text-primary)] truncate">
+                  {user?.name || 'Quản trị viên'}
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">
+                <div className="text-[11px] font-mono text-[var(--text-muted)] truncate">
                   {user?.email || 'admin@monitor.local'}
                 </div>
               </div>
@@ -244,9 +239,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               <button
                 onClick={handleLogout}
                 title="Đăng xuất"
-                className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--danger)] rounded-[var(--radius-control)] hover:bg-[var(--danger-soft)] transition-colors duration-[var(--duration-fast)] cursor-pointer shrink-0"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4" strokeWidth={1.5} />
               </button>
             )}
           </div>
@@ -256,36 +251,40 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Desktop Top Navbar */}
-        <header className="hidden md:flex items-center justify-between h-16 px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20">
-          <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
-            <span className="font-bold text-slate-900 dark:text-white">
-              Hệ Thống Giám Sát Thiết Bị
+        <header className="hidden md:flex items-center justify-between h-16 px-8 bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-20">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <span className="font-medium text-[var(--text-primary)]">
+              Hệ thống giám sát thiết bị học đường
             </span>
             <span>·</span>
-            <span>Kết nối Neon PostgreSQL & Render · Báo cáo định vị thời gian thực</span>
+            <span>Định vị GPS & nhật ký trực ban</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/report')}
-              className="py-1.5 px-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer whitespace-nowrap shadow-xs"
+              className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)] text-xs font-medium flex items-center gap-2 border border-[var(--border)] transition-colors duration-[var(--duration-fast)] cursor-pointer whitespace-nowrap"
             >
-              <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-500" />
-              <span>📱 Mở Link Điện Thoại Báo Vào</span>
+              <Radio className="w-4 h-4 text-[var(--success)]" strokeWidth={1.5} />
+              <span>Mở cổng điện thoại báo vào</span>
             </button>
 
             <button
               onClick={toggleTheme}
-              className="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+              className="w-9 h-9 flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] rounded-[var(--radius-control)] border border-[var(--border)] transition-colors duration-[var(--duration-fast)] cursor-pointer"
               title={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4" strokeWidth={1.5} />
+              ) : (
+                <Moon className="w-4 h-4" strokeWidth={1.5} />
+              )}
             </button>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-6 md:p-8 max-w-[1440px] w-full mx-auto">
           {children}
         </main>
       </div>

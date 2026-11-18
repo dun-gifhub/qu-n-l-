@@ -4,16 +4,10 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { Device, AppUsageItem, WebVisitItem } from '../types/index.ts';
 import {
   Smartphone,
-  Globe,
-  Clock,
   ShieldAlert,
-  ShieldCheck,
   Lock,
   Unlock,
   RefreshCw,
-  Plus,
-  Play,
-  ExternalLink,
   Search,
   CheckCircle2,
 } from 'lucide-react';
@@ -78,7 +72,6 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
     }
   }, [selectedDeviceId]);
 
-  // Real-time live auto-refresh to detect what app or web the phone is using
   useEffect(() => {
     const timer = setInterval(async () => {
       if (document.hidden) return;
@@ -194,20 +187,27 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
     }
   };
 
+  const getBarColor = (cat: string, isBlocked: boolean) => {
+    if (isBlocked) return 'bg-[var(--danger)]';
+    if (cat === 'EDUCATION') return 'bg-[var(--accent)]';
+    if (cat === 'GAME' || cat === 'SOCIAL' || cat === 'ENTERTAINMENT') return 'bg-[var(--warning)]';
+    return 'bg-[var(--text-muted)]';
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-6 animate-page-enter">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Giám Sát Ứng Dụng & Website (App & Web)
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+            Giám sát ứng dụng và website
           </h1>
-          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-[var(--text-secondary)] mt-1">
             {user?.role === 'PARENT'
-              ? 'Phụ huynh theo dõi điện thoại của con đang sử dụng App gì, truy cập Web gì và chặn nội dung xấu'
+              ? 'Theo dõi điện thoại của con đang mở ứng dụng gì, truy cập trang web nào và áp dụng chặn từ xa'
               : user?.role === 'TEACHER'
-              ? `Giáo viên chủ nhiệm theo dõi hoạt động sử dụng App & Web của học sinh trường ${user.schoolName}`
-              : 'Admin tối thượng giám sát toàn bộ lịch sử ứng dụng và trình duyệt của mọi thiết bị học sinh'}
+              ? `Theo dõi hoạt động sử dụng ứng dụng và trình duyệt của học sinh trường ${user.schoolName}`
+              : 'Giám sát toàn bộ lịch sử ứng dụng và trình duyệt của các thiết bị học sinh'}
           </p>
         </div>
 
@@ -215,39 +215,41 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
           <button
             onClick={() => selectedDeviceId && loadUsageForDevice(selectedDeviceId)}
             disabled={isUsageLoading}
-            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+            className="h-10 w-10 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] flex items-center justify-center cursor-pointer"
             title="Làm mới dữ liệu"
           >
-            <RefreshCw className={`w-4 h-4 ${isUsageLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isUsageLoading ? 'animate-spin' : ''}`} strokeWidth={1.5} />
           </button>
           <button
             onClick={() => navigate('/report')}
-            className="py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer whitespace-nowrap"
+            className="h-10 px-4 rounded-[var(--radius-control)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-medium text-xs flex items-center gap-2 transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer whitespace-nowrap"
           >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>Link Điện Thoại Báo Vào</span>
+            <Smartphone className="w-4 h-4" strokeWidth={1.5} />
+            <span>Mở link báo cáo trên điện thoại</span>
           </button>
         </div>
       </div>
 
       {feedbackMsg && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-medium flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="p-4 rounded-[var(--radius-card)] bg-[var(--success-soft)] border border-[var(--success-border)] text-[var(--success)] text-xs font-medium flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" strokeWidth={1.5} />
           <span>{feedbackMsg}</span>
         </div>
       )}
 
       {/* Student / Device Selector Tabs */}
       {isLoading ? (
-        <div className="py-16 text-center text-xs text-slate-400">Đang tải danh sách thiết bị...</div>
+        <div className="py-16 text-center text-xs text-[var(--text-muted)]">
+          Đang tải danh sách thiết bị
+        </div>
       ) : devices.length === 0 ? (
-        <div className="p-10 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-3">
-          <Smartphone className="w-8 h-8 text-indigo-500 mx-auto" />
-          <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+        <div className="p-10 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] text-center space-y-3">
+          <Smartphone className="w-8 h-8 text-[var(--accent-ink)] mx-auto" strokeWidth={1.5} />
+          <h3 className="font-semibold text-[var(--text-primary)] text-sm">
             Chưa có thiết bị học sinh nào để theo dõi
           </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            Vui lòng thêm thiết bị của con trong mục Thiết bị để bắt đầu xem lịch sử sử dụng ứng dụng và website.
+          <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto leading-relaxed">
+            Vui lòng thêm thiết bị của học sinh trong mục Thiết bị để bắt đầu xem lịch sử sử dụng ứng dụng và website.
           </p>
         </div>
       ) : (
@@ -255,20 +257,27 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {devices.map((dev) => {
               const active = dev.id === selectedDeviceId;
+              const isOnline = dev.status === 'ONLINE';
               return (
                 <button
                   key={dev.id}
                   onClick={() => setSelectedDeviceId(dev.id)}
-                  className={`py-2.5 px-4 rounded-xl text-xs font-semibold transition whitespace-nowrap flex items-center gap-2 cursor-pointer border ${
+                  className={`h-9 px-3 rounded-[var(--radius-control)] text-xs font-medium transition-[color,background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] whitespace-nowrap flex items-center gap-2 cursor-pointer border ${
                     active
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+                      : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]'
                   }`}
                 >
-                  <Smartphone className="w-3.5 h-3.5 shrink-0" />
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      isOnline
+                        ? 'bg-[var(--success)] telemetry-live-dot'
+                        : 'bg-[var(--text-muted)]'
+                    }`}
+                  />
                   <span>{dev.studentName || dev.name}</span>
-                  <span className={active ? 'text-indigo-200' : 'text-slate-400'}>·</span>
-                  <span className={active ? 'text-indigo-100' : 'text-slate-500'}>
+                  <span className="text-[var(--text-muted)]">·</span>
+                  <span className="text-[var(--text-muted)]">
                     {dev.className ? `Lớp ${dev.className}` : dev.platform}
                   </span>
                 </button>
@@ -278,98 +287,109 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
 
           {selectedDevice && (
             <>
-              {/* Live Alerts for in-class usage, uninstall, or no network */}
+              {/* Live Alerts for in-class usage or uninstall */}
               {selectedDevice.inClassAlert && (
-                <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center justify-between gap-3 animate-pulse">
-                  <div className="flex items-center gap-2.5">
-                    <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                <div className="p-4 rounded-[var(--radius-card)] bg-[var(--danger-soft)] border border-[var(--danger-border)] text-[var(--danger)] text-xs flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <ShieldAlert className="w-5 h-5 shrink-0" strokeWidth={1.5} />
                     <div>
-                      <div className="font-extrabold text-sm text-rose-600 dark:text-rose-400">
-                        🚨 CẢNH BÁO: SỬ DỤNG ĐIỆN THOẠI TRONG GIỜ HỌC!
+                      <div className="font-semibold text-sm">
+                        Cảnh báo sử dụng điện thoại trong giờ học
                       </div>
-                      <div className="text-xs text-rose-700/80 dark:text-rose-300/80 mt-0.5">
-                        Học sinh <strong>{selectedDevice.studentName}</strong> ({selectedDevice.className || 'Chưa rõ lớp'}) đang mở ứng dụng <strong>"{selectedDevice.currentApp}"</strong> trong khung giờ học quy định.
+                      <div className="text-xs text-[var(--text-primary)] mt-1">
+                        Học sinh <strong className="font-semibold">{selectedDevice.studentName}</strong> ({selectedDevice.className || 'Chưa rõ lớp'}) đang mở ứng dụng <strong className="font-semibold">{selectedDevice.currentApp}</strong> trong khung giờ học quy định.
                       </div>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-rose-600 text-white shrink-0">
-                    BÁO ĐỘNG GIỜ HỌC
+                  <span className="px-2 py-1 rounded-[6px] text-[11px] font-medium bg-[var(--surface)] border border-[var(--danger-border)] text-[var(--danger)] shrink-0">
+                    Báo động giờ học
                   </span>
                 </div>
               )}
 
               {selectedDevice.isUninstalled && (
-                <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center gap-2.5">
-                  <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <div className="p-4 rounded-[var(--radius-card)] bg-[var(--warning-soft)] border border-[var(--warning-border)] text-[var(--warning)] text-xs font-medium flex items-center gap-3">
+                  <ShieldAlert className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                   <span>
-                    ⚠️ <strong>NGHI VẤN GỠ APP:</strong> Thiết bị của học sinh {selectedDevice.studentName} đã ngắt kết nối hoặc gửi tín hiệu gỡ cài đặt!
+                    Nghi vấn gỡ ứng dụng: Thiết bị của học sinh {selectedDevice.studentName} đã ngắt kết nối hoặc gửi tín hiệu gỡ cài đặt
                   </span>
                 </div>
               )}
 
-              {/* Real-time Live Badge */}
+              {/* Honest Polling Status Bar */}
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                    Phát Hiện Trực Tiếp Từ Điện Thoại Học Sinh (Tự động cập nhật 1 giây/lần)
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      selectedDevice.status === 'ONLINE'
+                        ? 'bg-[var(--success)] telemetry-live-dot'
+                        : 'bg-[var(--text-muted)]'
+                    }`}
+                  />
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">
+                    Dữ liệu từ thiết bị học sinh · Tự động làm mới mỗi 2,5 giây
                   </span>
                 </div>
-                <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                  ● LIVE STREAMING
+                <span className="text-xs font-mono tabular-nums text-[var(--text-muted)]">
+                  {selectedDevice.lastSeen
+                    ? `Gần nhất ${new Date(selectedDevice.lastSeen).toLocaleTimeString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })}`
+                    : 'Chưa có tín hiệu'}
                 </span>
               </div>
 
               {/* Current Real-time Activity Banner */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Ứng dụng đang mở trên máy
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)]">
+                  <div className="text-xs font-medium text-[var(--text-secondary)]">
+                    Ứng dụng đang mở
                   </div>
-                  <div className="mt-2 text-lg font-bold text-slate-900 dark:text-white truncate">
+                  <div className="mt-2 text-lg font-semibold text-[var(--text-primary)] truncate">
                     {selectedDevice.currentApp || 'Màn hình chính'}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Học sinh: {selectedDevice.studentName || selectedDevice.name} ·{' '}
-                    {selectedDevice.schoolName}
+                  <div className="mt-1 text-xs text-[var(--text-muted)] truncate">
+                    {selectedDevice.studentName || selectedDevice.name} · {selectedDevice.schoolName}
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Trang Web vừa truy cập
+                <div className="p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)]">
+                  <div className="text-xs font-medium text-[var(--text-secondary)]">
+                    Trang web vừa truy cập
                   </div>
-                  <div className="mt-2 text-lg font-bold text-indigo-600 dark:text-indigo-400 font-mono truncate">
+                  <div className="mt-2 text-lg font-semibold text-[var(--accent-ink)] font-mono truncate">
                     {selectedDevice.currentWebsite || 'Chưa mở trình duyệt'}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Tổng số trang đã vào: <span className="font-mono tabular-nums">{webHistory.length}</span> trang
+                  <div className="mt-1 text-xs text-[var(--text-muted)] font-mono tabular-nums">
+                    {webHistory.length} trang trong lịch sử
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)]">
+                  <div className="text-xs font-medium text-[var(--text-secondary)]">
                     Thời gian sử dụng hôm nay
                   </div>
-                  <div className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+                  <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)] font-mono tabular-nums">
                     {totalAppMinutes} phút
                   </div>
-                  <div className="mt-1 text-xs text-slate-500 font-mono tabular-nums">
-                    Học tập: {eduMinutes}p · Giải trí/MXH: {gameSocialMinutes}p
+                  <div className="mt-1 text-xs text-[var(--text-muted)] font-mono tabular-nums">
+                    Học tập: {eduMinutes}p · Giải trí: {gameSocialMinutes}p
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Chính sách kiểm soát & Chặn
+                <div className="p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)]">
+                  <div className="text-xs font-medium text-[var(--text-secondary)]">
+                    Chính sách chặn từ xa
                   </div>
-                  <div className="mt-2 text-2xl font-extrabold text-rose-600 dark:text-rose-400 font-mono tabular-nums">
+                  <div className="mt-2 text-2xl font-semibold text-[var(--danger)] font-mono tabular-nums">
                     {appUsages.filter((a) => a.isBlocked).length +
                       webHistory.filter((w) => w.isBlocked).length}{' '}
                     mục bị chặn
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Chặn từ xa thời gian thực
+                  <div className="mt-1 text-xs text-[var(--text-muted)]">
+                    Áp dụng trực tiếp lên thiết bị
                   </div>
                 </div>
               </div>
@@ -378,15 +398,15 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 <form
                   onSubmit={handleManualBlockSubmit}
-                  className="lg:col-span-7 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+                  className="lg:col-span-7 p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
                 >
                   <select
                     value={blockTargetType}
                     onChange={(e) => setBlockTargetType(e.target.value as 'APP' | 'WEB')}
-                    className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200"
+                    className="h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-medium text-[var(--text-primary)]"
                   >
-                    <option value="APP">Chặn Ứng dụng (App)</option>
-                    <option value="WEB">Chặn Trang Web (Domain)</option>
+                    <option value="APP">Chặn ứng dụng (App)</option>
+                    <option value="WEB">Chặn tên miền (Web)</option>
                   </select>
                   <input
                     type="text"
@@ -394,22 +414,22 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
                     onChange={(e) => setBlockTargetName(e.target.value)}
                     placeholder={
                       blockTargetType === 'APP'
-                        ? 'Nhập tên App cần chặn (VD: TikTok, Free Fire, Liên Quân...)'
-                        : 'Nhập tên miền Web cần chặn (VD: tiktok.com, roblox.com...)'
+                        ? 'Nhập tên ứng dụng cần chặn'
+                        : 'Nhập tên miền cần chặn'
                     }
-                    className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                    className="flex-1 h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
                   />
                   <button
                     type="submit"
-                    className="py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold whitespace-nowrap cursor-pointer transition"
+                    className="h-10 px-4 rounded-[var(--radius-control)] bg-[var(--danger-soft)] hover:bg-[#A82834] text-[var(--danger)] hover:text-white border border-[var(--danger-border)] text-xs font-medium whitespace-nowrap cursor-pointer transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)]"
                   >
-                    Áp dụng Chặn / Mở
+                    Áp dụng chặn / mở
                   </button>
                 </form>
 
-                <div className="lg:col-span-5 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-center">
-                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    Giả lập nhanh hoạt động trên điện thoại học sinh:
+                <div className="lg:col-span-5 p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] flex flex-col justify-center">
+                  <div className="text-xs font-medium text-[var(--text-secondary)] mb-2">
+                    Mô phỏng nhanh hoạt động trên điện thoại học sinh
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -418,13 +438,13 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
                         handleQuickSimulateActivity(
                           'TikTok',
                           'SOCIAL',
-                          '🎵',
+                          'TikTok',
                           'https://www.tiktok.com/@trending',
                           'TikTok - Video xu hướng giải trí',
                           'SOCIAL'
                         )
                       }
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer whitespace-nowrap"
+                      className="h-8 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium text-[var(--text-primary)] cursor-pointer whitespace-nowrap transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)]"
                     >
                       Thử mở TikTok
                     </button>
@@ -434,13 +454,13 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
                         handleQuickSimulateActivity(
                           'Liên Quân Mobile',
                           'GAME',
-                          '🎮',
+                          'LienQuan',
                           'https://lienquan.garena.vn',
                           'Garena Liên Quân Mobile',
                           'GAME'
                         )
                       }
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer whitespace-nowrap"
+                      className="h-8 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium text-[var(--text-primary)] cursor-pointer whitespace-nowrap transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)]"
                     >
                       Thử chơi Liên Quân
                     </button>
@@ -450,15 +470,15 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
                         handleQuickSimulateActivity(
                           'Google Classroom',
                           'EDUCATION',
-                          '📚',
+                          'Classroom',
                           'https://hocmai.vn/bai-giang',
                           'Học Mãi - Bài giảng trực tuyến',
                           'EDUCATION'
                         )
                       }
-                      className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer whitespace-nowrap"
+                      className="h-8 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium text-[var(--text-primary)] cursor-pointer whitespace-nowrap transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)]"
                     >
-                      Thử vào Học Tập
+                      Thử vào Học tập
                     </button>
                   </div>
                 </div>
@@ -467,17 +487,20 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
               {/* Filter & Search Bar */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search
+                    className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                    strokeWidth={1.5}
+                  />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Tìm tên ứng dụng (TikTok, Zalo...) hoặc tên miền website (youtube.com, hocmai.vn...)"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                    placeholder="Tìm tên ứng dụng hoặc tên miền website"
+                    className="w-full h-10 pl-9 pr-4 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
                   />
                 </div>
 
-                <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto">
+                <div className="flex items-center gap-1 p-1 bg-[var(--surface-muted)] rounded-[var(--radius-control)] border border-[var(--border)] overflow-x-auto">
                   {[
                     { key: 'ALL', label: 'Tất cả' },
                     { key: 'EDUCATION', label: 'Học tập' },
@@ -488,10 +511,10 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
                     <button
                       key={item.key}
                       onClick={() => setCategoryFilter(item.key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer ${
+                      className={`h-8 px-3 rounded-[6px] text-xs font-medium transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] whitespace-nowrap cursor-pointer ${
                         categoryFilter === item.key
-                          ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                          ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-[var(--shadow-card)]'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                     >
                       {item.label}
@@ -500,139 +523,160 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
                 </div>
               </div>
 
-              {/* Two Columns: App Usage Table & Web History Table */}
+              {/* Two Columns: App Usage Table & Web History Table (Moment #2) */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left: Mobile Apps Usage */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div className="bg-[var(--surface)] rounded-[var(--radius-card)] border border-[var(--border)] shadow-[var(--shadow-card)] overflow-hidden">
+                  <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between gap-2">
                     <div>
-                      <h2 className="font-bold text-base text-slate-900 dark:text-white">
-                        Ứng Dụng Điện Thoại Sử Dụng ({filteredApps.length})
+                      <h2 className="font-semibold text-base text-[var(--text-primary)]">
+                        Ứng dụng điện thoại sử dụng (<span className="font-mono tabular-nums">{filteredApps.length}</span>)
                       </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Theo dõi thời lượng từng App và khóa ứng dụng gây mất tập trung
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
+                        Tỉ lệ thời lượng dùng từng ứng dụng trong ngày và điều khiển khóa từ xa
                       </p>
                     </div>
                   </div>
 
                   {filteredApps.length === 0 ? (
-                    <div className="p-8 text-center text-xs text-slate-400">
-                      Không có ứng dụng nào khớp bộ lọc.
+                    <div className="p-8 text-center text-xs text-[var(--text-muted)]">
+                      Không có ứng dụng nào khớp bộ lọc
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {filteredApps.map((app) => (
-                        <div
-                          key={app.id}
-                          className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-slate-900 dark:text-white truncate">
-                                {app.appName}
-                              </span>
-                              <span className="text-xs text-slate-400">·</span>
-                              <span className="text-xs text-slate-500">
-                                {getCategoryLabel(app.category)}
-                              </span>
-                              {app.isRunning && !app.isBlocked && (
-                                <>
-                                  <span className="text-xs text-slate-400">·</span>
-                                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                                    Đang mở trên màn hình
-                                  </span>
-                                </>
-                              )}
-                              {app.isBlocked && (
-                                <>
-                                  <span className="text-xs text-slate-400">·</span>
-                                  <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
-                                    Đã bị chặn
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono tabular-nums">
-                              Thời gian dùng: <strong className="text-slate-800 dark:text-slate-200">{app.durationMinutes} phút</strong> · Mở gần nhất:{' '}
-                              {new Date(app.lastUsed).toLocaleTimeString('vi-VN', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => handleToggleBlock('APP', app.appName)}
-                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition ${
-                              app.isBlocked
-                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-600 hover:text-white'
-                                : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-600 hover:text-white'
-                            }`}
+                    <div className="divide-y divide-[var(--border)]">
+                      {filteredApps.map((app) => {
+                        const pct =
+                          totalAppMinutes > 0
+                            ? Math.min(100, Math.max(3, Math.round((app.durationMinutes / totalAppMinutes) * 100)))
+                            : 0;
+                        return (
+                          <div
+                            key={app.id}
+                            className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-[var(--surface-muted)]/40 transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)]"
                           >
-                            {app.isBlocked ? (
-                              <>
-                                <Unlock className="w-3.5 h-3.5" />
-                                <span>Mở khóa App</span>
-                              </>
-                            ) : (
-                              <>
-                                <Lock className="w-3.5 h-3.5" />
-                                <span>Chặn App</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      ))}
+                            <div className="min-w-0 flex-1 space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold text-sm text-[var(--text-primary)] truncate">
+                                  {app.appName}
+                                </span>
+                                <span className="text-xs text-[var(--text-muted)]">·</span>
+                                <span className="text-xs text-[var(--text-secondary)]">
+                                  {getCategoryLabel(app.category)}
+                                </span>
+                                {app.isRunning && !app.isBlocked && (
+                                  <>
+                                    <span className="text-xs text-[var(--text-muted)]">·</span>
+                                    <span className="text-xs font-medium text-[var(--success)]">
+                                      Đang mở trên màn hình
+                                    </span>
+                                  </>
+                                )}
+                                {app.isBlocked && (
+                                  <>
+                                    <span className="text-xs text-[var(--text-muted)]">·</span>
+                                    <span className="text-xs font-medium text-[var(--danger)]">
+                                      Đã bị chặn
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+
+                              {/* Proportional usage bar */}
+                              <div className="w-full h-1 rounded-full bg-[var(--surface-muted)] overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${getBarColor(app.category, app.isBlocked)}`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+
+                              <div className="text-xs text-[var(--text-secondary)] font-mono tabular-nums">
+                                <span className="text-[var(--text-primary)] font-medium">{app.durationMinutes} phút</span>
+                                {' · '}
+                                <span>{pct}%</span>
+                                {' · '}
+                                <span>
+                                  Mở gần nhất{' '}
+                                  {new Date(app.lastUsed).toLocaleTimeString('vi-VN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => handleToggleBlock('APP', app.appName)}
+                              className={`h-8 px-3 rounded-[var(--radius-control)] text-xs font-medium flex items-center gap-1.5 whitespace-nowrap cursor-pointer border transition-[color,background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] ${
+                                app.isBlocked
+                                  ? 'bg-[var(--surface-muted)] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--success-soft)] hover:text-[var(--success)] hover:border-[var(--success-border)]'
+                                  : 'bg-[var(--danger-soft)] border-[var(--danger-border)] text-[var(--danger)] hover:bg-[#A82834] hover:text-white'
+                              }`}
+                            >
+                              {app.isBlocked ? (
+                                <>
+                                  <Unlock className="w-4 h-4" strokeWidth={1.5} />
+                                  <span>Mở khóa</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Lock className="w-4 h-4" strokeWidth={1.5} />
+                                  <span>Chặn app</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
                 {/* Right: Web Browser History */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div className="bg-[var(--surface)] rounded-[var(--radius-card)] border border-[var(--border)] shadow-[var(--shadow-card)] overflow-hidden">
+                  <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between gap-2">
                     <div>
-                      <h2 className="font-bold text-base text-slate-900 dark:text-white">
-                        Lịch Sử Truy Cập Website ({filteredWeb.length})
+                      <h2 className="font-semibold text-base text-[var(--text-primary)]">
+                        Lịch sử truy cập website (<span className="font-mono tabular-nums">{filteredWeb.length}</span>)
                       </h2>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Các trang web học sinh đã mở trên trình duyệt Safari / Chrome
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
+                        Các tên miền học sinh đã mở trên trình duyệt di động
                       </p>
                     </div>
                   </div>
 
                   {filteredWeb.length === 0 ? (
-                    <div className="p-8 text-center text-xs text-slate-400">
-                      Không có lịch sử duyệt web nào khớp bộ lọc.
+                    <div className="p-8 text-center text-xs text-[var(--text-muted)]">
+                      Không có lịch sử duyệt web nào khớp bộ lọc
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <div className="divide-y divide-[var(--border)]">
                       {filteredWeb.map((web) => (
                         <div
                           key={web.id}
-                          className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition"
+                          className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-[var(--surface-muted)]/40 transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)]"
                         >
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm text-indigo-600 dark:text-indigo-400 font-mono truncate">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-sm text-[var(--accent-ink)] font-mono truncate">
                                 {web.domain}
                               </span>
-                              <span className="text-xs text-slate-400">·</span>
-                              <span className="text-xs text-slate-500">
+                              <span className="text-xs text-[var(--text-muted)]">·</span>
+                              <span className="text-xs text-[var(--text-secondary)]">
                                 {getCategoryLabel(web.category)}
                               </span>
                               {web.isBlocked && (
                                 <>
-                                  <span className="text-xs text-slate-400">·</span>
-                                  <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+                                  <span className="text-xs text-[var(--text-muted)]">·</span>
+                                  <span className="text-xs font-medium text-[var(--danger)]">
                                     Đã chặn tên miền
                                   </span>
                                 </>
                               )}
                             </div>
-                            <div className="text-xs text-slate-800 dark:text-slate-200 truncate mt-0.5">
+                            <div className="text-xs text-[var(--text-primary)] truncate mt-1">
                               {web.pageTitle}
                             </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono tabular-nums">
+                            <div className="text-xs text-[var(--text-secondary)] mt-1 font-mono tabular-nums">
                               {web.visitCount} lần truy cập · {web.durationMinutes} phút · Lúc{' '}
                               {new Date(web.timestamp).toLocaleTimeString('vi-VN', {
                                 hour: '2-digit',
@@ -643,21 +687,21 @@ export const AppWebMonitorPage: React.FC<AppWebMonitorPageProps> = ({
 
                           <button
                             onClick={() => handleToggleBlock('WEB', web.domain)}
-                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition ${
+                            className={`h-8 px-3 rounded-[var(--radius-control)] text-xs font-medium flex items-center gap-1.5 whitespace-nowrap cursor-pointer border transition-[color,background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] ${
                               web.isBlocked
-                                ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-emerald-600 hover:text-white'
-                                : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-600 hover:text-white'
+                                ? 'bg-[var(--surface-muted)] border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--success-soft)] hover:text-[var(--success)] hover:border-[var(--success-border)]'
+                                : 'bg-[var(--danger-soft)] border-[var(--danger-border)] text-[var(--danger)] hover:bg-[#A82834] hover:text-white'
                             }`}
                           >
                             {web.isBlocked ? (
                               <>
-                                <Unlock className="w-3.5 h-3.5" />
-                                <span>Bỏ chặn Web</span>
+                                <Unlock className="w-4 h-4" strokeWidth={1.5} />
+                                <span>Bỏ chặn</span>
                               </>
                             ) : (
                               <>
-                                <Lock className="w-3.5 h-3.5" />
-                                <span>Chặn Web</span>
+                                <Lock className="w-4 h-4" strokeWidth={1.5} />
+                                <span>Chặn web</span>
                               </>
                             )}
                           </button>

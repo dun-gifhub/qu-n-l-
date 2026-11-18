@@ -8,15 +8,13 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
-  KeyRound,
   Eye,
   EyeOff,
-  Sparkles,
-  School,
   ShieldCheck,
-  Smartphone,
-  BookOpen,
   Users,
+  MapPin,
+  Globe,
+  Bell,
 } from 'lucide-react';
 import { EducationButton } from '../components/education/EducationButton.tsx';
 import { EducationInput } from '../components/education/EducationInput.tsx';
@@ -36,7 +34,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Forgot password modal state
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotPhone, setForgotPhone] = useState('');
@@ -47,7 +44,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail || !forgotNewPassword) {
-      setForgotStatusMsg({ type: 'error', text: 'Vui lòng nhập email/SĐT và mật khẩu mới' });
+      setForgotStatusMsg({ type: 'error', text: 'Vui lòng nhập email hoặc số điện thoại và mật khẩu mới' });
       return;
     }
     if (forgotNewPassword.length < 6) {
@@ -67,7 +64,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
     if (res.success) {
       setForgotStatusMsg({
         type: 'success',
-        text: res.message || 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.',
+        text: res.message || 'Đặt lại mật khẩu thành công. Bạn có thể đăng nhập ngay.',
       });
       setEmail(forgotEmail.trim());
       setPassword(forgotNewPassword.trim());
@@ -86,7 +83,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setErrorMsg('Vui lòng nhập đầy đủ Email/Số điện thoại và mật khẩu');
+      setErrorMsg('Vui lòng nhập đầy đủ Email hoặc Số điện thoại và mật khẩu');
       return;
     }
 
@@ -99,98 +96,86 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
     if (res.success) {
       navigate('/dashboard');
     } else {
-      setErrorMsg(res.message || 'Email, Số điện thoại hoặc mật khẩu không chính xác');
+      setErrorMsg(res.message || 'Email, số điện thoại hoặc mật khẩu không chính xác');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5F9FD] via-[#EAF5FF]/40 to-[#F5F9FD] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-education">
-      <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 rounded-[28px] overflow-hidden bg-white border border-[#DCE7F2] shadow-[0_20px_50px_rgba(0,59,122,0.08)]">
-        {/* Left Side: Educational Visual Illustration (Desktop) */}
-        <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-10 bg-gradient-to-br from-[#003B7A] via-[#0057B8] to-[#087FEA] text-white relative overflow-hidden">
-          {/* Brand header */}
-          <div className="relative z-10 space-y-2">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 rounded-[var(--radius-panel)] overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-elevated)]">
+        {/* Left Side: Product Context & Structured Overview */}
+        <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-8 bg-[var(--surface-muted)] border-r border-[var(--border)]">
+          <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-[16px] bg-white text-[#0057B8] flex items-center justify-center font-extrabold shadow-md">
-                <GraduationCap className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-[var(--radius-control)] bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center">
+                <GraduationCap className="w-5 h-5" strokeWidth={1.5} />
               </div>
               <div>
-                <span className="text-2xl font-black tracking-tight">EduMonitor</span>
-                <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-black bg-[#FFD200] text-[#172B4D]">
-                  PRO
+                <span className="text-lg font-semibold text-[var(--text-primary)] block leading-tight">
+                  EduMonitor
+                </span>
+                <span className="text-xs text-[var(--text-secondary)]">
+                  Hệ thống điều phối thiết bị học đường
                 </span>
               </div>
             </div>
-            <p className="text-xs text-blue-100 font-medium pt-1">
-              Nền Tảng Quản Lý Giảng Dạy & An Toàn Học Đường
-            </p>
           </div>
 
-          {/* Educational Visual Card */}
-          <div className="relative z-10 my-8 space-y-4">
-            <div className="p-5 rounded-[22px] bg-white/10 backdrop-blur-md border border-white/20 space-y-3">
-              <div className="flex items-center gap-2.5 text-[#FFD200] font-bold text-xs">
-                <Sparkles className="w-4 h-4" />
-                <span>Dành Cho Giáo Viên & Học Sinh</span>
+          {/* Product Ledger Card */}
+          <div className="my-8 p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] space-y-4">
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-[var(--accent-ink)]">
+                Giáo viên · Phụ huynh · Quản trị viên
               </div>
-              <h3 className="font-extrabold text-lg leading-snug">
-                Theo dõi vị trí an toàn, chuyên cần và bảo vệ học sinh trên không gian mạng.
+              <h3 className="font-semibold text-base text-[var(--text-primary)] leading-snug">
+                Theo dõi vị trí GPS, thời gian dùng ứng dụng và phát hiện sử dụng trong giờ học
               </h3>
-              <div className="grid grid-cols-2 gap-2 pt-2 text-xs font-semibold">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFD200]" />
-                  <span>Định vị Google Maps</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFD200]" />
-                  <span>Cảnh báo giờ học</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFD200]" />
-                  <span>Quản lý lớp học</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFD200]" />
-                  <span>Tiếp nhận 1 giây</span>
-                </div>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t border-[var(--border)] text-xs text-[var(--text-secondary)]">
+              <div className="flex items-center gap-2.5">
+                <MapPin className="w-4 h-4 text-[var(--text-muted)] shrink-0" strokeWidth={1.5} />
+                <span>Định vị GPS & lộ trình trên Google Maps</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Globe className="w-4 h-4 text-[var(--text-muted)] shrink-0" strokeWidth={1.5} />
+                <span>Giám sát ứng dụng đang mở và website</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Bell className="w-4 h-4 text-[var(--text-muted)] shrink-0" strokeWidth={1.5} />
+                <span>Cảnh báo sử dụng trong giờ hoặc ngắt kết nối</span>
               </div>
             </div>
           </div>
 
-          {/* Footer note */}
-          <div className="relative z-10 text-xs text-blue-200 font-medium">
-            © 2026 EduMonitor Platform · Chuẩn Giáo Dục Thông Minh
+          <div className="text-xs text-[var(--text-muted)]">
+            DeviceMonitor Platform · Lưu trữ đồng bộ PostgreSQL
           </div>
-
-          {/* Decorative background glow circles */}
-          <div className="absolute top-0 right-0 -translate-y-12 translate-x-12 w-64 h-64 rounded-full bg-white/10 pointer-events-none blur-2xl" />
-          <div className="absolute bottom-0 left-0 translate-y-16 -translate-x-12 w-64 h-64 rounded-full bg-[#FFD200]/15 pointer-events-none blur-2xl" />
         </div>
 
-        {/* Right Side: Login Card */}
-        <div className="lg:col-span-7 p-6 sm:p-10 md:p-12 flex flex-col justify-center bg-white">
+        {/* Right Side: Login Form */}
+        <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center bg-[var(--surface)]">
           <div className="max-w-md w-full mx-auto space-y-6">
-            {/* Header */}
             <div>
               <div className="lg:hidden flex items-center gap-2 mb-4">
-                <div className="w-9 h-9 rounded-[12px] bg-[#0057B8] text-white flex items-center justify-center font-bold">
-                  <GraduationCap className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-[var(--radius-control)] bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4" strokeWidth={1.5} />
                 </div>
-                <span className="font-extrabold text-xl text-[#003B7A]">EduMonitor</span>
+                <span className="font-semibold text-base text-[var(--text-primary)]">EduMonitor</span>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172B4D] tracking-tight">
-                {loginMode === 'ADMIN' ? 'Đăng Nhập Quản Trị Viên (Admin) 🛡️' : 'Chào mừng trở lại! 👋'}
-              </h2>
-              <p className="text-xs sm:text-sm text-[#60758D] mt-1.5 font-medium">
+              <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
+                {loginMode === 'ADMIN' ? 'Đăng nhập Quản trị viên' : 'Đăng nhập hệ thống EduMonitor'}
+              </h1>
+              <p className="text-sm text-[var(--text-secondary)] mt-1">
                 {loginMode === 'ADMIN'
-                  ? 'Khu vực quản lý tối cao dành cho Admin: phê duyệt giáo viên, quản lý toàn bộ thiết bị và cơ sở dữ liệu Neon.'
-                  : 'Đăng nhập để tiếp tục học tập, điểm danh và quản lý lớp học.'}
+                  ? 'Quản lý phê duyệt tài khoản giáo viên, phụ huynh và điều phối thiết bị toàn trường'
+                  : 'Truy cập bảng theo dõi lớp học, vị trí thiết bị và nhật ký hoạt động'}
               </p>
             </div>
 
             {/* Role Switcher Tabs */}
-            <div className="grid grid-cols-2 p-1.5 bg-[#F0F5FA] rounded-2xl border border-[#DCE7F2]">
+            <div className="grid grid-cols-2 p-1 bg-[var(--surface-muted)] rounded-[var(--radius-control)] border border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => {
@@ -200,14 +185,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
                     setPassword('');
                   }
                 }}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`h-9 px-3 rounded-[6px] text-xs font-medium transition-colors duration-[var(--duration-fast)] flex items-center justify-center gap-2 cursor-pointer ${
                   loginMode === 'USER'
-                    ? 'bg-white text-[#0057B8] shadow-xs'
-                    : 'text-[#60758D] hover:text-[#172B4D]'
+                    ? 'bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'
                 }`}
               >
-                <Users className="w-3.5 h-3.5" />
-                <span>Giáo Viên / Phụ Huynh</span>
+                <Users className="w-4 h-4" strokeWidth={1.5} />
+                <span>Giáo viên / Phụ huynh</span>
               </button>
               <button
                 type="button"
@@ -216,60 +201,68 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
                   setEmail('admin@devicemonitor.com');
                   setPassword('admin123');
                 }}
-                className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`h-9 px-3 rounded-[6px] text-xs font-medium transition-colors duration-[var(--duration-fast)] flex items-center justify-center gap-2 cursor-pointer ${
                   loginMode === 'ADMIN'
-                    ? 'bg-[#0057B8] text-white shadow-xs'
-                    : 'text-[#60758D] hover:text-[#172B4D]'
+                    ? 'bg-[var(--surface)] text-[var(--accent-ink)] border border-[var(--border)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'
                 }`}
               >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Quản Trị Viên (Admin)</span>
+                <ShieldCheck className="w-4 h-4" strokeWidth={1.5} />
+                <span>Quản trị viên</span>
               </button>
             </div>
 
-            {/* Notification or Redirect Message */}
             {message && (
-              <div className="p-3.5 rounded-[14px] bg-[#EAF5FF] border border-[#d2e7fc] text-[#0057B8] text-xs font-semibold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <div className="p-3 rounded-[var(--radius-control)] bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-ink)] text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                 <span>{message}</span>
               </div>
             )}
 
-            {/* Error Message */}
             {errorMsg && (
-              <div className="p-3.5 rounded-[14px] bg-[#FEECEC] border border-[#FECACA] text-[#DC2626] text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+              <div className="p-3 rounded-[var(--radius-control)] bg-[var(--danger-soft)] border border-[var(--danger-border)] text-[var(--danger)] text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={1.5} />
                 <span>{errorMsg}</span>
               </div>
             )}
 
-            {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <EducationInput
-                label={loginMode === 'ADMIN' ? 'Email Quản trị viên (Admin)' : 'Email hoặc Số điện thoại'}
+                label={loginMode === 'ADMIN' ? 'Email quản trị viên' : 'Email hoặc số điện thoại'}
                 type="text"
-                placeholder={loginMode === 'ADMIN' ? 'admin@devicemonitor.com' : 'VD: gv.nguyen@truong.edu.vn hoặc 0901234567'}
+                placeholder={loginMode === 'ADMIN' ? 'admin@devicemonitor.com' : 'gv.nguyen@truong.edu.vn hoặc 0901234567'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                icon={loginMode === 'ADMIN' ? <ShieldCheck className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                icon={
+                  loginMode === 'ADMIN' ? (
+                    <ShieldCheck className="w-4 h-4" strokeWidth={1.5} />
+                  ) : (
+                    <Mail className="w-4 h-4" strokeWidth={1.5} />
+                  )
+                }
                 required
               />
 
               <div>
                 <EducationInput
-                  label={loginMode === 'ADMIN' ? 'Mật khẩu Admin' : 'Mật khẩu'}
+                  label={loginMode === 'ADMIN' ? 'Mật khẩu quản trị' : 'Mật khẩu'}
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Nhập mật khẩu..."
+                  placeholder="Nhập mật khẩu"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  icon={<Lock className="w-4 h-4" />}
+                  icon={<Lock className="w-4 h-4" strokeWidth={1.5} />}
                   rightElement={
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-[#60758D] hover:text-[#0057B8] transition cursor-pointer"
+                      className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                      aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" strokeWidth={1.5} />
+                      ) : (
+                        <Eye className="w-4 h-4" strokeWidth={1.5} />
+                      )}
                     </button>
                   }
                   required
@@ -282,36 +275,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
                       setForgotEmail(email);
                       setIsForgotModalOpen(true);
                     }}
-                    className="text-xs font-bold text-[#0057B8] hover:text-[#003B7A] hover:underline cursor-pointer"
+                    className="text-xs font-medium text-[var(--accent-ink)] hover:underline cursor-pointer"
                   >
-                    Quên mật khẩu?
+                    Quên mật khẩu
                   </button>
                 </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <EducationButton
                   type="submit"
-                  variant={loginMode === 'ADMIN' ? 'primary' : 'primary'}
-                  pill
-                  className="w-full text-base py-3.5 shadow-md"
-                  icon={<ArrowRight className="w-4 h-4" />}
+                  variant="primary"
+                  size="lg"
+                  className="w-full"
+                  icon={<ArrowRight className="w-4 h-4" strokeWidth={1.5} />}
                   iconPosition="right"
                   isLoading={isLoading}
                 >
-                  {loginMode === 'ADMIN' ? 'Đăng Nhập Quản Trị Viên (Admin)' : 'Đăng Nhập'}
+                  {loginMode === 'ADMIN' ? 'Đăng nhập Quản trị viên' : 'Đăng nhập'}
                 </EducationButton>
               </div>
             </form>
 
-            {/* Register Link */}
-            <div className="pt-4 border-t border-[#DCE7F2] text-center text-xs text-[#60758D]">
+            <div className="pt-4 border-t border-[var(--border)] text-center text-xs text-[var(--text-secondary)]">
               Chưa có tài khoản Giáo viên hoặc Phụ huynh?{' '}
               <button
                 onClick={() => navigate('/register')}
-                className="font-extrabold text-[#0057B8] hover:underline cursor-pointer"
+                className="font-medium text-[var(--accent-ink)] hover:underline cursor-pointer"
               >
-                Đăng ký ngay tại đây →
+                Đăng ký tài khoản mới
               </button>
             </div>
           </div>
@@ -322,23 +314,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
       <EducationModal
         isOpen={isForgotModalOpen}
         onClose={() => setIsForgotModalOpen(false)}
-        title="Khôi Phục Mật Khẩu"
-        subtitle="Nhập email hoặc SĐT để thiết lập lại mật khẩu mới"
+        title="Khôi phục mật khẩu"
+        subtitle="Nhập email hoặc số điện thoại để thiết lập lại mật khẩu mới"
         maxWidth="md"
       >
         <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
           {forgotStatusMsg && (
             <div
-              className={`p-3.5 rounded-[14px] text-xs font-semibold flex items-center gap-2 ${
+              className={`p-3 rounded-[var(--radius-control)] text-xs font-medium flex items-center gap-2 ${
                 forgotStatusMsg.type === 'success'
-                  ? 'bg-[#EBFBF0] text-[#16A34A] border border-[#BDECC9]'
-                  : 'bg-[#FEECEC] text-[#DC2626] border border-[#FECACA]'
+                  ? 'bg-[var(--success-soft)] text-[var(--success)] border border-[var(--success-border)]'
+                  : 'bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger-border)]'
               }`}
             >
               {forgotStatusMsg.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 shrink-0" strokeWidth={1.5} />
               ) : (
-                <AlertCircle className="w-4 h-4 shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={1.5} />
               )}
               <span>{forgotStatusMsg.text}</span>
             </div>
@@ -347,7 +339,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
           <EducationInput
             label="Email tài khoản"
             type="text"
-            placeholder="VD: gv.nguyen@truong.edu.vn"
+            placeholder="gv.nguyen@truong.edu.vn"
             value={forgotEmail}
             onChange={(e) => setForgotEmail(e.target.value)}
             required
@@ -356,7 +348,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
           <EducationInput
             label="Số điện thoại liên hệ (nếu có)"
             type="text"
-            placeholder="VD: 0901234567"
+            placeholder="0901234567"
             value={forgotPhone}
             onChange={(e) => setForgotPhone(e.target.value)}
           />
@@ -364,7 +356,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
           <EducationInput
             label="Mật khẩu mới (tối thiểu 6 ký tự)"
             type="password"
-            placeholder="Nhập mật khẩu mới muốn đặt..."
+            placeholder="Nhập mật khẩu mới"
             value={forgotNewPassword}
             onChange={(e) => setForgotNewPassword(e.target.value)}
             required
@@ -383,7 +375,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
               variant="primary"
               isLoading={isForgotLoading}
             >
-              Xác Nhận Đổi Mật Khẩu
+              Xác nhận đổi mật khẩu
             </EducationButton>
           </div>
         </form>

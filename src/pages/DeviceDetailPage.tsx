@@ -11,17 +11,12 @@ import {
 import { DeviceMap } from '../components/Map/DeviceMap.tsx';
 import {
   Smartphone,
-  Battery,
-  Zap,
-  Wifi,
   MapPin,
   ArrowLeft,
   Trash2,
   Edit2,
   RefreshCw,
-  Layers,
   Code2,
-  Play,
   Check,
   Copy,
   Globe,
@@ -29,15 +24,13 @@ import {
   Unlock,
   Phone,
   PhoneCall,
-  PhoneOff,
-  Plus,
   AlertTriangle,
-  AlertCircle,
   CheckCircle2,
-  ShieldCheck,
-  UserPlus,
   Navigation,
   ExternalLink,
+  Route,
+  SlidersHorizontal,
+  ListChecks,
 } from 'lucide-react';
 
 interface DeviceDetailPageProps {
@@ -50,7 +43,6 @@ interface DeviceDetailPageProps {
 export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   deviceId,
   navigate,
-  onOpenSimulator,
   initialTab = 'history',
 }) => {
   const [device, setDevice] = useState<Device | null>(null);
@@ -59,12 +51,10 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   const [appUsages, setAppUsages] = useState<AppUsageItem[]>([]);
   const [webHistory, setWebHistory] = useState<WebVisitItem[]>([]);
   const [contacts, setContacts] = useState<PhoneContact[]>([]);
-  const [isContactsLoading, setIsContactsLoading] = useState(false);
   const [isAddingContact, setIsAddingContact] = useState(false);
   const [newContactName, setNewContactName] = useState('');
   const [newContactPhone, setNewContactPhone] = useState('');
   const [newContactRel, setNewContactRel] = useState('Phụ huynh');
-  const [newContactAlert, setNewContactAlert] = useState(true);
   const [contactFeedback, setContactFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isDeletingAllContacts, setIsDeletingAllContacts] = useState(false);
   const [confirmClearContactsOpen, setConfirmClearContactsOpen] = useState(false);
@@ -144,14 +134,14 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
       name: newContactName.trim(),
       phone: newContactPhone.trim(),
       relationship: newContactRel.trim(),
-      isEmergencyAlert: newContactAlert,
+      isEmergencyAlert: true,
     });
     setIsAddingContact(false);
     if (res.success && res.data) {
       setContacts(res.data);
       setNewContactName('');
       setNewContactPhone('');
-      setContactFeedback({ type: 'success', text: 'Thêm số điện thoại mới thành công!' });
+      setContactFeedback({ type: 'success', text: 'Đã thêm số điện thoại mới' });
       setTimeout(() => setContactFeedback(null), 3000);
     } else {
       setContactFeedback({ type: 'error', text: res.message || 'Lỗi thêm số điện thoại' });
@@ -222,9 +212,9 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
 
   if (isLoading && !device) {
     return (
-      <div className="py-24 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-        <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
-        <span>Đang tải thông tin thiết bị học sinh...</span>
+      <div className="py-24 text-center text-xs text-[var(--text-muted)] flex items-center justify-center gap-2">
+        <RefreshCw className="w-4 h-4 animate-spin text-[var(--accent-ink)]" strokeWidth={1.5} />
+        <span>Đang tải thông tin thiết bị học sinh</span>
       </div>
     );
   }
@@ -232,12 +222,12 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   if (!device) {
     return (
       <div className="py-20 text-center space-y-4">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
           Không tìm thấy thiết bị này hoặc bạn không có quyền truy cập
         </h2>
         <button
           onClick={() => navigate('/devices')}
-          className="py-2 px-4 bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+          className="h-10 px-4 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-[var(--radius-control)] text-xs font-medium cursor-pointer"
         >
           Quay lại danh sách
         </button>
@@ -247,6 +237,7 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
 
   const isOnline = device.status === 'ONLINE';
   const isIdle = device.status === 'IDLE';
+  const totalAppMinutes = appUsages.reduce((sum, a) => sum + a.durationMinutes, 0);
 
   const curlLocationExample = `curl -X POST https://your-server.onrender.com/api/devices/${device.id}/usage \\
   -H "Content-Type: application/json" \\
@@ -264,33 +255,47 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
     setTimeout(() => setCopiedCurl(false), 2000);
   };
 
+  const tabs: Array<{
+    key: 'history' | 'location' | 'usage' | 'status' | 'contacts' | 'activity' | 'api';
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    { key: 'history', label: `Lịch sử di chuyển (${history.length})`, icon: <Route className="w-4 h-4" strokeWidth={1.5} /> },
+    { key: 'location', label: 'Vị trí hiện tại', icon: <MapPin className="w-4 h-4" strokeWidth={1.5} /> },
+    { key: 'usage', label: `Ứng dụng & Web (${appUsages.length + webHistory.length})`, icon: <Smartphone className="w-4 h-4" strokeWidth={1.5} /> },
+    { key: 'status', label: 'Trạng thái thiết bị', icon: <SlidersHorizontal className="w-4 h-4" strokeWidth={1.5} /> },
+    { key: 'contacts', label: `Danh bạ khẩn cấp (${contacts.length})`, icon: <Phone className="w-4 h-4" strokeWidth={1.5} /> },
+    { key: 'activity', label: `Nhật ký (${activities.length})`, icon: <ListChecks className="w-4 h-4" strokeWidth={1.5} /> },
+    { key: 'api', label: 'API tích hợp', icon: <Code2 className="w-4 h-4" strokeWidth={1.5} /> },
+  ];
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-6 animate-page-enter">
       {/* Top Bar Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/devices')}
-            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition cursor-pointer"
+            className="h-10 w-10 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] flex items-center justify-center cursor-pointer"
             title="Quay lại danh sách thiết bị"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
                 {device.studentName || device.name}
               </h1>
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                title="Chỉnh sửa thông tin học sinh & trường"
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                title="Chỉnh sửa thông tin học sinh và trường"
               >
-                <Edit2 className="w-3.5 h-3.5" />
+                <Edit2 className="w-4 h-4" strokeWidth={1.5} />
               </button>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Trường: <strong>{device.schoolName}</strong> · Lớp: <strong>{device.className || 'Chưa rõ'}</strong> · Thiết bị: {device.name} ({device.platform})
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Trường: <strong className="font-medium text-[var(--text-primary)]">{device.schoolName}</strong> · Lớp: <strong className="font-medium text-[var(--text-primary)]">{device.className || 'Chưa rõ'}</strong> · Thiết bị: {device.name} ({device.platform})
             </p>
           </div>
         </div>
@@ -299,26 +304,26 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/report')}
-            className="py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center gap-1.5 hover:bg-emerald-100 transition cursor-pointer whitespace-nowrap"
+            className="h-10 px-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] border border-[var(--border-strong)] text-[var(--text-primary)] font-medium text-xs flex items-center gap-2 transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer whitespace-nowrap"
           >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>Mở Báo Cáo Trên ĐT</span>
+            <Smartphone className="w-4 h-4" strokeWidth={1.5} />
+            <span>Mở báo cáo trên điện thoại</span>
           </button>
           <button
             onClick={loadDeviceData}
             disabled={isLoading}
-            className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition cursor-pointer"
+            className="h-10 w-10 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--surface-muted)] hover:text-[var(--text-primary)] transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] flex items-center justify-center cursor-pointer"
             title="Làm mới"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} strokeWidth={1.5} />
           </button>
           <button
             onClick={handleDeleteDevice}
             disabled={isDeleting}
-            className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition cursor-pointer"
+            className="h-10 w-10 rounded-[var(--radius-control)] bg-[var(--danger-soft)] border border-[var(--danger-border)] text-[var(--danger)] hover:bg-[#A82834] hover:text-white transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] flex items-center justify-center cursor-pointer"
             title="Xóa thiết bị"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
       </div>
@@ -327,33 +332,33 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
       {isEditing && (
         <form
           onSubmit={handleUpdateInfo}
-          className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
+          className="p-5 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] grid grid-cols-1 sm:grid-cols-4 gap-3 items-end"
         >
           <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Họ tên học sinh
             </label>
             <input
               type="text"
               value={editStudentName}
               onChange={(e) => setEditStudentName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+              className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Trường học (Đồng bộ GVCN)
             </label>
             <input
               type="text"
               value={editSchoolName}
               onChange={(e) => setEditSchoolName(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+              className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-              Lớp / Tên máy
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+              Lớp và tên máy
             </label>
             <div className="flex gap-2">
               <input
@@ -361,28 +366,28 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                 value={editClassName}
                 onChange={(e) => setEditClassName(e.target.value)}
                 placeholder="Lớp"
-                className="w-20 px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                className="w-20 h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
               />
               <input
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Tên máy"
-                className="flex-1 px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs"
+                className="flex-1 h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
               />
             </div>
           </div>
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 py-2 px-3 bg-indigo-600 text-white rounded-xl text-xs font-semibold cursor-pointer"
+              className="flex-1 h-10 px-3 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-[var(--radius-control)] text-xs font-medium cursor-pointer"
             >
               Lưu
             </button>
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              className="py-2 px-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs cursor-pointer"
+              className="h-10 px-3 border border-[var(--border-strong)] text-[var(--text-primary)] rounded-[var(--radius-control)] text-xs cursor-pointer"
             >
               Hủy
             </button>
@@ -392,21 +397,23 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
 
       {/* Alert Banner nếu thiết bị mất kết nối / nghi vấn gỡ cài đặt */}
       {(device.isUninstalled || device.heartbeatTimeout) && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-900 dark:text-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="p-4 rounded-[var(--radius-card)] bg-[var(--danger-soft)] border border-[var(--danger-border)] text-[var(--text-primary)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shrink-0">
-              <AlertTriangle className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--danger-border)] text-[var(--danger)] flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.5} />
             </div>
             <div>
-              <div className="font-extrabold text-sm text-rose-950 dark:text-rose-100 flex items-center gap-2">
-                <span>⚠️ {device.disconnectReason || 'Mất kết nối / Có thể đã gỡ cài đặt'}</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-mono font-bold">MDM CẢNH BÁO</span>
+              <div className="font-semibold text-sm text-[var(--danger)] flex flex-wrap items-center gap-2">
+                <span>{device.disconnectReason || 'Mất kết nối / Có thể đã gỡ cài đặt'}</span>
+                <span className="px-2 py-0.5 rounded-[6px] text-[11px] bg-[var(--surface)] border border-[var(--danger-border)] text-[var(--danger)] font-mono font-medium">
+                  Cảnh báo thiết bị
+                </span>
               </div>
-              <div className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5">
+              <div className="text-xs text-[var(--text-secondary)] mt-1">
                 {device.heartbeatTimeout
-                  ? 'Thiết bị không gửi tín hiệu nhịp tim định kỳ quá 3 phút. Hệ thống máy chủ đã tự động cập nhật cảnh báo MDM.'
-                  : 'Học sinh đã chủ động gửi tín hiệu gỡ cài đặt hoặc ngừng chia sẻ vị trí trên điện thoại.'}
-                {device.lastSeen && ` (Lần cuối hoạt động: ${new Date(device.lastSeen).toLocaleString('vi-VN')})`}
+                  ? 'Thiết bị không gửi tín hiệu nhịp tim định kỳ quá 3 phút.'
+                  : 'Học sinh đã gửi tín hiệu gỡ cài đặt hoặc ngừng chia sẻ vị trí trên điện thoại.'}
+                {device.lastSeen && ` (Hoạt động gần nhất: ${new Date(device.lastSeen).toLocaleString('vi-VN')})`}
               </div>
             </div>
           </div>
@@ -418,54 +425,49 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                 setDevice(res.data);
               }
             }}
-            className="py-2 px-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition shrink-0 cursor-pointer self-start sm:self-center"
+            className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--danger-border)] text-[var(--danger)] hover:bg-[#A82834] hover:text-white font-medium text-xs flex items-center gap-2 transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] shrink-0 cursor-pointer self-start sm:self-center"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Khôi phục trạng thái hoạt động</span>
+            <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
+            <span>Khôi phục trạng thái</span>
           </button>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto gap-2">
-        {[
-          { key: 'history', label: `🗺️ Lịch sử di chuyển (${history.length} điểm)` },
-          { key: 'location', label: '📍 Vị trí hiện tại' },
-          { key: 'usage', label: `📱 Sử dụng App & Web (${appUsages.length + webHistory.length})` },
-          { key: 'status', label: '⚙️ Trạng thái & Học sinh' },
-          { key: 'contacts', label: `📞 Danh bạ & SĐT (${contacts.length})` },
-          { key: 'activity', label: `📋 Nhật ký hoạt động (${activities.length})` },
-          { key: 'api', label: '🔌 API Mobile App' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`py-3 px-4 text-xs md:text-sm font-bold border-b-2 transition whitespace-nowrap cursor-pointer ${
-              activeTab === tab.key
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex border-b border-[var(--border)] overflow-x-auto gap-1">
+        {tabs.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`h-11 px-4 text-xs font-medium border-b-2 transition-[color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                active
+                  ? 'border-[var(--accent)] text-[var(--accent-ink)]'
+                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Tab: Lịch Sử Di Chuyển (Movement History & GPS Route Tracking) */}
+      {/* Tab: Lịch Sử Di Chuyển */}
       {activeTab === 'history' && (
         <div className="space-y-6">
-          {/* Reassurance Banner: CHỈ THÊM KHÔNG BỚT */}
-          <div className="p-3.5 px-4 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="p-4 rounded-[var(--radius-card)] bg-[var(--accent-soft)] border border-[var(--accent-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
-                <Navigation className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--accent-border)] text-[var(--accent-ink)] flex items-center justify-center shrink-0">
+                <Navigation className="w-4 h-4" strokeWidth={1.5} />
               </div>
               <div>
-                <div className="font-extrabold text-indigo-950 dark:text-indigo-200">
-                  Cơ chế lưu trữ: CHỈ THÊM KHÔNG BỚT · ĐỒNG BỘ NEON POSTGRESQL
+                <div className="font-semibold text-[var(--text-primary)]">
+                  Nhật ký lộ trình lưu trữ liên tục trên Neon PostgreSQL
                 </div>
-                <div className="text-[11px] text-indigo-700 dark:text-indigo-300 mt-0.5">
-                  Tất cả các điểm tọa độ di chuyển được bảo toàn vĩnh viễn, không bao giờ bị cắt giảm hay xoá bớt.
+                <div className="text-xs text-[var(--text-secondary)] mt-1">
+                  Toàn bộ các điểm tọa độ di chuyển được ghi nhận theo thứ tự thời gian thực.
                 </div>
               </div>
             </div>
@@ -473,23 +475,27 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
               <button
                 onClick={copyGpsHistory}
                 disabled={history.length === 0}
-                className="py-1.5 px-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--border-strong)] hover:bg-[var(--surface-muted)] text-[var(--text-primary)] font-medium text-xs flex items-center gap-2 transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer disabled:opacity-50"
                 title="Sao chép toàn bộ danh sách tọa độ GPS"
               >
-                {copiedGps ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedGps ? (
+                  <Check className="w-4 h-4 text-[var(--success)]" strokeWidth={1.5} />
+                ) : (
+                  <Copy className="w-4 h-4" strokeWidth={1.5} />
+                )}
                 <span>{copiedGps ? 'Đã chép GPS' : 'Chép tọa độ'}</span>
               </button>
             </div>
           </div>
 
           {/* Controls Bar */}
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                Khoảng thời gian:
+              <span className="text-xs font-medium text-[var(--text-secondary)]">
+                Khoảng thời gian
               </span>
               {[
-                { key: 'all', label: 'Toàn bộ (Chỉ thêm không bớt)' },
+                { key: 'all', label: 'Toàn bộ' },
                 { key: 'today', label: 'Hôm nay' },
                 { key: '7days', label: '7 ngày qua' },
                 { key: '30days', label: '30 ngày qua' },
@@ -497,10 +503,10 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                 <button
                   key={r.key}
                   onClick={() => setHistoryRange(r.key as any)}
-                  className={`py-1.5 px-3 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  className={`h-8 px-3 rounded-[var(--radius-control)] text-xs font-medium transition-[color,background-color,border-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer border ${
                     historyRange === r.key
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+                      : 'bg-[var(--surface-muted)] border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {r.label}
@@ -508,61 +514,64 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
               ))}
             </div>
 
-            <div className="flex items-center gap-3 text-xs font-mono">
-              <span className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 font-bold">
-                📍 {history.length} tọa độ đã lưu trữ
+            <div className="flex items-center gap-2 text-xs font-mono tabular-nums">
+              <span className="h-8 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] text-[var(--text-primary)] border border-[var(--border)] font-medium flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+                <span>{history.length} tọa độ</span>
               </span>
               <button
                 onClick={loadDeviceData}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+                className="h-8 w-8 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] border border-[var(--border)] flex items-center justify-center transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer"
                 title="Làm mới lịch sử"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} strokeWidth={1.5} />
               </button>
             </div>
           </div>
 
           {/* Interactive Route Map */}
-          <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs">
-            <div className="px-5 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="rounded-[var(--radius-card)] overflow-hidden border border-[var(--border)] shadow-[var(--shadow-card)]">
+            <div className="px-5 py-3 bg-[var(--surface)] border-b border-[var(--border)] flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-indigo-500" />
-                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
-                  Lộ Trình Di Chuyển Trên Nền Google Maps Vệ Tinh (Đường Nối Tuyến Đường)
+                <MapPin className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+                <span className="text-xs font-semibold text-[var(--text-primary)]">
+                  Lộ trình di chuyển trên bản đồ vệ tinh
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400 font-mono">
-                Tự động nối lộ trình theo thời gian thực
+              <span className="text-xs text-[var(--text-muted)] font-mono">
+                Tuyến tọa độ nối tiếp
               </span>
             </div>
             <DeviceMap historyLocations={history} height="460px" />
           </div>
 
           {/* Detailed Points Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="bg-[var(--surface)] rounded-[var(--radius-card)] border border-[var(--border)] overflow-hidden shadow-[var(--shadow-card)]">
+            <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  Bảng Lịch Sử Tọa Độ GPS & Điểm Dừng
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">
+                  Bảng lịch sử tọa độ GPS và điểm dừng
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Đồng bộ và lưu trữ kiên cố trên Neon PostgreSQL
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Lưu trữ theo dấu thời gian trên Neon PostgreSQL
                 </p>
               </div>
-              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+              <span className="text-xs font-mono tabular-nums font-medium text-[var(--accent-ink)]">
                 {history.length} điểm ghi nhận
               </span>
             </div>
 
             {history.length === 0 ? (
-              <div className="py-12 px-4 text-center text-xs text-slate-400 space-y-2">
+              <div className="py-12 px-4 text-center text-xs text-[var(--text-muted)] space-y-2">
                 <p>Chưa có dữ liệu lịch sử di chuyển nào được ghi nhận trong khoảng thời gian này.</p>
-                <p className="text-[11px] text-slate-500">Mở link báo cáo trên điện thoại để bắt đầu truyền tọa độ GPS định kỳ.</p>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Mở trang báo cáo trên điện thoại để bắt đầu truyền tọa độ GPS định kỳ
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
+                  <thead className="bg-[var(--surface-muted)]/60 text-[var(--text-secondary)] font-medium border-b border-[var(--border)]">
                     <tr>
                       <th className="py-3 px-5">STT</th>
                       <th className="py-3 px-5">Thời gian</th>
@@ -573,33 +582,36 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                       <th className="py-3 px-5 text-right">Xem bản đồ</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono tabular-nums">
+                  <tbody className="divide-y divide-[var(--border)] font-mono tabular-nums">
                     {history.map((loc, idx) => (
-                      <tr key={loc.id || idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
-                        <td className="py-3 px-5 text-slate-400">#{idx + 1}</td>
-                        <td className="py-3 px-5 text-slate-800 dark:text-slate-200 font-sans">
+                      <tr
+                        key={loc.id || idx}
+                        className="hover:bg-[var(--surface-muted)]/40 transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)]"
+                      >
+                        <td className="py-3 px-5 text-[var(--text-muted)]">#{idx + 1}</td>
+                        <td className="py-3 px-5 text-[var(--text-primary)] font-sans">
                           {new Date(loc.timestamp).toLocaleString('vi-VN')}
                         </td>
-                        <td className="py-3 px-5 font-bold text-slate-900 dark:text-white">
+                        <td className="py-3 px-5 font-medium text-[var(--text-primary)]">
                           {loc.latitude.toFixed(6)}
                         </td>
-                        <td className="py-3 px-5 font-bold text-slate-900 dark:text-white">
+                        <td className="py-3 px-5 font-medium text-[var(--text-primary)]">
                           {loc.longitude.toFixed(6)}
                         </td>
-                        <td className="py-3 px-5 text-slate-500">
+                        <td className="py-3 px-5 text-[var(--text-secondary)]">
                           {loc.accuracy ? `±${Math.round(loc.accuracy)} m` : '±10 m'}
                         </td>
                         <td className="py-3 px-5 font-sans">
                           {idx === 0 ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                            <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-[var(--success-soft)] text-[var(--success)] border border-[var(--success-border)]">
                               Vị trí mới nhất
                             </span>
                           ) : idx === history.length - 1 ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+                            <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)]">
                               Điểm xuất phát
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            <span className="px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)]">
                               Điểm di chuyển
                             </span>
                           )}
@@ -609,10 +621,10 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                             href={`https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline inline-flex items-center gap-1"
+                            className="text-[var(--accent-ink)] font-medium hover:underline inline-flex items-center gap-1"
                           >
                             <span>Google Maps</span>
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
                           </a>
                         </td>
                       </tr>
@@ -628,24 +640,24 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
       {/* Tab: Vị Trí Trực Tuyến Hiện Tại */}
       {activeTab === 'location' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
-            <div className="flex items-center gap-6">
+          <div className="p-4 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] flex flex-wrap items-center justify-between gap-4 text-xs">
+            <div className="flex flex-wrap items-center gap-6">
               <div>
-                <span className="text-slate-400 block">Vĩ độ (Latitude)</span>
-                <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
+                <span className="text-[var(--text-secondary)] block">Vĩ độ (Latitude)</span>
+                <span className="font-mono tabular-nums font-semibold text-[var(--text-primary)]">
                   {typeof device.latitude === 'number' ? device.latitude.toFixed(6) : 'Chưa có'}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block">Kinh độ (Longitude)</span>
-                <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
+                <span className="text-[var(--text-secondary)] block">Kinh độ (Longitude)</span>
+                <span className="font-mono tabular-nums font-semibold text-[var(--text-primary)]">
                   {typeof device.longitude === 'number' ? device.longitude.toFixed(6) : 'Chưa có'}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block">Độ chính xác (Accuracy)</span>
-                <span className="font-mono tabular-nums font-semibold text-slate-800 dark:text-slate-200">
-                  {device.accuracy ? `±${device.accuracy}m` : 'Tiêu chuẩn'}
+                <span className="text-[var(--text-secondary)] block">Độ chính xác</span>
+                <span className="font-mono tabular-nums font-semibold text-[var(--text-primary)]">
+                  {device.accuracy ? `±${device.accuracy} m` : 'Tiêu chuẩn'}
                 </span>
               </div>
             </div>
@@ -656,22 +668,23 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                   href={`https://www.google.com/maps?q=${device.latitude},${device.longitude}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition cursor-pointer text-xs flex items-center gap-1"
+                  className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] font-medium transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer text-xs flex items-center gap-2"
                 >
                   <span>Mở Google Maps</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-4 h-4" strokeWidth={1.5} />
                 </a>
               )}
               <button
                 onClick={() => navigate('/report')}
-                className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition cursor-pointer text-xs flex items-center gap-1"
+                className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] border border-[var(--border-strong)] text-[var(--text-primary)] font-medium transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer text-xs flex items-center gap-2"
               >
-                <span>📱 Mở Báo Cáo Trên ĐT</span>
+                <Smartphone className="w-4 h-4" strokeWidth={1.5} />
+                <span>Mở báo cáo trên điện thoại</span>
               </button>
             </div>
           </div>
 
-          <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="rounded-[var(--radius-card)] overflow-hidden border border-[var(--border)] shadow-[var(--shadow-card)]">
             <DeviceMap selectedDevice={device} height="480px" />
           </div>
         </div>
@@ -680,33 +693,53 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
       {/* Tab: Danh bạ & SĐT Phụ Huynh / Khẩn Cấp */}
       {activeTab === 'contacts' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="p-6 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-indigo-500" />
-                  <span>Danh Bạ & Số Điện Thoại Khẩn Cấp ({contacts.length})</span>
+                <h3 className="font-semibold text-base text-[var(--text-primary)] flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+                  <span>Danh bạ và số điện thoại khẩn cấp (<span className="font-mono tabular-nums">{contacts.length}</span>)</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
                   Số điện thoại người thân để liên hệ ngay khi học sinh gặp sự cố hoặc cảnh báo giờ học
                 </p>
               </div>
 
               {contacts.length > 0 && (
-                <button
-                  onClick={handleClearAllContacts}
-                  disabled={isDeletingAllContacts}
-                  className="py-1.5 px-3 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 text-xs font-semibold transition cursor-pointer self-start"
-                >
-                  Xoá toàn bộ danh bạ
-                </button>
+                !confirmClearContactsOpen ? (
+                  <button
+                    onClick={() => setConfirmClearContactsOpen(true)}
+                    className="h-8 px-3 rounded-[var(--radius-control)] bg-[var(--danger-soft)] border border-[var(--danger-border)] text-[var(--danger)] hover:bg-[#A82834] hover:text-white text-xs font-medium transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer self-start"
+                  >
+                    Xóa toàn bộ danh bạ
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setConfirmClearContactsOpen(false)}
+                      className="h-8 px-3 rounded-[var(--radius-control)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-primary)] cursor-pointer"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      onClick={handleClearAllContacts}
+                      disabled={isDeletingAllContacts}
+                      className="h-8 px-3 rounded-[var(--radius-control)] bg-[#A82834] text-white text-xs font-medium cursor-pointer disabled:opacity-50"
+                    >
+                      {isDeletingAllContacts ? 'Đang xóa' : 'Xác nhận xóa hết'}
+                    </button>
+                  </div>
+                )
               )}
             </div>
 
             {/* Add Contact Form */}
-            <form onSubmit={handleAddContact} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
-              <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">
-                + Thêm Số Điện Thoại Mới:
+            <form
+              onSubmit={handleAddContact}
+              className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] space-y-3"
+            >
+              <span className="font-semibold text-xs text-[var(--text-primary)] block">
+                Thêm số điện thoại mới
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <input
@@ -714,7 +747,7 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                   placeholder="Tên người liên hệ (VD: Mẹ Lan)"
                   value={newContactName}
                   onChange={(e) => setNewContactName(e.target.value)}
-                  className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  className="h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
                   required
                 />
                 <input
@@ -722,13 +755,13 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
                   placeholder="Số điện thoại (VD: 0901234567)"
                   value={newContactPhone}
                   onChange={(e) => setNewContactPhone(e.target.value)}
-                  className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  className="h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs font-mono text-[var(--text-primary)]"
                   required
                 />
                 <select
                   value={newContactRel}
                   onChange={(e) => setNewContactRel(e.target.value)}
-                  className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100"
+                  className="h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)]"
                 >
                   <option value="Phụ huynh">Phụ huynh (Bố/Mẹ)</option>
                   <option value="Giáo viên">Giáo viên chủ nhiệm</option>
@@ -738,7 +771,11 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
               </div>
 
               {contactFeedback && (
-                <p className={`text-xs ${contactFeedback.type === 'success' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                <p
+                  className={`text-xs font-medium ${
+                    contactFeedback.type === 'success' ? 'text-[var(--success)]' : 'text-[var(--danger)]'
+                  }`}
+                >
                   {contactFeedback.text}
                 </p>
               )}
@@ -746,48 +783,51 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
               <button
                 type="submit"
                 disabled={isAddingContact}
-                className="py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs transition cursor-pointer"
+                className="h-9 px-4 rounded-[var(--radius-control)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] disabled:opacity-50 text-[var(--btn-primary-text)] font-medium text-xs transition-[background-color,opacity] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer"
               >
-                {isAddingContact ? 'Đang lưu...' : 'Lưu Số Điện Thoại'}
+                {isAddingContact ? 'Đang lưu' : 'Lưu số điện thoại'}
               </button>
             </form>
 
             {/* Contacts List */}
             {contacts.length === 0 ? (
-              <div className="py-8 text-center text-xs text-slate-400">
-                Chưa có số điện thoại nào trong danh bạ khẩn cấp của thiết bị này.
+              <div className="py-8 text-center text-xs text-[var(--text-muted)]">
+                Chưa có số điện thoại nào trong danh bạ khẩn cấp của thiết bị này
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 {contacts.map((c) => (
-                  <div key={c.id} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+                  <div
+                    key={c.id}
+                    className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] flex items-center justify-between gap-3"
+                  >
                     <div className="min-w-0">
-                      <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      <div className="font-semibold text-xs text-[var(--text-primary)] truncate">
                         {c.name}
                       </div>
-                      <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5">
+                      <div className="text-xs text-[var(--accent-ink)] font-mono font-medium mt-1">
                         {c.phone}
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[11px] text-[var(--text-muted)] mt-1">
                         Quan hệ: {c.relationship || 'Phụ huynh'}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <a
                         href={`tel:${c.phone}`}
-                        className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition cursor-pointer"
+                        className="h-8 w-8 rounded-[var(--radius-control)] bg-[var(--success-soft)] text-[var(--success)] border border-[var(--success-border)] flex items-center justify-center cursor-pointer"
                         title="Gọi điện"
                       >
-                        <PhoneCall className="w-3.5 h-3.5" />
+                        <PhoneCall className="w-4 h-4" strokeWidth={1.5} />
                       </a>
                       <button
                         onClick={() => handleDeleteContact(c.id)}
                         disabled={deletingContactId === c.id}
-                        className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition cursor-pointer"
-                        title="Xoá số"
+                        className="h-8 w-8 rounded-[var(--radius-control)] bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger-border)] flex items-center justify-center cursor-pointer"
+                        title="Xóa số"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                       </button>
                     </div>
                   </div>
@@ -798,50 +838,50 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </div>
       )}
 
-      {/* Tab 1: Status & Student Info */}
+      {/* Tab: Status & Student Info */}
       {activeTab === 'status' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Box 1: Student & Hardware Info */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Thông Tin Học Sinh & Thiết Bị
+            <div className="p-6 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] space-y-4">
+              <h3 className="font-semibold text-base text-[var(--text-primary)]">
+                Thông tin học sinh và thiết bị
               </h3>
 
-              <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Họ và tên học sinh</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
+              <div className="divide-y divide-[var(--border)] text-xs">
+                <div className="py-3 flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Họ và tên học sinh</span>
+                  <span className="font-semibold text-[var(--text-primary)]">
                     {device.studentName || device.name}
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Trường đăng ký</span>
-                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                <div className="py-3 flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Trường đăng ký</span>
+                  <span className="font-medium text-[var(--accent-ink)]">
                     {device.schoolName || 'Chưa cập nhật'}
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Lớp học</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                <div className="py-3 flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Lớp học</span>
+                  <span className="font-medium text-[var(--text-primary)]">
                     {device.className || 'Chưa cập nhật'}
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Phụ huynh quản lý</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                <div className="py-3 flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Phụ huynh quản lý</span>
+                  <span className="font-medium text-[var(--text-primary)] text-right">
                     {device.ownerName} ({device.ownerEmail})
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Tên thiết bị & Nền tảng</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                <div className="py-3 flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Tên thiết bị và nền tảng</span>
+                  <span className="font-medium text-[var(--text-primary)]">
                     {device.name} · {device.platform} {device.osVersion || ''}
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between items-center">
-                  <span className="text-slate-400">Mã định danh UUID</span>
-                  <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 font-bold">
+                <div className="py-3 flex justify-between items-center gap-4">
+                  <span className="text-[var(--text-secondary)]">Mã định danh UUID</span>
+                  <span className="font-mono text-[11px] text-[var(--text-primary)] font-medium truncate">
                     {device.deviceUuid}
                   </span>
                 </div>
@@ -849,58 +889,58 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
             </div>
 
             {/* Box 2: Live Telemetry & App/Web Status */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="p-6 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                  Trạng Thái Điện Thoại Thời Gian Thực
+                <h3 className="font-semibold text-base text-[var(--text-primary)]">
+                  Trạng thái điện thoại thời gian thực
                 </h3>
                 <span
-                  className={`text-xs font-bold ${
+                  className={`text-xs font-medium ${
                     isOnline
-                      ? 'text-emerald-600 dark:text-emerald-400'
+                      ? 'text-[var(--success)]'
                       : isIdle
-                      ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-slate-500'
+                      ? 'text-[var(--warning)]'
+                      : 'text-[var(--text-muted)]'
                   }`}
                 >
-                  {device.status || 'OFFLINE'}
+                  {isOnline ? 'Trực tuyến' : isIdle ? 'Chờ' : 'Ngoại tuyến'}
                 </span>
               </div>
 
-              <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                <div className="py-2.5 flex justify-between items-center">
-                  <span className="text-slate-400">Ứng dụng đang mở hiện tại</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
+              <div className="divide-y divide-[var(--border)] text-xs">
+                <div className="py-3 flex justify-between items-center gap-4">
+                  <span className="text-[var(--text-secondary)]">Ứng dụng đang mở</span>
+                  <span className="font-semibold text-[var(--text-primary)]">
                     {device.currentApp || 'Màn hình chính'}
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between items-center">
-                  <span className="text-slate-400">Website vừa truy cập</span>
-                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                <div className="py-3 flex justify-between items-center gap-4">
+                  <span className="text-[var(--text-secondary)]">Website vừa truy cập</span>
+                  <span className="font-mono font-medium text-[var(--accent-ink)]">
                     {device.currentWebsite || 'google.com'}
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between items-center">
-                  <span className="text-slate-400">Thời gian sáng màn hình hôm nay</span>
-                  <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
+                <div className="py-3 flex justify-between items-center gap-4">
+                  <span className="text-[var(--text-secondary)]">Thời gian sáng màn hình hôm nay</span>
+                  <span className="font-mono tabular-nums font-medium text-[var(--text-primary)]">
                     {device.screenTimeMinutes ?? 0} phút
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between items-center">
-                  <span className="text-slate-400">Mức Pin & Nguồn sạc</span>
-                  <span className="font-mono tabular-nums font-bold text-slate-800 dark:text-slate-200">
+                <div className="py-3 flex justify-between items-center gap-4">
+                  <span className="text-[var(--text-secondary)]">Mức pin và nguồn sạc</span>
+                  <span className="font-mono tabular-nums font-medium text-[var(--text-primary)]">
                     {device.batteryLevel ?? 100}% {device.charging ? '· Đang cắm sạc' : ''}
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Kết nối mạng</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                <div className="py-3 flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Kết nối mạng</span>
+                  <span className="font-mono font-medium text-[var(--text-primary)]">
                     {device.networkType || 'WIFI'}
                   </span>
                 </div>
-                <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-400">Cập nhật lần cuối</span>
-                  <span className="font-mono tabular-nums text-slate-700 dark:text-slate-300">
+                <div className="py-3 flex justify-between gap-4">
+                  <span className="text-[var(--text-secondary)]">Cập nhật lần cuối</span>
+                  <span className="font-mono tabular-nums text-[var(--text-secondary)]">
                     {device.lastSeen ? new Date(device.lastSeen).toLocaleString('vi-VN') : 'Chưa có'}
                   </span>
                 </div>
@@ -909,156 +949,174 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
           </div>
 
           {/* App & Web Summary Card */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-            <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <Globe className="w-4 h-4 text-indigo-500" />
-              <span>Giám Sát Trực Tiếp App & Web</span>
+          <div className="p-6 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] space-y-4">
+            <h3 className="font-semibold text-base text-[var(--text-primary)] flex items-center gap-2">
+              <Globe className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+              <span>Giám sát trực tiếp ứng dụng và website</span>
             </h3>
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Ứng dụng mở gần nhất:</span>
-                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+            <div className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs text-[var(--text-secondary)]">Ứng dụng mở gần nhất</span>
+                <span className="px-2 py-1 rounded-[6px] text-xs font-medium bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)]">
                   {device.currentApp || 'Màn hình chính'}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Website vừa truy cập:</span>
-                <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs text-[var(--text-secondary)]">Website vừa truy cập</span>
+                <span className="font-mono text-xs font-medium text-[var(--accent-ink)]">
                   {device.currentWebsite || 'google.com'}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">Mức pin hiện tại:</span>
-                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                  {device.batteryLevel ?? 100}% {device.charging ? '⚡ Đang sạc' : ''}
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs text-[var(--text-secondary)]">Mức pin hiện tại</span>
+                <span className="font-mono tabular-nums text-xs font-medium text-[var(--text-primary)]">
+                  {device.batteryLevel ?? 100}% {device.charging ? '· Đang sạc' : ''}
                 </span>
               </div>
             </div>
             <button
               onClick={() => setActiveTab('usage')}
-              className="w-full py-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition cursor-pointer"
+              className="w-full h-10 px-4 rounded-[var(--radius-control)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] text-xs font-medium transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer"
             >
-              Xem Chi Tiết Lịch Sử App & Web ↗
+              Xem chi tiết lịch sử ứng dụng và website
             </button>
           </div>
         </div>
       )}
 
-      {/* Tab 2: App & Web Usage Management */}
+      {/* Tab: App & Web Usage Management */}
       {activeTab === 'usage' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* App Usage List */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Ứng Dụng Đã Sử Dụng Trên Điện Thoại ({appUsages.length})
+          <div className="bg-[var(--surface)] rounded-[var(--radius-card)] border border-[var(--border)] shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--border)]">
+              <h3 className="font-semibold text-base text-[var(--text-primary)]">
+                Ứng dụng đã sử dụng (<span className="font-mono tabular-nums">{appUsages.length}</span>)
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Phụ huynh & Giáo viên có thể chặn ứng dụng giải trí/game trong giờ học
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Phụ huynh và giáo viên có thể chặn ứng dụng giải trí trong giờ học
               </p>
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {appUsages.map((app) => (
-                <div
-                  key={app.id}
-                  className="px-6 py-4 flex items-center justify-between gap-4"
-                >
-                  <div className="min-w-0">
-                    <div className="font-bold text-sm text-slate-900 dark:text-white">
-                      {app.appName}
-                      {app.isRunning && !app.isBlocked && (
-                        <span className="ml-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                          · Đang mở
-                        </span>
-                      )}
-                      {app.isBlocked && (
-                        <span className="ml-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
-                          · Đã bị chặn
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">
-                      Thời lượng: {app.durationMinutes} phút · Gói: {app.packageName}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleToggleBlock('APP', app.appName)}
-                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                      app.isBlocked
-                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                        : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60'
-                    }`}
+            <div className="divide-y divide-[var(--border)]">
+              {appUsages.map((app) => {
+                const pct =
+                  totalAppMinutes > 0
+                    ? Math.min(100, Math.max(3, Math.round((app.durationMinutes / totalAppMinutes) * 100)))
+                    : 0;
+                return (
+                  <div
+                    key={app.id}
+                    className="px-6 py-4 flex items-center justify-between gap-4"
                   >
-                    {app.isBlocked ? (
-                      <>
-                        <Unlock className="w-3.5 h-3.5" />
-                        <span>Mở khóa</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Chặn App</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              ))}
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="font-semibold text-sm text-[var(--text-primary)]">
+                        {app.appName}
+                        {app.isRunning && !app.isBlocked && (
+                          <span className="ml-2 text-xs font-medium text-[var(--success)]">
+                            · Đang mở
+                          </span>
+                        )}
+                        {app.isBlocked && (
+                          <span className="ml-2 text-xs font-medium text-[var(--danger)]">
+                            · Đã bị chặn
+                          </span>
+                        )}
+                      </div>
+                      <div className="w-full h-1 rounded-full bg-[var(--surface-muted)] overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            app.isBlocked
+                              ? 'bg-[var(--danger)]'
+                              : app.category === 'EDUCATION'
+                              ? 'bg-[var(--accent)]'
+                              : 'bg-[var(--warning)]'
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-[var(--text-secondary)] font-mono tabular-nums">
+                        {app.durationMinutes} phút · {app.packageName}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleToggleBlock('APP', app.appName)}
+                      className={`h-8 px-3 rounded-[var(--radius-control)] text-xs font-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap border transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] ${
+                        app.isBlocked
+                          ? 'bg-[var(--surface-muted)] border-[var(--border)] text-[var(--text-primary)]'
+                          : 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger-border)] hover:bg-[#A82834] hover:text-white'
+                      }`}
+                    >
+                      {app.isBlocked ? (
+                        <>
+                          <Unlock className="w-4 h-4" strokeWidth={1.5} />
+                          <span>Mở khóa</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4" strokeWidth={1.5} />
+                          <span>Chặn app</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {/* Web History List */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                Lịch Sử Truy Cập Website ({webHistory.length})
+          <div className="bg-[var(--surface)] rounded-[var(--radius-card)] border border-[var(--border)] shadow-[var(--shadow-card)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--border)]">
+              <h3 className="font-semibold text-base text-[var(--text-primary)]">
+                Lịch sử truy cập website (<span className="font-mono tabular-nums">{webHistory.length}</span>)
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Danh sách tên miền và trang web học sinh đã mở trên trình duyệt
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Danh sách tên miền học sinh đã mở trên trình duyệt
               </p>
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-[var(--border)]">
               {webHistory.map((web) => (
                 <div
                   key={web.id}
                   className="px-6 py-4 flex items-center justify-between gap-4"
                 >
                   <div className="min-w-0">
-                    <div className="font-bold text-sm text-indigo-600 dark:text-indigo-400 font-mono">
+                    <div className="font-semibold text-sm text-[var(--accent-ink)] font-mono">
                       {web.domain}
                       {web.isBlocked && (
-                        <span className="ml-2 text-xs font-sans font-semibold text-rose-600 dark:text-rose-400">
+                        <span className="ml-2 text-xs font-sans font-medium text-[var(--danger)]">
                           · Đã chặn
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-800 dark:text-slate-200 truncate mt-0.5">
+                    <div className="text-xs text-[var(--text-primary)] truncate mt-1">
                       {web.pageTitle}
                     </div>
-                    <div className="text-xs text-slate-500 font-mono tabular-nums mt-0.5">
+                    <div className="text-xs text-[var(--text-secondary)] font-mono tabular-nums mt-1">
                       {web.visitCount} lần truy cập · {web.durationMinutes} phút
                     </div>
                   </div>
 
                   <button
                     onClick={() => handleToggleBlock('WEB', web.domain)}
-                    className={`py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    className={`h-8 px-3 rounded-[var(--radius-control)] text-xs font-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap border transition-[color,background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] ${
                       web.isBlocked
-                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                        : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60'
+                        ? 'bg-[var(--surface-muted)] border-[var(--border)] text-[var(--text-primary)]'
+                        : 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger-border)] hover:bg-[#A82834] hover:text-white'
                     }`}
                   >
                     {web.isBlocked ? (
                       <>
-                        <Unlock className="w-3.5 h-3.5" />
+                        <Unlock className="w-4 h-4" strokeWidth={1.5} />
                         <span>Bỏ chặn</span>
                       </>
                     ) : (
                       <>
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Chặn Web</span>
+                        <Lock className="w-4 h-4" strokeWidth={1.5} />
+                        <span>Chặn web</span>
                       </>
                     )}
                   </button>
@@ -1069,35 +1127,33 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </div>
       )}
 
-
-
-      {/* Tab 5: Activity Log */}
+      {/* Tab: Activity Log */}
       {activeTab === 'activity' && (
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-          <h3 className="font-bold text-base text-slate-900 dark:text-white">
-            Nhật Ký Hoạt Động Của Thiết Bị Học Sinh
+        <div className="p-6 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] space-y-4">
+          <h3 className="font-semibold text-base text-[var(--text-primary)]">
+            Nhật ký hoạt động của thiết bị
           </h3>
 
           {activities.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400">
-              Chưa có sự kiện hoạt động nào cho thiết bị này.
+            <div className="py-12 text-center text-xs text-[var(--text-muted)]">
+              Chưa có sự kiện hoạt động nào cho thiết bị này
             </div>
           ) : (
             <div className="space-y-3">
               {activities.map((act) => (
                 <div
                   key={act.id}
-                  className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 text-xs flex items-start justify-between gap-4"
+                  className="p-4 rounded-[var(--radius-control)] bg-[var(--surface-muted)]/60 border border-[var(--border)] text-xs flex items-start justify-between gap-4"
                 >
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-white">
+                    <div className="font-semibold text-[var(--text-primary)] font-mono">
                       {act.type}
                     </div>
-                    <p className="text-slate-600 dark:text-slate-300 mt-1">
+                    <p className="text-[var(--text-secondary)] mt-1">
                       {act.description}
                     </p>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-mono tabular-nums shrink-0">
+                  <span className="text-xs text-[var(--text-muted)] font-mono tabular-nums shrink-0">
                     {new Date(act.timestamp).toLocaleString('vi-VN')}
                   </span>
                 </div>
@@ -1107,29 +1163,33 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         </div>
       )}
 
-      {/* Tab 6: Mobile App REST API Documentation */}
+      {/* Tab: Mobile App REST API Documentation */}
       {activeTab === 'api' && (
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="p-6 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-base text-slate-900 dark:text-white">
-                REST API Gửi Telemetry App, Web & GPS
+              <h3 className="font-semibold text-base text-[var(--text-primary)]">
+                REST API gửi telemetry ứng dụng, web và GPS
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Mã cURL tích hợp ứng dụng trên điện thoại học sinh gửi thông tin App đang mở và Website truy cập
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                Mẫu lệnh cURL tích hợp vào ứng dụng di động gửi trạng thái đang mở và website truy cập
               </p>
             </div>
 
             <button
               onClick={() => copyToClipboard(curlLocationExample)}
-              className="py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+              className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-medium text-[var(--text-primary)] flex items-center gap-2 transition-[background-color] duration-[var(--duration-fast)] ease-[var(--ease-standard)] cursor-pointer self-start sm:self-center"
             >
-              {copiedCurl ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedCurl ? (
+                <Check className="w-4 h-4 text-[var(--success)]" strokeWidth={1.5} />
+              ) : (
+                <Copy className="w-4 h-4" strokeWidth={1.5} />
+              )}
               <span>{copiedCurl ? 'Đã sao chép' : 'Sao chép cURL'}</span>
             </button>
           </div>
 
-          <pre className="p-4 rounded-xl bg-slate-950 text-slate-200 text-xs overflow-x-auto font-mono leading-relaxed border border-slate-800">
+          <pre className="p-4 rounded-[var(--radius-control)] bg-[#121417] text-[#F0F2F5] text-xs overflow-x-auto font-mono leading-relaxed border border-[var(--border)]">
             {curlLocationExample}
           </pre>
         </div>

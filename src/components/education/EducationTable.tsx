@@ -24,31 +24,31 @@ export function EducationTable<T>({
 }: EducationTableProps<T>) {
   if (isLoading) {
     return (
-      <div className="py-16 text-center text-[#60758D] flex flex-col items-center justify-center gap-2">
-        <div className="w-8 h-8 border-3 border-[#0057B8] border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs font-semibold">Đang tải dữ liệu trường học...</span>
+      <div className="py-16 text-center text-[var(--text-secondary)] flex flex-col items-center justify-center gap-2">
+        <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs font-medium">Đang tải dữ liệu trường học</span>
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="py-14 px-4 text-center rounded-[20px] bg-[#F5F9FD] border border-dashed border-[#DCE7F2] my-3">
-        <p className="text-sm font-semibold text-[#60758D]">{emptyMessage}</p>
+      <div className="py-12 px-4 text-center rounded-[var(--radius-card)] bg-[var(--surface-muted)]/60 border border-[var(--border)]">
+        <p className="text-sm font-medium text-[var(--text-secondary)]">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-[20px] border border-[#DCE7F2] bg-white shadow-2xs">
+    <div className="w-full overflow-hidden rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-card)]">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
-            <tr className="bg-[#EAF5FF]/80 border-b border-[#DCE7F2]">
+            <tr className="bg-[var(--surface-muted)] border-b border-[var(--border)]">
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className={`px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-[#003B7A] ${
+                  className={`px-4 py-3 text-xs font-medium text-[var(--text-secondary)] ${
                     col.className || ''
                   }`}
                 >
@@ -57,16 +57,16 @@ export function EducationTable<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#DCE7F2]/70 text-[#172B4D]">
+          <tbody className="divide-y divide-[var(--border)] text-[var(--text-primary)]">
             {data.map((item, index) => (
               <tr
                 key={keyExtractor(item)}
-                className="hover:bg-[#F5F9FD] transition-colors duration-150"
+                className="hover:bg-[var(--surface-muted)]/40 transition-colors duration-[var(--duration-fast)]"
               >
                 {columns.map((col, cIdx) => (
                   <td
                     key={cIdx}
-                    className={`px-5 py-4 align-middle font-medium ${col.className || ''}`}
+                    className={`px-4 py-3.5 align-middle font-normal ${col.className || ''}`}
                   >
                     {col.render
                       ? col.render(item, index)
