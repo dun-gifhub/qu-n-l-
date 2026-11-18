@@ -47,7 +47,7 @@ function AppContent() {
 
   const navigate = (path: string, options?: { message?: string }) => {
     window.history.pushState({}, '', path);
-    setCurrentPath(path);
+    setCurrentPath(path.split('?')[0] || '/');
     if (options?.message) {
       setNavMessage(options.message);
     } else {

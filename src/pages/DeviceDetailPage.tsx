@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import {
   Device,
   DeviceLocation,
@@ -31,7 +32,33 @@ import {
   Route,
   SlidersHorizontal,
   ListChecks,
+  UserCheck,
+  ShieldOff,
+  ShieldCheck,
+  Calendar,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
+
+const EXCUSE_PRESETS = [
+  'Nghỉ ốm có phép',
+  'Ôn / Thi HSG',
+  'Việc gia đình có phép',
+  'Hoạt động ngoại khóa',
+];
+
+function getTodayVN(): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
 
 interface DeviceDetailPageProps {
   deviceId: string;
@@ -45,6 +72,9 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   navigate,
   initialTab = 'history',
 }) => {
+  const { user } = useAuth();
+  const canManageExcuse = user?.role === 'ADMIN' || user?.role === 'TEACHER';
+
   const [device, setDevice] = useState<Device | null>(null);
   const [history, setHistory] = useState<DeviceLocation[]>([]);
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
@@ -73,6 +103,13 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
   const [editClassName, setEditClassName] = useState('');
   const [copiedCurl, setCopiedCurl] = useState(false);
   const [copiedGps, setCopiedGps] = useState(false);
+
+  const [isExcuseOpen, setIsExcuseOpen] = useState(false);
+  const [excuseReasonInput, setExcuseReasonInput] = useState('Nghỉ ốm có phép');
+  const [excuseDurationMode, setExcuseDurationMode] = useState<'TODAY' | 'UNTIL' | 'INDEFINITE'>('TODAY');
+  const [excuseUntilInput, setExcuseUntilInput] = useState(getTodayVN());
+  const [isSavingExcuse, setIsSavingExcuse] = useState(false);
+  const [excuseFeedback, setExcuseFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const copyGpsHistory = () => {
     if (history.length === 0) return;
@@ -103,6 +140,16 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
         setEditStudentName(devRes.data.studentName || '');
         setEditSchoolName(devRes.data.schoolName || '');
         setEditClassName(devRes.data.className || '');
+        if (devRes.data.excuseReason) {
+          setExcuseReasonInput(devRes.data.excuseReason);
+        }
+        if (devRes.data.excuseUntil) {
+          const todayVN = getTodayVN();
+          setExcuseDurationMode(devRes.data.excuseUntil === todayVN ? 'TODAY' : 'UNTIL');
+          setExcuseUntilInput(devRes.data.excuseUntil);
+        } else if (devRes.data.isExcused) {
+          setExcuseDurationMode('INDEFINITE');
+        }
       }
       if (histRes.success && histRes.data) {
         setHistory(histRes.data);
@@ -207,6 +254,62 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
     setIsDeleting(false);
     if (res.success) {
       navigate('/devices');
+    }
+  };
+
+  const handleSaveExcuse = async () => {
+    const cleanReason = excuseReasonInput.trim();
+    if (!cleanReason) {
+      setExcuseFeedback({ type: 'error', text: 'Vui lòng nhập hoặc chọn lý do nghỉ học hợp lệ.' });
+      return;
+    }
+
+    const excuseUntil =
+      excuseDurationMode === 'TODAY'
+        ? getTodayVN()
+        : excuseDurationMode === 'UNTIL'
+        ? excuseUntilInput || getTodayVN()
+        : undefined;
+
+    setIsSavingExcuse(true);
+    setExcuseFeedback(null);
+    const res = await api.setDeviceExcuse(deviceId, {
+      isExcused: true,
+      excuseReason: cleanReason,
+      excuseUntil,
+    });
+    setIsSavingExcuse(false);
+
+    if (res.success && res.data) {
+      setDevice(res.data);
+      setIsExcuseOpen(false);
+      setExcuseFeedback({
+        type: 'success',
+        text: `Đã duyệt đặc cách nghỉ học: ${cleanReason}. Thiết bị sẽ không báo cảnh báo dùng trong giờ học.`,
+      });
+    } else {
+      setExcuseFeedback({ type: 'error', text: res.message || 'Không thể lưu đặc cách nghỉ.' });
+    }
+  };
+
+  const handleRevokeExcuse = async () => {
+    setIsSavingExcuse(true);
+    setExcuseFeedback(null);
+    const res = await api.setDeviceExcuse(deviceId, {
+      isExcused: false,
+      excuseReason: '',
+    });
+    setIsSavingExcuse(false);
+
+    if (res.success && res.data) {
+      setDevice(res.data);
+      setIsExcuseOpen(false);
+      setExcuseFeedback({
+        type: 'success',
+        text: 'Đã mở lại giám sát giờ học bình thường cho học sinh này.',
+      });
+    } else {
+      setExcuseFeedback({ type: 'error', text: res.message || 'Không thể hủy đặc cách.' });
     }
   };
 
@@ -430,6 +533,231 @@ export const DeviceDetailPage: React.FC<DeviceDetailPageProps> = ({
             <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
             <span>Khôi phục trạng thái</span>
           </button>
+        </div>
+      )}
+
+      {/* Excused Absence Card (Đặc cách học sinh nghỉ có lý do) */}
+      {(canManageExcuse || device.isExcused) && (
+        <div
+          className={`p-4 rounded-[var(--radius-card)] border shadow-[var(--shadow-card)] space-y-4 ${
+            device.isExcused
+              ? 'bg-[var(--accent-soft)] border-[var(--accent-border)]'
+              : 'bg-[var(--surface)] border-[var(--border)]'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div
+                className={`w-9 h-9 rounded-[var(--radius-control)] border flex items-center justify-center shrink-0 ${
+                  device.isExcused
+                    ? 'bg-[var(--surface)] border-[var(--accent-border)] text-[var(--accent-ink)]'
+                    : 'bg-[var(--surface-muted)] border-[var(--border)] text-[var(--text-secondary)]'
+                }`}
+              >
+                <UserCheck className="w-4 h-4" strokeWidth={1.5} />
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">
+                    Đặc cách học sinh nghỉ có lý do
+                  </span>
+                  {device.isExcused ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-[var(--surface)] text-[var(--accent-ink)] border border-[var(--accent-border)]">
+                      <ShieldOff className="w-3.5 h-3.5" strokeWidth={1.5} />
+                      <span>Đang nghỉ có phép</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-[var(--surface-muted)] text-[var(--text-secondary)] border border-[var(--border)]">
+                      <ShieldCheck className="w-3.5 h-3.5" strokeWidth={1.5} />
+                      <span>Giám sát giờ học bình thường</span>
+                    </span>
+                  )}
+                </div>
+
+                {device.isExcused ? (
+                  <p className="text-xs text-[var(--text-primary)]">
+                    Lý do: <strong className="font-medium">{device.excuseReason || 'Nghỉ có phép'}</strong>
+                    {' · '}
+                    <span className="font-mono tabular-nums">
+                      {device.excuseUntil ? `Đến hết ngày ${device.excuseUntil}` : 'Cho đến khi mở lại'}
+                    </span>
+                    {device.excusedBy ? ` · Duyệt bởi ${device.excusedBy}` : ''}
+                  </p>
+                ) : (
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    Dùng khi học sinh nghỉ ốm, đi thi HSG hoặc vắng có phép để hệ thống không báo cảnh báo dùng điện thoại trong giờ học.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {canManageExcuse && (
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => navigate('/schedules')}
+                  className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <span>Giờ học cả khối</span>
+                </button>
+
+                {device.isExcused && (
+                  <button
+                    type="button"
+                    disabled={isSavingExcuse}
+                    onClick={handleRevokeExcuse}
+                    className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-primary)] cursor-pointer disabled:opacity-50"
+                  >
+                    Mở lại giám sát
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExcuseFeedback(null);
+                    setIsExcuseOpen(!isExcuseOpen);
+                  }}
+                  className={`h-9 px-3 rounded-[var(--radius-control)] text-xs font-medium cursor-pointer border transition-colors ${
+                    isExcuseOpen
+                      ? 'bg-[var(--surface)] border-[var(--border-strong)] text-[var(--text-primary)]'
+                      : 'bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] border-transparent text-[var(--btn-primary-text)]'
+                  }`}
+                >
+                  {isExcuseOpen
+                    ? 'Đóng'
+                    : device.isExcused
+                    ? 'Sửa lý do / thời hạn'
+                    : 'Đặc cách cho nghỉ'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {excuseFeedback && (
+            <div
+              className={`p-3 rounded-[var(--radius-control)] border text-xs flex items-center gap-2 ${
+                excuseFeedback.type === 'success'
+                  ? 'bg-[var(--success-soft)] border-[var(--success-border)] text-[var(--success)]'
+                  : 'bg-[var(--danger-soft)] border-[var(--danger-border)] text-[var(--danger)]'
+              }`}
+            >
+              {excuseFeedback.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+              )}
+              <span>{excuseFeedback.text}</span>
+            </div>
+          )}
+
+          {isExcuseOpen && canManageExcuse && (
+            <div className="p-4 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--border)] space-y-4">
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                  Lý do nghỉ học
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {EXCUSE_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setExcuseReasonInput(preset)}
+                      className={`h-8 px-3 rounded-[var(--radius-control)] text-xs font-medium border cursor-pointer ${
+                        excuseReasonInput === preset
+                          ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+                          : 'bg-[var(--surface-muted)] text-[var(--text-secondary)] border-[var(--border)]'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={excuseReasonInput}
+                  onChange={(e) => setExcuseReasonInput(e.target.value)}
+                  placeholder="Nhập lý do cụ thể cho học sinh"
+                  className="w-full h-10 px-3 bg-[var(--surface-muted)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                  Thời hạn áp dụng
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExcuseDurationMode('TODAY')}
+                    className={`h-9 px-3 rounded-[var(--radius-control)] text-xs font-medium border inline-flex items-center gap-1.5 cursor-pointer ${
+                      excuseDurationMode === 'TODAY'
+                        ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+                        : 'bg-[var(--surface-muted)] text-[var(--text-secondary)] border-[var(--border)]'
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    <span>Chỉ hôm nay</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExcuseDurationMode('UNTIL')}
+                    className={`h-9 px-3 rounded-[var(--radius-control)] text-xs font-medium border inline-flex items-center gap-1.5 cursor-pointer ${
+                      excuseDurationMode === 'UNTIL'
+                        ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+                        : 'bg-[var(--surface-muted)] text-[var(--text-secondary)] border-[var(--border)]'
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    <span>Đến hết ngày</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExcuseDurationMode('INDEFINITE')}
+                    className={`h-9 px-3 rounded-[var(--radius-control)] text-xs font-medium border inline-flex items-center gap-1.5 cursor-pointer ${
+                      excuseDurationMode === 'INDEFINITE'
+                        ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+                        : 'bg-[var(--surface-muted)] text-[var(--text-secondary)] border-[var(--border)]'
+                    }`}
+                  >
+                    <ShieldOff className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    <span>Cho đến khi mở lại</span>
+                  </button>
+
+                  {excuseDurationMode === 'UNTIL' && (
+                    <input
+                      type="date"
+                      value={excuseUntilInput}
+                      min={getTodayVN()}
+                      onChange={(e) => setExcuseUntilInput(e.target.value)}
+                      className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface-muted)] border border-[var(--border-strong)] text-xs font-mono tabular-nums text-[var(--text-primary)]"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsExcuseOpen(false)}
+                  className="h-9 px-3 rounded-[var(--radius-control)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-secondary)] cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingExcuse}
+                  onClick={handleSaveExcuse}
+                  className="h-9 px-4 rounded-[var(--radius-control)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] text-xs font-medium cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingExcuse ? 'Đang lưu...' : 'Lưu đặc cách nghỉ'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

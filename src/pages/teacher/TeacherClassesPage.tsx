@@ -4,12 +4,14 @@ import { Device } from '../../types/index.ts';
 import { EducationButton } from '../../components/education/EducationButton.tsx';
 import { EducationBadge } from '../../components/education/EducationBadge.tsx';
 import { GradeScheduleManager } from '../../components/Schedule/GradeScheduleManager.tsx';
+import { StudentExcuseManager } from '../../components/Schedule/StudentExcuseManager.tsx';
 import {
   BookOpen,
   ArrowRight,
   Plus,
   Search,
   Clock,
+  UserCheck,
 } from 'lucide-react';
 
 interface TeacherClassesPageProps {
@@ -20,7 +22,7 @@ export const TeacherClassesPage: React.FC<TeacherClassesPageProps> = ({ navigate
   const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'classes' | 'schedules'>('classes');
+  const [activeTab, setActiveTab] = useState<'classes' | 'schedules' | 'excuse'>('classes');
 
   const loadDevices = () => {
     api.getDevices().then((res) => {
@@ -120,10 +122,25 @@ export const TeacherClassesPage: React.FC<TeacherClassesPageProps> = ({ navigate
           <Clock className="w-4 h-4" strokeWidth={1.5} />
           <span>Giờ học & lịch nghỉ theo khối</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('excuse')}
+          className={`h-9 px-3.5 rounded-[var(--radius-control)] text-xs font-medium inline-flex items-center gap-2 border transition-colors duration-[var(--duration-fast)] cursor-pointer ${
+            activeTab === 'excuse'
+              ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+              : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--surface-muted)]'
+          }`}
+        >
+          <UserCheck className="w-4 h-4" strokeWidth={1.5} />
+          <span>Đặc cách học sinh nghỉ có lý do</span>
+        </button>
       </div>
 
       {activeTab === 'schedules' ? (
         <GradeScheduleManager onSchedulesChanged={loadDevices} />
+      ) : activeTab === 'excuse' ? (
+        <StudentExcuseManager onChanged={loadDevices} />
       ) : (
         <>
       {/* Search Bar */}

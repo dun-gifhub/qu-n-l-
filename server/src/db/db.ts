@@ -410,6 +410,11 @@ export async function initDatabase(overrideDbUrl?: string): Promise<{ isPostgres
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "lastHeartbeatAt" TEXT;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "inClassAlert" BOOLEAN DEFAULT false;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "isNoNetwork" BOOLEAN DEFAULT false;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "isExcused" BOOLEAN DEFAULT false;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "excuseReason" TEXT DEFAULT '';
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "excuseUntil" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "excusedBy" TEXT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS "excusedAt" TEXT;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "lastSeen" TEXT;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "createdAt" TEXT;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS "updatedAt" TEXT;
@@ -534,6 +539,11 @@ export async function initDatabase(overrideDbUrl?: string): Promise<{ isPostgres
               lastHeartbeatAt: raw.lastHeartbeatAt ?? raw.lastheartbeatat ?? raw.lastSeen ?? raw.lastseen,
               inClassAlert: Boolean(raw.inClassAlert ?? raw.inclassalert),
               isNoNetwork: Boolean(raw.isNoNetwork ?? raw.isnonetwork),
+              isExcused: Boolean(raw.isExcused ?? raw.isexcused),
+              excuseReason: raw.excuseReason ?? raw.excusereason ?? '',
+              excuseUntil: raw.excuseUntil ?? raw.excuseuntil,
+              excusedBy: raw.excusedBy ?? raw.excusedby,
+              excusedAt: raw.excusedAt ?? raw.excusedat,
               lastSeen: raw.lastSeen ?? raw.lastseen ?? raw.updatedAt ?? raw.updatedat ?? new Date().toISOString(),
               createdAt: raw.createdAt ?? raw.createdat ?? new Date().toISOString(),
               updatedAt: raw.updatedAt ?? raw.updatedat ?? new Date().toISOString(),
@@ -950,6 +960,7 @@ export function getVietnamDateParts(now: Date = new Date()): {
   totalMinutes: number;
   timeFormatted: string;
   dateFormatted: string;
+  isoDateVN: string;
 } {
   const vnMs = now.getTime() + 7 * 3600 * 1000;
   const vnDate = new Date(vnMs);
@@ -958,14 +969,36 @@ export function getVietnamDateParts(now: Date = new Date()): {
   const minutes = vnDate.getUTCMinutes();
   const totalMinutes = hours * 60 + minutes;
   const pad = (n: number) => String(n).padStart(2, '0');
+  const year = vnDate.getUTCFullYear();
+  const month = pad(vnDate.getUTCMonth() + 1);
+  const day = pad(vnDate.getUTCDate());
   return {
     dayOfWeek,
     hours,
     minutes,
     totalMinutes,
     timeFormatted: `${pad(hours)}:${pad(minutes)}`,
-    dateFormatted: `${pad(vnDate.getUTCDate())}/${pad(vnDate.getUTCMonth() + 1)}/${vnDate.getUTCFullYear()}`,
+    dateFormatted: `${day}/${month}/${year}`,
+    isoDateVN: `${year}-${month}-${day}`,
   };
+}
+
+function normalizeExcuseDateToIso(raw?: string): string {
+  const s = (raw || '').trim();
+  if (!s) return '';
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (isoMatch) return s;
+  const vnMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  if (vnMatch) return `${vnMatch[3]}-${vnMatch[2]}-${vnMatch[1]}`;
+  return s;
+}
+
+export function isDeviceCurrentlyExcused(d: Pick<DeviceRecord, 'isExcused' | 'excuseUntil'>, now: Date = new Date()): boolean {
+  if (!d.isExcused) return false;
+  const until = normalizeExcuseDateToIso(d.excuseUntil);
+  if (!until) return true;
+  const vn = getVietnamDateParts(now);
+  return vn.isoDateVN <= until;
 }
 
 function parseHHMMToMinutes(timeStr: string): number | null {
@@ -1064,7 +1097,8 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
   const computedStatus = isSuspectedUninstalled ? 'OFFLINE' : (isHeartbeatFresh && !isNoNet ? 'ONLINE' : 'OFFLINE');
   const effectiveGrade = d.grade || owner?.grade || inferGradeFromClass(d.className) || '';
   const classEval = evaluateGradeInClassHours(state, effectiveGrade, d.className);
-  const inClass = computedStatus === 'ONLINE' && !isNoNet && classEval.inClass;
+  const activeExcused = isDeviceCurrentlyExcused(d);
+  const inClass = !activeExcused && computedStatus === 'ONLINE' && !isNoNet && classEval.inClass;
   const disconnectReason = d.disconnectReason || (isHeartbeatTimeout ? 'Mất kết nối / Có thể đã gỡ cài đặt' : (d.isUninstalled ? 'Đã gỡ cài đặt' : undefined));
 
   return {
@@ -1105,6 +1139,11 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
     lastHeartbeatAt: d.lastSeen,
     inClassAlert: inClass,
     isNoNetwork: isNoNet,
+    isExcused: activeExcused,
+    excuseReason: activeExcused ? (d.excuseReason || '') : '',
+    excuseUntil: activeExcused ? d.excuseUntil : undefined,
+    excusedBy: activeExcused ? d.excusedBy : undefined,
+    excusedAt: activeExcused ? d.excusedAt : undefined,
   };
 }
 
@@ -1751,9 +1790,10 @@ export const dbService = {
           timestamp: nowIso,
         });
 
-        // Check if currently in class hours for this device's grade
+        // Check if currently in class hours for this device's grade (and student is not excused)
         const scheduleEval = evaluateGradeInClassHours(state, device.grade, device.className);
-        if (!report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass) {
+        const excusedNow = isDeviceCurrentlyExcused(device);
+        if (!excusedNow && !report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass) {
           device.inClassAlert = true;
           state.activities.unshift({
             id: 'act_' + Date.now() + '_inclass',
@@ -1773,11 +1813,11 @@ export const dbService = {
         }
       } else {
         const scheduleEval = evaluateGradeInClassHours(state, device.grade, device.className);
-        device.inClassAlert = !report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass;
+        device.inClassAlert = !isDeviceCurrentlyExcused(device) && !report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass;
       }
     } else {
       const scheduleEval = evaluateGradeInClassHours(state, device.grade, device.className);
-      device.inClassAlert = !report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass;
+      device.inClassAlert = !isDeviceCurrentlyExcused(device) && !report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass;
     }
 
     if (report.currentWebsite && report.currentWebsite.trim()) {
@@ -2640,7 +2680,7 @@ export const dbService = {
         });
       }
       const scheduleEval = evaluateGradeInClassHours(state, d.grade, d.className);
-      d.inClassAlert = d.status !== 'OFFLINE' && !d.isUninstalled && !d.isNoNetwork && scheduleEval.inClass;
+      d.inClassAlert = !isDeviceCurrentlyExcused(d) && d.status !== 'OFFLINE' && !d.isUninstalled && !d.isNoNetwork && scheduleEval.inClass;
     }
 
     writeLocalDB(state);
@@ -3396,5 +3436,73 @@ export const dbService = {
 
     const res = await this.getGradeSchedules();
     return res.schedules;
+  },
+
+  async setDeviceExcuse(
+    deviceId: string,
+    requestingUserId: string,
+    payload: { isExcused: boolean; excuseReason?: string; excuseUntil?: string }
+  ): Promise<DeviceRecord | null> {
+    const state = readLocalDB();
+    const user = state.users.find((u) => u.id === requestingUserId);
+    const d = state.devices.find((x) => x.id === deviceId);
+    if (!user || !d) return null;
+
+    const enriched = enrichDevice(d, state);
+    if (!canUserAccessDevice(user, enriched)) return null;
+
+    const nowIso = new Date().toISOString();
+    const isExcused = Boolean(payload.isExcused);
+    const reason = isExcused ? (payload.excuseReason || '').trim() || 'Nghỉ có phép' : '';
+    const untilNormalized = normalizeExcuseDateToIso(payload.excuseUntil);
+    const until = isExcused && untilNormalized ? untilNormalized : undefined;
+
+    d.isExcused = isExcused;
+    d.excuseReason = reason;
+    d.excuseUntil = until;
+    d.excusedBy = isExcused ? user.name : undefined;
+    d.excusedAt = isExcused ? nowIso : undefined;
+    d.updatedAt = nowIso;
+
+    if (isExcused) {
+      d.inClassAlert = false;
+    }
+
+    state.activities.unshift({
+      id: 'act_' + Date.now() + '_excuse',
+      deviceId: d.id,
+      deviceName: d.name,
+      platform: d.platform,
+      studentName: d.studentName,
+      schoolName: d.schoolName,
+      grade: d.grade,
+      className: d.className,
+      type: 'POLICY_UPDATED',
+      description: isExcused
+        ? `Đặc cách nghỉ học có phép cho ${d.studentName || d.name} (${d.className || 'Chưa rõ lớp'}) — Lý do: ${reason}${until ? ` (đến ${until})` : ''}`
+        : `Đã hủy chế độ đặc cách nghỉ học cho ${d.studentName || d.name} (${d.className || 'Chưa rõ lớp'})`,
+      timestamp: nowIso,
+    });
+
+    writeLocalDB(state, true);
+
+    if (pgPool) {
+      pgPool
+        .query(
+          `UPDATE devices SET
+            "isExcused" = $2,
+            "excuseReason" = $3,
+            "excuseUntil" = $4,
+            "excusedBy" = $5,
+            "excusedAt" = $6,
+            "inClassAlert" = CASE WHEN $2 THEN false ELSE "inClassAlert" END,
+            "updatedAt" = $7
+          WHERE id = $1`,
+          [d.id, d.isExcused, d.excuseReason || '', d.excuseUntil || null, d.excusedBy || null, d.excusedAt || null, nowIso]
+        )
+        .catch((e: any) => console.warn('Neon setDeviceExcuse warning:', e.message));
+    }
+
+    return enrichDevice(d, state);
   },
 };

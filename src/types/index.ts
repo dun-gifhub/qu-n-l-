@@ -105,6 +105,11 @@ export interface Device {
   lastHeartbeatAt?: string;
   inClassAlert?: boolean;
   isNoNetwork?: boolean;
+  isExcused?: boolean;
+  excuseReason?: string;
+  excuseUntil?: string;
+  excusedBy?: string;
+  excusedAt?: string;
 }
 
 export interface DeviceLocation {

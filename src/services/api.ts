@@ -222,6 +222,15 @@ export const api = {
   restoreDeviceStatus: (id: string) =>
     request<Device>(`/devices/${id}/restore-status`, { method: 'POST' }),
 
+  setDeviceExcuse: (
+    id: string,
+    body: { isExcused: boolean; excuseReason?: string; excuseUntil?: string }
+  ) =>
+    request<Device>(`/devices/${id}/excuse`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   checkHeartbeatTimeouts: (thresholdMs?: number) =>
     request<{ checked: number; newlyTimedOut: number; activeCount: number; timedOutDevices: any[] }>(
       '/devices/check-heartbeat',

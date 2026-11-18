@@ -23,6 +23,7 @@ import {
   Clock,
   Wifi,
   Info,
+  UserCheck,
 } from 'lucide-react';
 
 interface TeacherDashboardPageProps {
@@ -144,6 +145,14 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
             onClick={() => navigate('/schedules')}
           >
             Giờ học & lịch nghỉ theo khối
+          </EducationButton>
+
+          <EducationButton
+            variant="outline"
+            icon={<UserCheck className="w-4 h-4" strokeWidth={1.5} />}
+            onClick={() => navigate('/schedules?tab=excuse')}
+          >
+            Đặc cách nghỉ có lý do
           </EducationButton>
         </div>
       </div>
@@ -326,6 +335,7 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
                 const inClass = Boolean(d.inClassAlert);
                 const isUninstalled = Boolean(d.isUninstalled);
                 const isNoNet = Boolean(d.isNoNetwork || d.networkType === 'NONE');
+                const isExcused = Boolean(d.isExcused);
 
                 return (
                   <div
@@ -336,6 +346,8 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
                         ? 'border-[var(--warning-border)]'
                         : isUninstalled
                         ? 'border-[var(--danger-border)]'
+                        : isExcused
+                        ? 'border-[var(--accent-border)]'
                         : 'border-[var(--border)]'
                     }`}
                   >
@@ -361,6 +373,8 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
                         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-medium border shrink-0 ${
                           isUninstalled
                             ? 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger-border)]'
+                            : isExcused
+                            ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
                             : inClass || isNoNet
                             ? 'bg-[var(--warning-soft)] text-[var(--warning)] border-[var(--warning-border)]'
                             : isOnline
@@ -372,6 +386,8 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
                           className={`w-1.5 h-1.5 rounded-full ${
                             isUninstalled
                               ? 'bg-[var(--danger)]'
+                              : isExcused
+                              ? 'bg-[var(--accent)]'
                               : inClass || isNoNet
                               ? 'bg-[var(--warning)]'
                               : isOnline
@@ -382,6 +398,8 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
                         <span>
                           {isUninstalled
                             ? 'Đã gỡ ứng dụng'
+                            : isExcused
+                            ? 'Nghỉ có phép'
                             : inClass
                             ? 'Dùng giờ học'
                             : isNoNet
@@ -392,6 +410,12 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
                         </span>
                       </span>
                     </div>
+
+                    {isExcused && (
+                      <div className="text-[11px] px-2.5 py-1.5 rounded-[6px] bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-ink)] truncate">
+                        Đặc cách: {d.excuseReason || 'Nghỉ có phép'}
+                      </div>
+                    )}
 
                     {/* Sensor Data */}
                     <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[var(--border)] text-xs">

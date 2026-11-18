@@ -13,20 +13,6 @@
       "approvedAt": "2026-10-03T05:09:49.990Z",
       "createdAt": "2026-10-03T05:09:49.990Z",
       "updatedAt": "2026-10-03T05:09:49.990Z"
-    },
-    {
-      "id": "usr_admin_muo6qxdp",
-      "name": "Quản Trị Viên (Admin)",
-      "email": "admin@devicemonitor.com",
-      "passwordHash": "$2b$10$ejbcuzt3SlYfEbcunc88uONtqHApCvIXgjRCpfiztlM4Mbfq7kMru",
-      "role": "ADMIN",
-      "approvalStatus": "APPROVED",
-      "schoolName": "THPT Chuyên Lê Hồng Phong",
-      "phone": "0901234567",
-      "approvedBy": "Cấu hình Environment",
-      "approvedAt": "2026-09-30T14:13:22.329Z",
-      "createdAt": "2026-09-30T14:13:22.329Z",
-      "updatedAt": "2026-09-30T14:13:22.329Z"
     }
   ],
   "devices": [],
@@ -50,6 +36,15 @@
       "ipAddress": "127.0.0.1",
       "expiresAt": "2026-11-25T11:45:37.911Z",
       "createdAt": "2026-11-18T11:45:37.911Z"
+    },
+    {
+      "id": "sess_1795003055158",
+      "userId": "usr_admin_master",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfYWRtaW5fbWFzdGVyIiwiZW1haWwiOiJkdW5nZGF1bW9pMjIzQGdtYWlsLmNvbSIsIm5hbWUiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsInNjaG9vbE5hbWUiOiJUSFBUIENodXnDqm4gTMOqIEjhu5NuZyBQaG9uZyIsImFwcHJvdmFsU3RhdHVzIjoiQVBQUk9WRUQiLCJpYXQiOjE3OTUwMDMwNTUsImV4cCI6MTc5NzU5NTA1NX0.ETDXqjkYJwi7RQOrhE6wVPJ4pJ_O-3bXXrTIvqjSXLg",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 OPR/139.0.0.0 (Edition std-2)",
+      "ipAddress": "127.0.0.1",
+      "expiresAt": "2026-11-25T11:57:35.159Z",
+      "createdAt": "2026-11-18T11:57:35.159Z"
     }
   ],
   "activities": [],
@@ -82,8 +77,8 @@
           "enabled": true
         }
       ],
-      "updatedAt": "2026-11-18T11:45:37.982Z",
-      "updatedBy": "Quản Trị Viên (Admin)"
+      "updatedAt": "2026-11-18T12:01:22.458Z",
+      "updatedBy": "admin"
     },
     {
       "grade": "Khối 7",
@@ -111,8 +106,8 @@
           "enabled": true
         }
       ],
-      "updatedAt": "2026-11-18T11:45:37.983Z",
-      "updatedBy": "Quản Trị Viên (Admin)"
+      "updatedAt": "2026-11-18T12:01:22.459Z",
+      "updatedBy": "admin"
     },
     {
       "grade": "Khối 8",
@@ -140,8 +135,8 @@
           "enabled": true
         }
       ],
-      "updatedAt": "2026-11-18T11:45:37.983Z",
-      "updatedBy": "Quản Trị Viên (Admin)"
+      "updatedAt": "2026-11-18T12:01:22.459Z",
+      "updatedBy": "admin"
     },
     {
       "grade": "Khối 9",
@@ -169,8 +164,8 @@
           "enabled": true
         }
       ],
-      "updatedAt": "2026-11-18T11:45:37.983Z",
-      "updatedBy": "Quản Trị Viên (Admin)"
+      "updatedAt": "2026-11-18T12:01:22.459Z",
+      "updatedBy": "admin"
     },
     {
       "grade": "Khối 10",
@@ -198,8 +193,8 @@
           "enabled": true
         }
       ],
-      "updatedAt": "2026-11-18T11:45:37.983Z",
-      "updatedBy": "Quản Trị Viên (Admin)"
+      "updatedAt": "2026-11-18T12:01:22.459Z",
+      "updatedBy": "admin"
     },
     {
       "grade": "Khối 11",
@@ -227,8 +222,8 @@
           "enabled": true
         }
       ],
-      "updatedAt": "2026-11-18T11:45:37.983Z",
-      "updatedBy": "Quản Trị Viên (Admin)"
+      "updatedAt": "2026-11-18T12:01:22.459Z",
+      "updatedBy": "admin"
     },
     {
       "grade": "Khối 12",
@@ -256,8 +251,8 @@
           "enabled": true
         }
       ],
-      "updatedAt": "2026-11-18T11:45:37.983Z",
-      "updatedBy": "Quản Trị Viên (Admin)"
+      "updatedAt": "2026-11-18T12:01:55.374Z",
+      "updatedBy": "admin"
     },
     {
       "grade": "Khối Đại Học / Khác",
@@ -285,8 +280,8 @@
           "enabled": true
         }
       ],
-      "updatedAt": "2026-11-18T11:45:37.983Z",
-      "updatedBy": "Quản Trị Viên (Admin)"
+      "updatedAt": "2026-11-18T12:01:22.460Z",
+      "updatedBy": "admin"
     }
   ]
 }

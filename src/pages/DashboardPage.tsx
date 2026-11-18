@@ -18,6 +18,7 @@ import {
   GraduationCap,
   ChevronDown,
   Clock,
+  UserCheck,
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -148,14 +149,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => navigate('/schedules')}
-          className="h-9 px-3.5 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-primary)] inline-flex items-center gap-2 self-start sm:self-center cursor-pointer transition-colors duration-[var(--duration-fast)]"
-        >
-          <Clock className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
-          <span>Giờ học & lịch nghỉ theo khối</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+          <button
+            type="button"
+            onClick={() => navigate('/schedules')}
+            className="h-9 px-3.5 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-primary)] inline-flex items-center gap-2 cursor-pointer transition-colors duration-[var(--duration-fast)]"
+          >
+            <Clock className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+            <span>Giờ học theo khối</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/schedules?tab=excuse')}
+            className="h-9 px-3.5 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-primary)] inline-flex items-center gap-2 cursor-pointer transition-colors duration-[var(--duration-fast)]"
+          >
+            <UserCheck className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+            <span>Đặc cách nghỉ học sinh</span>
+          </button>
+        </div>
       </div>
 
       {errorMsg && (
@@ -475,7 +486,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        {d.inClassAlert ? (
+                        {d.isExcused ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+                            <span>Nghỉ có phép</span>
+                          </span>
+                        ) : d.inClassAlert ? (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-[var(--warning-soft)] text-[var(--warning)] border border-[var(--warning-border)]">
                             <span className="w-1.5 h-1.5 rounded-full bg-[var(--warning)]" />
                             <span>Trong giờ học</span>
@@ -552,6 +568,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 const inClass = Boolean(d.inClassAlert);
                 const isUninstalled = Boolean(d.isUninstalled);
                 const isNoNet = Boolean(d.isNoNetwork || d.networkType === 'NONE');
+                const isExcused = Boolean(d.isExcused);
 
                 return (
                   <div
@@ -562,6 +579,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         ? 'border-[var(--warning-border)]'
                         : isUninstalled
                         ? 'border-[var(--danger-border)]'
+                        : isExcused
+                        ? 'border-[var(--accent-border)]'
                         : 'border-[var(--border)] hover:border-[var(--border-strong)]'
                     }`}
                   >
@@ -573,6 +592,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               ? 'bg-[var(--warning-soft)] text-[var(--warning)]'
                               : isUninstalled
                               ? 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                              : isExcused
+                              ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
                               : isOnline
                               ? 'bg-[var(--success-soft)] text-[var(--success)]'
                               : 'bg-[var(--surface-muted)] text-[var(--text-muted)]'
@@ -596,6 +617,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-medium shrink-0 ${
                           isUninstalled
                             ? 'bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger-border)]'
+                            : isExcused
+                            ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)]'
                             : inClass
                             ? 'bg-[var(--warning-soft)] text-[var(--warning)] border border-[var(--warning-border)]'
                             : isNoNet
@@ -610,6 +633,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           className={`w-1.5 h-1.5 rounded-full ${
                             isUninstalled || isNoNet
                               ? 'bg-[var(--danger)]'
+                              : isExcused
+                              ? 'bg-[var(--accent)]'
                               : inClass
                               ? 'bg-[var(--warning)]'
                               : isOnline
@@ -620,6 +645,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         <span>
                           {isUninstalled
                             ? d.disconnectReason || 'Mất kết nối / Đã gỡ'
+                            : isExcused
+                            ? 'Nghỉ có phép'
                             : inClass
                             ? 'Dùng giờ học'
                             : isNoNet

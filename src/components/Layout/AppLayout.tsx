@@ -61,7 +61,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         ]
       : []),
     { label: 'Giám sát App & Web', path: '/app-usage', icon: Globe },
-    { label: 'Giờ học theo khối', path: '/schedules', icon: Clock },
+    { label: 'Giờ học & Đặc cách nghỉ', path: '/schedules', icon: Clock },
     { label: 'Nhật ký hoạt động', path: '/activity', icon: Activity },
     { label: 'Cài đặt hệ thống', path: '/settings', icon: Settings },
   ];

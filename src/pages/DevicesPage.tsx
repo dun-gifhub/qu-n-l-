@@ -20,6 +20,8 @@ import {
   Navigation,
   Copy,
   Check,
+  Clock,
+  ShieldOff,
 } from 'lucide-react';
 
 interface DevicesPageProps {
@@ -232,6 +234,15 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
             </div>
           )}
           <button
+            type="button"
+            onClick={() => navigate('/schedules')}
+            className="h-9 px-3 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-primary)] inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Clock className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+            <span>Giờ học & Đặc cách nghỉ</span>
+          </button>
+
+          <button
             onClick={onOpenAddDevice}
             className="h-9 px-4 rounded-[var(--radius-control)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover)] text-[var(--btn-primary-text)] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
           >
@@ -430,6 +441,7 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
                 const inClass = Boolean(device.inClassAlert);
                 const isUninstalled = Boolean(device.isUninstalled);
                 const isNoNet = Boolean(device.isNoNetwork || device.networkType === 'NONE');
+                const isExcused = Boolean(device.isExcused);
 
                 return (
                   <div
@@ -440,6 +452,8 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
                         ? 'border-[var(--warning-border)]'
                         : isUninstalled
                         ? 'border-[var(--danger-border)]'
+                        : isExcused
+                        ? 'border-[var(--accent-border)]'
                         : 'border-[var(--border)] hover:border-[var(--border-strong)]'
                     }`}
                   >
@@ -451,12 +465,18 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
                               ? 'bg-[var(--warning-soft)] text-[var(--warning)]'
                               : isUninstalled
                               ? 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                              : isExcused
+                              ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)]'
                               : isOnline
                               ? 'bg-[var(--success-soft)] text-[var(--success)]'
                               : 'bg-[var(--surface-muted)] text-[var(--text-muted)]'
                           }`}
                         >
-                          <Smartphone className="w-4 h-4" strokeWidth={1.5} />
+                          {isExcused ? (
+                            <ShieldOff className="w-4 h-4" strokeWidth={1.5} />
+                          ) : (
+                            <Smartphone className="w-4 h-4" strokeWidth={1.5} />
+                          )}
                         </div>
                         <div className="min-w-0">
                           <div className="font-medium text-xs text-[var(--text-primary)] truncate">
@@ -474,6 +494,8 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
                         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-medium shrink-0 ${
                           isUninstalled || isNoNet
                             ? 'bg-[var(--danger-soft)] text-[var(--danger)] border border-[var(--danger-border)]'
+                            : isExcused
+                            ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border border-[var(--accent-border)]'
                             : inClass
                             ? 'bg-[var(--warning-soft)] text-[var(--warning)] border border-[var(--warning-border)]'
                             : isOnline
@@ -485,6 +507,8 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
                           className={`w-1.5 h-1.5 rounded-full ${
                             isUninstalled || isNoNet
                               ? 'bg-[var(--danger)]'
+                              : isExcused
+                              ? 'bg-[var(--accent)]'
                               : inClass
                               ? 'bg-[var(--warning)]'
                               : isOnline
@@ -495,6 +519,8 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
                         <span>
                           {isUninstalled
                             ? device.disconnectReason || 'Mất kết nối / Đã gỡ'
+                            : isExcused
+                            ? 'Nghỉ có phép'
                             : inClass
                             ? 'Dùng giờ học'
                             : isNoNet
@@ -505,6 +531,12 @@ export const DevicesPage: React.FC<DevicesPageProps> = ({
                         </span>
                       </span>
                     </div>
+
+                    {isExcused && (
+                      <div className="text-[11px] px-2.5 py-1.5 rounded-[6px] bg-[var(--accent-soft)] border border-[var(--accent-border)] text-[var(--accent-ink)] truncate">
+                        Đặc cách: {device.excuseReason || 'Nghỉ có phép'}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border)] text-xs">
                       <div className="flex items-center gap-1.5 text-[var(--text-secondary)] font-mono tabular-nums">

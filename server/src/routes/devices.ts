@@ -78,14 +78,17 @@ router.post('/report', async (req: any, res: Response): Promise<any> => {
     // Support both English and Vietnamese field names from mobile clients
     const deviceUuid = body.deviceUuid || body.device_uuid || body.uuid || body.deviceId || 'DEV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     const deviceId = body.deviceId || body.id;
-    const name = body.name || body.thiet_bi || body.deviceName || body.model || 'Google sdk_gphone64_arm64';
-    const studentName = body.studentName || body.ten_hs || body.tenHocSinh || body.name || 'ssss';
-    const studentId = body.studentId || body.ma_hs || body.maHocSinh || '';
-    const schoolName = body.schoolName || body.truong || body.truongHoc || 'THPT Chuyên Lê Hồng Phong';
-    const className = body.className || body.lop || body.lopHoc || '10A1';
+    const name = body.name || body.thiet_bi || body.deviceName || body.model || undefined;
+    const studentName = body.studentName || body.ten_hs || body.tenHocSinh || body.name || undefined;
+    const studentId = body.studentId || body.ma_hs || body.maHocSinh || undefined;
+    const schoolName = body.schoolName || body.truong || body.truongHoc || undefined;
+    const className = body.className || body.lop || body.lopHoc || undefined;
     const rawGrade = body.grade ?? body.khoi;
-    const grade = resolveGradeName(rawGrade !== undefined ? String(rawGrade) : undefined, className);
-    const parentPhone = body.parentPhone || body.so_dien_thoai || body.sdt || '';
+    const grade =
+      rawGrade !== undefined || className !== undefined
+        ? resolveGradeName(rawGrade !== undefined ? String(rawGrade) : undefined, className)
+        : undefined;
+    const parentPhone = body.parentPhone || body.so_dien_thoai || body.sdt || undefined;
     const platform = body.platform || (body.thiet_bi && /ios|iphone|ipad/i.test(body.thiet_bi) ? 'iOS' : 'Android');
 
     // Status & events: DANG_SU_DUNG, GO_APP, GO_KET_NOI, NGHI_VAN_GO_APP, ONLINE
@@ -472,6 +475,55 @@ router.post('/:id/restore-status', async (req: AuthenticatedRequest, res: Respon
     return res.status(500).json({
       success: false,
       message: 'Lỗi khôi phục trạng thái thiết bị',
+      error: error.message,
+    });
+  }
+});
+
+// POST /api/devices/:id/excuse - Đặc cách cho học sinh nghỉ có lý do (không báo dùng ĐT trong giờ)
+router.post('/:id/excuse', async (req: AuthenticatedRequest, res: Response): Promise<any> => {
+  try {
+    if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'TEACHER')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Chỉ Quản trị viên hoặc Giáo viên mới có quyền duyệt đặc cách nghỉ học',
+      });
+    }
+
+    const { isExcused, excuseReason, excuseUntil } = req.body || {};
+    const excusedBool = Boolean(isExcused);
+
+    if (excusedBool && (!excuseReason || !String(excuseReason).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập lý do nghỉ học hợp lệ cho học sinh',
+      });
+    }
+
+    const updated = await dbService.setDeviceExcuse(req.params.id, req.user.userId, {
+      isExcused: excusedBool,
+      excuseReason: excuseReason ? String(excuseReason).trim() : '',
+      excuseUntil: excuseUntil ? String(excuseUntil).trim() : undefined,
+    });
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thiết bị học sinh hoặc bạn không có quyền cập nhật',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: excusedBool
+        ? `Đã bật đặc cách nghỉ học cho ${updated.studentName || updated.name}`
+        : `Đã tắt chế độ đặc cách nghỉ học cho ${updated.studentName || updated.name}`,
+      data: updated,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi cập nhật trạng thái đặc cách nghỉ học',
       error: error.message,
     });
   }
