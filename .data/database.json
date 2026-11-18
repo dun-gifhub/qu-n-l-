@@ -41,9 +41,252 @@
       "ipAddress": "127.0.0.1",
       "expiresAt": "2026-10-07T14:14:41.218Z",
       "createdAt": "2026-09-30T14:14:41.218Z"
+    },
+    {
+      "id": "sess_1795002337911",
+      "userId": "usr_admin_muo6qxdp",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c3JfYWRtaW5fbXVvNnF4ZHAiLCJlbWFpbCI6ImFkbWluQGRldmljZW1vbml0b3IuY29tIiwibmFtZSI6IlF14bqjbiBUcuG7iyBWacOqbiAoQWRtaW4pIiwicm9sZSI6IkFETUlOIiwic2Nob29sTmFtZSI6IlRIUFQgQ2h1ecOqbiBMw6ogSOG7k25nIFBob25nIiwiYXBwcm92YWxTdGF0dXMiOiJBUFBST1ZFRCIsImlhdCI6MTc5NTAwMjMzNywiZXhwIjoxNzk3NTk0MzM3fQ.XlYT4rx5hqhje7KZFwZ-7RU2Vi03X5PLNRKRu9XPPbc",
+      "userAgent": "node",
+      "ipAddress": "127.0.0.1",
+      "expiresAt": "2026-11-25T11:45:37.911Z",
+      "createdAt": "2026-11-18T11:45:37.911Z"
     }
   ],
   "activities": [],
   "appUsages": [],
-  "webHistory": []
+  "webHistory": [],
+  "gradeSchedules": [
+    {
+      "grade": "Khối 6",
+      "isDayOff": false,
+      "dayOffReason": "",
+      "activeDays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "shifts": [
+        {
+          "label": "Buổi sáng",
+          "start": "07:00",
+          "end": "11:30",
+          "enabled": true
+        },
+        {
+          "label": "Buổi chiều",
+          "start": "13:00",
+          "end": "17:00",
+          "enabled": true
+        }
+      ],
+      "updatedAt": "2026-11-18T11:45:37.982Z",
+      "updatedBy": "Quản Trị Viên (Admin)"
+    },
+    {
+      "grade": "Khối 7",
+      "isDayOff": false,
+      "dayOffReason": "",
+      "activeDays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "shifts": [
+        {
+          "label": "Buổi sáng",
+          "start": "07:00",
+          "end": "11:30",
+          "enabled": true
+        },
+        {
+          "label": "Buổi chiều",
+          "start": "13:00",
+          "end": "17:00",
+          "enabled": true
+        }
+      ],
+      "updatedAt": "2026-11-18T11:45:37.983Z",
+      "updatedBy": "Quản Trị Viên (Admin)"
+    },
+    {
+      "grade": "Khối 8",
+      "isDayOff": false,
+      "dayOffReason": "",
+      "activeDays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "shifts": [
+        {
+          "label": "Buổi sáng",
+          "start": "07:00",
+          "end": "11:30",
+          "enabled": true
+        },
+        {
+          "label": "Buổi chiều",
+          "start": "13:00",
+          "end": "17:00",
+          "enabled": true
+        }
+      ],
+      "updatedAt": "2026-11-18T11:45:37.983Z",
+      "updatedBy": "Quản Trị Viên (Admin)"
+    },
+    {
+      "grade": "Khối 9",
+      "isDayOff": false,
+      "dayOffReason": "",
+      "activeDays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "shifts": [
+        {
+          "label": "Buổi sáng",
+          "start": "07:00",
+          "end": "11:30",
+          "enabled": true
+        },
+        {
+          "label": "Buổi chiều",
+          "start": "13:00",
+          "end": "17:00",
+          "enabled": true
+        }
+      ],
+      "updatedAt": "2026-11-18T11:45:37.983Z",
+      "updatedBy": "Quản Trị Viên (Admin)"
+    },
+    {
+      "grade": "Khối 10",
+      "isDayOff": false,
+      "dayOffReason": "",
+      "activeDays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "shifts": [
+        {
+          "label": "Buổi sáng",
+          "start": "07:00",
+          "end": "11:30",
+          "enabled": true
+        },
+        {
+          "label": "Buổi chiều",
+          "start": "13:00",
+          "end": "17:00",
+          "enabled": true
+        }
+      ],
+      "updatedAt": "2026-11-18T11:45:37.983Z",
+      "updatedBy": "Quản Trị Viên (Admin)"
+    },
+    {
+      "grade": "Khối 11",
+      "isDayOff": false,
+      "dayOffReason": "",
+      "activeDays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "shifts": [
+        {
+          "label": "Buổi sáng",
+          "start": "07:00",
+          "end": "11:30",
+          "enabled": true
+        },
+        {
+          "label": "Buổi chiều",
+          "start": "13:00",
+          "end": "17:00",
+          "enabled": true
+        }
+      ],
+      "updatedAt": "2026-11-18T11:45:37.983Z",
+      "updatedBy": "Quản Trị Viên (Admin)"
+    },
+    {
+      "grade": "Khối 12",
+      "isDayOff": false,
+      "dayOffReason": "",
+      "activeDays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "shifts": [
+        {
+          "label": "Buổi sáng",
+          "start": "07:00",
+          "end": "11:30",
+          "enabled": true
+        },
+        {
+          "label": "Buổi chiều",
+          "start": "13:00",
+          "end": "17:00",
+          "enabled": true
+        }
+      ],
+      "updatedAt": "2026-11-18T11:45:37.983Z",
+      "updatedBy": "Quản Trị Viên (Admin)"
+    },
+    {
+      "grade": "Khối Đại Học / Khác",
+      "isDayOff": false,
+      "dayOffReason": "",
+      "activeDays": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "shifts": [
+        {
+          "label": "Buổi sáng",
+          "start": "07:00",
+          "end": "11:30",
+          "enabled": true
+        },
+        {
+          "label": "Buổi chiều",
+          "start": "13:00",
+          "end": "17:00",
+          "enabled": true
+        }
+      ],
+      "updatedAt": "2026-11-18T11:45:37.983Z",
+      "updatedBy": "Quản Trị Viên (Admin)"
+    }
+  ]
 }

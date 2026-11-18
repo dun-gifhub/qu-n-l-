@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { dbService } from '../db/db.ts';
+import { dbService, resolveGradeName } from '../db/db.ts';
 import { requireAuth, requireApproved, optionalAuth, AuthenticatedRequest } from '../middleware/auth.ts';
 import { notifyDeviceEvent } from '../services/realtime.ts';
 import {
@@ -82,9 +82,9 @@ router.post('/report', async (req: any, res: Response): Promise<any> => {
     const studentName = body.studentName || body.ten_hs || body.tenHocSinh || body.name || 'ssss';
     const studentId = body.studentId || body.ma_hs || body.maHocSinh || '';
     const schoolName = body.schoolName || body.truong || body.truongHoc || 'THPT Chuyên Lê Hồng Phong';
-    const rawGrade = body.grade ?? body.khoi ?? '10';
-    const grade = String(rawGrade).startsWith('Khối') ? String(rawGrade) : `Khối ${rawGrade}`;
     const className = body.className || body.lop || body.lopHoc || '10A1';
+    const rawGrade = body.grade ?? body.khoi;
+    const grade = resolveGradeName(rawGrade !== undefined ? String(rawGrade) : undefined, className);
     const parentPhone = body.parentPhone || body.so_dien_thoai || body.sdt || '';
     const platform = body.platform || (body.thiet_bi && /ios|iphone|ipad/i.test(body.thiet_bi) ? 'iOS' : 'Android');
 
@@ -138,7 +138,7 @@ router.post('/report', async (req: any, res: Response): Promise<any> => {
       notifyDeviceEvent(device, 'APP_UNINSTALLED');
     } else if (isNoNetwork || rawNet === 'NONE') {
       notifyDeviceEvent(device, 'NO_NETWORK');
-    } else if (eventType === 'DANG_SU_DUNG' || device.inClassAlert) {
+    } else if (device.inClassAlert) {
       notifyDeviceEvent(device, 'IN_CLASS_USAGE');
     } else if (rawNet === 'WIFI') {
       notifyDeviceEvent(device, 'WIFI_CONNECTED');
@@ -251,6 +251,7 @@ router.post('/', requireAuth, requireApproved, async (req: AuthenticatedRequest,
       deviceUuid,
       studentName,
       schoolName,
+      grade,
       className,
       currentApp,
       currentWebsite,
@@ -292,6 +293,11 @@ router.post('/', requireAuth, requireApproved, async (req: AuthenticatedRequest,
     const currentUser = (req as any).user ? await dbService.findUserById((req as any).user.userId) : null;
     const deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     const nowIso = new Date().toISOString();
+    const resolvedClass = className ? String(className).trim() : currentUser?.className || '10A1';
+    const resolvedGrade = resolveGradeName(
+      grade ? String(grade).trim() : currentUser?.grade,
+      resolvedClass
+    );
 
     const newDevice: DeviceRecord = {
       id: deviceId,
@@ -303,7 +309,8 @@ router.post('/', requireAuth, requireApproved, async (req: AuthenticatedRequest,
       appVersion: appVersion ? String(appVersion).trim() : '2.1.0',
       studentName: studentName ? String(studentName).trim() : currentUser?.studentName || name.trim(),
       schoolName: schoolName ? String(schoolName).trim() : currentUser?.schoolName || 'THPT Chuyên Lê Hồng Phong',
-      className: className ? String(className).trim() : currentUser?.className || '10A1',
+      grade: resolvedGrade,
+      className: resolvedClass,
       currentApp: currentApp ? String(currentApp).trim() : 'Google Classroom',
       currentWebsite: currentWebsite ? String(currentWebsite).trim() : 'google.com',
       screenTimeMinutes: 15,

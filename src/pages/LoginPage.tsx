@@ -179,10 +179,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
               <button
                 type="button"
                 onClick={() => {
-                  setLoginMode('USER');
-                  if (email === 'admin@devicemonitor.com') {
+                  if (loginMode !== 'USER') {
+                    setLoginMode('USER');
                     setEmail('');
                     setPassword('');
+                    setErrorMsg(null);
                   }
                 }}
                 className={`h-9 px-3 rounded-[6px] text-xs font-medium transition-colors duration-[var(--duration-fast)] flex items-center justify-center gap-2 cursor-pointer ${
@@ -197,9 +198,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
               <button
                 type="button"
                 onClick={() => {
-                  setLoginMode('ADMIN');
-                  setEmail('admin@devicemonitor.com');
-                  setPassword('admin123');
+                  if (loginMode !== 'ADMIN') {
+                    setLoginMode('ADMIN');
+                    setEmail('');
+                    setPassword('');
+                    setErrorMsg(null);
+                  }
                 }}
                 className={`h-9 px-3 rounded-[6px] text-xs font-medium transition-colors duration-[var(--duration-fast)] flex items-center justify-center gap-2 cursor-pointer ${
                   loginMode === 'ADMIN'
@@ -226,11 +230,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
               <EducationInput
                 label={loginMode === 'ADMIN' ? 'Email quản trị viên' : 'Email hoặc số điện thoại'}
                 type="text"
-                placeholder={loginMode === 'ADMIN' ? 'admin@devicemonitor.com' : 'gv.nguyen@truong.edu.vn hoặc 0901234567'}
+                placeholder={loginMode === 'ADMIN' ? '' : 'gv.nguyen@truong.edu.vn hoặc 0901234567'}
+                autoComplete="off"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 icon={
@@ -247,7 +252,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ navigate, message }) => {
                 <EducationInput
                   label={loginMode === 'ADMIN' ? 'Mật khẩu quản trị' : 'Mật khẩu'}
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Nhập mật khẩu"
+                  placeholder={loginMode === 'ADMIN' ? '' : 'Nhập mật khẩu'}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   icon={<Lock className="w-4 h-4" strokeWidth={1.5} />}

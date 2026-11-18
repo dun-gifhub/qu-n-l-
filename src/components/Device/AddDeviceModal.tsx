@@ -19,6 +19,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
   const [name, setName] = useState('');
   const [studentName, setStudentName] = useState('');
   const [schoolName, setSchoolName] = useState('THPT Chuyên Lê Hồng Phong');
+  const [grade, setGrade] = useState('Khối 10');
   const [className, setClassName] = useState('10A1');
   const [platform, setPlatform] = useState<'iOS' | 'Android' | 'Tablet'>('iOS');
   const [deviceUuid, setDeviceUuid] = useState(
@@ -78,6 +79,7 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
       name: name.trim(),
       studentName: studentName.trim(),
       schoolName: schoolName.trim(),
+      grade: grade.trim() || undefined,
       className: className.trim() || undefined,
       platform,
       appVersion: '2.1.0',
@@ -143,19 +145,38 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
+              Trường học <span className="text-[var(--danger)]">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Ví dụ: THPT Chuyên Lê Hồng Phong"
+              value={schoolName}
+              onChange={(e) => setSchoolName(e.target.value)}
+              className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
-                Trường học <span className="text-[var(--danger)]">*</span>
+                Khối học
               </label>
-              <input
-                type="text"
-                placeholder="Ví dụ: THPT Chuyên Lê Hồng Phong"
-                value={schoolName}
-                onChange={(e) => setSchoolName(e.target.value)}
+              <select
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
                 className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
-                required
-              />
+              >
+                {['Khối 6', 'Khối 7', 'Khối 8', 'Khối 9', 'Khối 10', 'Khối 11', 'Khối 12', 'Khối Đại Học / Khác'].map(
+                  (g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  )
+                )}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
@@ -165,7 +186,15 @@ export const AddDeviceModal: React.FC<AddDeviceModalProps> = ({
                 type="text"
                 placeholder="10A1"
                 value={className}
-                onChange={(e) => setClassName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setClassName(val);
+                  const m = val.match(/\d+/);
+                  if (m) {
+                    const n = parseInt(m[0], 10);
+                    if (n >= 6 && n <= 12) setGrade(`Khối ${n}`);
+                  }
+                }}
                 className="w-full h-10 px-3 bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)] text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]"
               />
             </div>

@@ -178,3 +178,27 @@ export interface AuthUserPayload {
   className?: string;
   approvalStatus: ApprovalStatus;
 }
+
+export interface GradeScheduleShift {
+  label?: string;
+  start: string;
+  end: string;
+  enabled: boolean;
+}
+
+export interface GradeScheduleConfig {
+  grade: string;
+  isDayOff: boolean;
+  dayOffReason?: string;
+  activeDays: number[];
+  shifts: GradeScheduleShift[];
+  updatedAt: string;
+  updatedBy?: string;
+}
+
+export interface GradeScheduleWithStatus extends GradeScheduleConfig {
+  isCurrentlyInClass: boolean;
+  statusReason: string;
+  deviceCount: number;
+}
+

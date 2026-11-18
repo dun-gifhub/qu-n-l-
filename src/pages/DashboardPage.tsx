@@ -17,6 +17,7 @@ import {
   BellRing,
   GraduationCap,
   ChevronDown,
+  Clock,
 } from 'lucide-react';
 
 interface DashboardPageProps {
@@ -146,6 +147,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             )}
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => navigate('/schedules')}
+          className="h-9 px-3.5 rounded-[var(--radius-control)] bg-[var(--surface)] hover:bg-[var(--surface-muted)] border border-[var(--border-strong)] text-xs font-medium text-[var(--text-primary)] inline-flex items-center gap-2 self-start sm:self-center cursor-pointer transition-colors duration-[var(--duration-fast)]"
+        >
+          <Clock className="w-4 h-4 text-[var(--accent-ink)]" strokeWidth={1.5} />
+          <span>Giờ học & lịch nghỉ theo khối</span>
+        </button>
       </div>
 
       {errorMsg && (
@@ -213,10 +223,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
             </div>
           </div>
-          <span className="text-xs font-medium text-[var(--warning)] flex items-center gap-1 shrink-0 ml-3">
-            <span>Lọc xem</span>
-            <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-          </span>
+          <div className="flex items-center gap-3 shrink-0 ml-3">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/schedules');
+              }}
+              className="text-xs font-medium text-[var(--text-primary)] hover:underline"
+            >
+              Đổi giờ / Báo nghỉ
+            </button>
+            <span className="text-xs font-medium text-[var(--warning)] flex items-center gap-1">
+              <span>Lọc xem</span>
+              <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </span>
+          </div>
         </div>
       ) : null}
 

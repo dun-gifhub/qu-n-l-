@@ -13,6 +13,7 @@ import activityRouter from './server/src/routes/activity.ts';
 import healthRouter from './server/src/routes/health.ts';
 import usersRouter from './server/src/routes/users.ts';
 import notificationsRouter from './server/src/routes/notifications.ts';
+import schedulesRouter from './server/src/routes/schedules.ts';
 
 dotenv.config();
 
@@ -79,6 +80,7 @@ async function startServer() {
   app.use('/api/devices', devicesRouter);
   app.use('/api/activity', activityRouter);
   app.use('/api/notifications', notificationsRouter);
+  app.use('/api/schedules', schedulesRouter);
 
   // Serve Frontend
   if (!isProduction) {

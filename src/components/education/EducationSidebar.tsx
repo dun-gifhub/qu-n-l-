@@ -11,6 +11,7 @@ import {
   ExternalLink,
   School,
   X,
+  Clock,
 } from 'lucide-react';
 
 export interface EducationSidebarItem {
@@ -41,6 +42,7 @@ export const EducationSidebar: React.FC<EducationSidebarProps> = ({
     { label: 'Lớp học phụ trách', path: '/classes', icon: BookOpen },
     { label: 'Bản đồ Google Maps', path: '/map', icon: MapPin },
     { label: 'Giám sát App & Web', path: '/app-usage', icon: Globe },
+    { label: 'Giờ học theo khối', path: '/schedules', icon: Clock },
     { label: 'Nhật ký & Cảnh báo', path: '/activity', icon: Bell },
     { label: 'Hồ sơ giáo viên', path: '/profile', icon: User },
   ];

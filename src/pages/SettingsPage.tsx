@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { api } from '../services/api.ts';
+import { GradeScheduleManager } from '../components/Schedule/GradeScheduleManager.tsx';
 import {
   User,
   Shield,
@@ -329,6 +330,11 @@ export const SettingsPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* 1b. Grade Class Schedules & Day-off Manager */}
+      {(user?.role === 'ADMIN' || user?.role === 'TEACHER') && (
+        <GradeScheduleManager />
+      )}
 
       {/* 2. Neon PostgreSQL Database Management & Render Persistence */}
       <div className="p-6 rounded-[var(--radius-card)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-card)] space-y-5">

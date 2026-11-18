@@ -16,6 +16,9 @@ import {
   UserRole,
   PlatformType,
   NetworkType,
+  GradeScheduleConfig,
+  GradeScheduleShift,
+  GradeScheduleWithStatus,
 } from '../types/index.ts';
 
 interface DBState {
@@ -27,6 +30,82 @@ interface DBState {
   activities: ActivityEvent[];
   appUsages: AppUsageItem[];
   webHistory: WebVisitItem[];
+  gradeSchedules: GradeScheduleConfig[];
+}
+
+export const STANDARD_GRADES = [
+  'Khối 6',
+  'Khối 7',
+  'Khối 8',
+  'Khối 9',
+  'Khối 10',
+  'Khối 11',
+  'Khối 12',
+  'Khối Đại Học / Khác',
+];
+
+export function createDefaultGradeSchedule(grade: string): GradeScheduleConfig {
+  return {
+    grade,
+    isDayOff: false,
+    dayOffReason: '',
+    activeDays: [1, 2, 3, 4, 5, 6], // Thứ 2 -> Thứ 7
+    shifts: [
+      { label: 'Buổi sáng', start: '07:00', end: '11:30', enabled: true },
+      { label: 'Buổi chiều', start: '13:00', end: '17:00', enabled: true },
+    ],
+    updatedAt: new Date().toISOString(),
+    updatedBy: 'Hệ thống mặc định',
+  };
+}
+
+export function createDefaultGradeSchedules(): GradeScheduleConfig[] {
+  return STANDARD_GRADES.map((g) => createDefaultGradeSchedule(g));
+}
+
+export function inferGradeFromClass(className?: string): string {
+  const raw = (className || '').trim();
+  if (!raw) return '';
+  const match = raw.match(/\d+/);
+  if (match) {
+    const num = parseInt(match[0], 10);
+    if (num >= 6 && num <= 12) {
+      return `Khối ${num}`;
+    }
+  }
+  if (/đại học|dh|sv|khác/i.test(raw)) {
+    return 'Khối Đại Học / Khác';
+  }
+  return '';
+}
+
+export function resolveGradeName(grade?: string, className?: string): string {
+  const g = (grade || '').trim();
+  if (g) {
+    if (/đại học|khác/i.test(g)) return 'Khối Đại Học / Khác';
+    const numMatch = g.match(/\d+/);
+    if (numMatch) {
+      const num = parseInt(numMatch[0], 10);
+      if (num >= 6 && num <= 12) return `Khối ${num}`;
+      return `Khối ${num}`;
+    }
+    return g.startsWith('Khối') ? g : `Khối ${g}`;
+  }
+  const inferred = inferGradeFromClass(className);
+  return inferred || 'Khối 10';
+}
+
+function ensureGradeSchedules(state: DBState): GradeScheduleConfig[] {
+  if (!Array.isArray(state.gradeSchedules)) {
+    state.gradeSchedules = createDefaultGradeSchedules();
+  }
+  const existingMap = new Map(state.gradeSchedules.map((s) => [s.grade, s]));
+  for (const g of STANDARD_GRADES) {
+    if (!existingMap.has(g)) {
+      state.gradeSchedules.push(createDefaultGradeSchedule(g));
+    }
+  }
+  return state.gradeSchedules;
 }
 
 const DATA_DIR = path.resolve(process.cwd(), '.data');
@@ -65,6 +144,7 @@ function createInitialEmptyState(): DBState {
     activities: [],
     appUsages: [],
     webHistory: [],
+    gradeSchedules: createDefaultGradeSchedules(),
   };
 }
 
@@ -284,6 +364,16 @@ export async function initDatabase(overrideDbUrl?: string): Promise<{ isPostgres
           timestamp TEXT,
           "createdAt" TEXT,
           "updatedAt" TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS grade_schedules (
+          grade TEXT PRIMARY KEY,
+          "isDayOff" BOOLEAN DEFAULT false,
+          "dayOffReason" TEXT DEFAULT '',
+          "activeDays" JSONB DEFAULT '[1,2,3,4,5,6]'::jsonb,
+          shifts JSONB DEFAULT '[]'::jsonb,
+          "updatedAt" TEXT,
+          "updatedBy" TEXT
         );
       `);
 
@@ -699,6 +789,49 @@ export async function initDatabase(overrideDbUrl?: string): Promise<{ isPostgres
           ).catch(() => {});
         }
 
+        // 7. Sync grade_schedules from Neon into local state
+        ensureGradeSchedules(state);
+        const schedRes = await client.query('SELECT * FROM grade_schedules');
+        if (schedRes.rows && schedRes.rows.length > 0) {
+          for (const raw of schedRes.rows) {
+            const sched: GradeScheduleConfig = {
+              grade: raw.grade,
+              isDayOff: Boolean(raw.isDayOff ?? raw.isdayoff),
+              dayOffReason: raw.dayOffReason ?? raw.dayoffreason ?? '',
+              activeDays: Array.isArray(raw.activeDays ?? raw.activedays)
+                ? (raw.activeDays ?? raw.activedays).map((n: any) => Number(n))
+                : [1, 2, 3, 4, 5, 6],
+              shifts: Array.isArray(raw.shifts) ? raw.shifts : createDefaultGradeSchedule(raw.grade).shifts,
+              updatedAt: raw.updatedAt ?? raw.updatedat ?? new Date().toISOString(),
+              updatedBy: raw.updatedBy ?? raw.updatedby ?? 'Neon PostgreSQL',
+            };
+            const idx = state.gradeSchedules.findIndex((x) => x.grade === sched.grade);
+            if (idx === -1) {
+              state.gradeSchedules.push(sched);
+            } else {
+              state.gradeSchedules[idx] = sched;
+            }
+          }
+          console.log(`Synced ${schedRes.rows.length} grade schedules from Neon PostgreSQL.`);
+        } else {
+          for (const s of state.gradeSchedules) {
+            await client.query(
+              `INSERT INTO grade_schedules (grade, "isDayOff", "dayOffReason", "activeDays", shifts, "updatedAt", "updatedBy")
+               VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7)
+               ON CONFLICT (grade) DO NOTHING`,
+              [
+                s.grade,
+                Boolean(s.isDayOff),
+                s.dayOffReason || '',
+                JSON.stringify(s.activeDays),
+                JSON.stringify(s.shifts),
+                s.updatedAt,
+                s.updatedBy || 'Hệ thống mặc định',
+              ]
+            ).catch(() => {});
+          }
+        }
+
         writeLocalDB(state);
       } catch (err: any) {
         console.warn('Neon sync warning:', err.message);
@@ -760,7 +893,9 @@ function readLocalDB(): DBState {
       activities: parsed.activities || [],
       appUsages: parsed.appUsages || [],
       webHistory: parsed.webHistory || [],
+      gradeSchedules: parsed.gradeSchedules || createDefaultGradeSchedules(),
     };
+    ensureGradeSchedules(state);
     memoryCache = ensureDefaultAdmin(state);
     return memoryCache;
   } catch {
@@ -808,23 +943,97 @@ function writeLocalDB(state: DBState, immediate: boolean = false): void {
   }
 }
 
-export function isCurrentlyInClassHours(): boolean {
-  const now = new Date();
-  // Vietnam UTC+7
-  const utcHours = now.getUTCHours();
-  const utcMinutes = now.getUTCMinutes();
-  const vnTotalMinutes = (utcHours * 60 + utcMinutes + 7 * 60) % (24 * 60);
-  const vnDay = new Date(now.getTime() + 7 * 3600 * 1000).getUTCDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+export function getVietnamDateParts(now: Date = new Date()): {
+  dayOfWeek: number;
+  hours: number;
+  minutes: number;
+  totalMinutes: number;
+  timeFormatted: string;
+  dateFormatted: string;
+} {
+  const vnMs = now.getTime() + 7 * 3600 * 1000;
+  const vnDate = new Date(vnMs);
+  const dayOfWeek = vnDate.getUTCDay();
+  const hours = vnDate.getUTCHours();
+  const minutes = vnDate.getUTCMinutes();
+  const totalMinutes = hours * 60 + minutes;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    dayOfWeek,
+    hours,
+    minutes,
+    totalMinutes,
+    timeFormatted: `${pad(hours)}:${pad(minutes)}`,
+    dateFormatted: `${pad(vnDate.getUTCDate())}/${pad(vnDate.getUTCMonth() + 1)}/${vnDate.getUTCFullYear()}`,
+  };
+}
 
-  // Sunday is weekend (no class)
-  if (vnDay === 0) return false;
+function parseHHMMToMinutes(timeStr: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec((timeStr || '').trim());
+  if (!match) return null;
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return h * 60 + m;
+}
 
-  // Morning: 07:00 (420 min) to 11:30 (690 min)
-  if (vnTotalMinutes >= 420 && vnTotalMinutes <= 690) return true;
-  // Afternoon: 13:00 (780 min) to 17:00 (1020 min)
-  if (vnTotalMinutes >= 780 && vnTotalMinutes <= 1020) return true;
+export function evaluateGradeInClassHours(
+  state: DBState,
+  grade?: string,
+  className?: string,
+  now: Date = new Date()
+): { inClass: boolean; matchedGrade: string; reason: string } {
+  const matchedGrade = resolveGradeName(grade, className);
+  const schedules = ensureGradeSchedules(state);
+  const schedule =
+    schedules.find((s) => s.grade.toLowerCase() === matchedGrade.toLowerCase()) ||
+    createDefaultGradeSchedule(matchedGrade);
 
-  return false;
+  if (schedule.isDayOff) {
+    return {
+      inClass: false,
+      matchedGrade,
+      reason: schedule.dayOffReason
+        ? `Đang nghỉ học (${schedule.dayOffReason})`
+        : 'Khối đang được đánh dấu nghỉ học',
+    };
+  }
+
+  const vn = getVietnamDateParts(now);
+  const activeDays = Array.isArray(schedule.activeDays) ? schedule.activeDays : [1, 2, 3, 4, 5, 6];
+  if (!activeDays.includes(vn.dayOfWeek)) {
+    return {
+      inClass: false,
+      matchedGrade,
+      reason: vn.dayOfWeek === 0 ? 'Chủ nhật (Nghỉ cuối tuần)' : 'Ngày nghỉ theo lịch tuần của khối',
+    };
+  }
+
+  const shifts = Array.isArray(schedule.shifts) ? schedule.shifts : [];
+  for (const shift of shifts) {
+    if (!shift || !shift.enabled) continue;
+    const startMins = parseHHMMToMinutes(shift.start);
+    const endMins = parseHHMMToMinutes(shift.end);
+    if (startMins === null || endMins === null || startMins > endMins) continue;
+    if (vn.totalMinutes >= startMins && vn.totalMinutes <= endMins) {
+      return {
+        inClass: true,
+        matchedGrade,
+        reason: `Đang trong giờ học (${shift.label || 'Ca học'} ${shift.start} - ${shift.end})`,
+      };
+    }
+  }
+
+  return {
+    inClass: false,
+    matchedGrade,
+    reason: 'Ngoài khung giờ học đã cấu hình',
+  };
+}
+
+export function isCurrentlyInClassHours(grade?: string, className?: string): boolean {
+  const state = readLocalDB();
+  return evaluateGradeInClassHours(state, grade, className).inClass;
 }
 
 function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
@@ -853,14 +1062,16 @@ function enrichDevice(d: DeviceRecord, state: DBState): DeviceRecord {
   // Suspected uninstalled: nếu đã bị đánh dấu gỡ HOẶC không gửi dữ liệu quá ngưỡng 3 phút
   const isSuspectedUninstalled = Boolean(d.isUninstalled) || isHeartbeatTimeout;
   const computedStatus = isSuspectedUninstalled ? 'OFFLINE' : (isHeartbeatFresh && !isNoNet ? 'ONLINE' : 'OFFLINE');
-  const inClass = computedStatus === 'ONLINE' && isCurrentlyInClassHours();
+  const effectiveGrade = d.grade || owner?.grade || inferGradeFromClass(d.className) || '';
+  const classEval = evaluateGradeInClassHours(state, effectiveGrade, d.className);
+  const inClass = computedStatus === 'ONLINE' && !isNoNet && classEval.inClass;
   const disconnectReason = d.disconnectReason || (isHeartbeatTimeout ? 'Mất kết nối / Có thể đã gỡ cài đặt' : (d.isUninstalled ? 'Đã gỡ cài đặt' : undefined));
 
   return {
     ...d,
     studentName: d.studentName || owner?.studentName || d.name,
     schoolName: d.schoolName || owner?.schoolName || 'Chưa cập nhật trường',
-    grade: d.grade || owner?.grade || '',
+    grade: effectiveGrade,
     parentPhone: d.parentPhone || owner?.phone || '',
     phoneContacts: d.phoneContacts || (d.parentPhone ? [{
       id: 'con_' + d.id + '_default',
@@ -1540,8 +1751,9 @@ export const dbService = {
           timestamp: nowIso,
         });
 
-        // Check if currently in class hours (Cảnh báo dùng trong giờ học)
-        if (isCurrentlyInClassHours()) {
+        // Check if currently in class hours for this device's grade
+        const scheduleEval = evaluateGradeInClassHours(state, device.grade, device.className);
+        if (!report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass) {
           device.inClassAlert = true;
           state.activities.unshift({
             id: 'act_' + Date.now() + '_inclass',
@@ -1553,11 +1765,19 @@ export const dbService = {
             grade: device.grade,
             className: device.className,
             type: 'IN_CLASS_ALERT',
-            description: `🚨 CẢNH BÁO GIỜ HỌC: Học sinh ${device.studentName} đang dùng điện thoại ("${appName}") trong giờ học!`,
+            description: `🚨 CẢNH BÁO GIỜ HỌC (${scheduleEval.matchedGrade}): Học sinh ${device.studentName} đang dùng điện thoại ("${appName}") trong giờ học!`,
             timestamp: nowIso,
           });
+        } else {
+          device.inClassAlert = false;
         }
+      } else {
+        const scheduleEval = evaluateGradeInClassHours(state, device.grade, device.className);
+        device.inClassAlert = !report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass;
       }
+    } else {
+      const scheduleEval = evaluateGradeInClassHours(state, device.grade, device.className);
+      device.inClassAlert = !report.isUninstalled && !report.isNoNetwork && report.networkType !== 'NONE' && scheduleEval.inClass;
     }
 
     if (report.currentWebsite && report.currentWebsite.trim()) {
@@ -1736,11 +1956,14 @@ export const dbService = {
   async createDevice(device: DeviceRecord, initialStatus?: Partial<DeviceStatusRecord>): Promise<DeviceRecord> {
     const state = readLocalDB();
     const owner = state.users.find(u => u.id === device.userId);
+    const finalClassName = device.className || owner?.className || '10A1';
+    const finalGrade = device.grade || owner?.grade || inferGradeFromClass(finalClassName) || 'Khối 10';
     const finalDevice: DeviceRecord = {
       ...device,
       studentName: device.studentName || owner?.studentName || device.name,
       schoolName: device.schoolName || owner?.schoolName || 'THPT Chuyên Lê Hồng Phong',
-      className: device.className || owner?.className || '10A1',
+      grade: finalGrade,
+      className: finalClassName,
       currentApp: device.currentApp || 'Màn hình chính',
       currentWebsite: device.currentWebsite || 'google.com',
       screenTimeMinutes: device.screenTimeMinutes ?? 15,
@@ -2416,6 +2639,8 @@ export const dbService = {
           timestamp: nowIso,
         });
       }
+      const scheduleEval = evaluateGradeInClassHours(state, d.grade, d.className);
+      d.inClassAlert = d.status !== 'OFFLINE' && !d.isUninstalled && !d.isNoNetwork && scheduleEval.inClass;
     }
 
     writeLocalDB(state);
@@ -2925,5 +3150,251 @@ export const dbService = {
         message: `Lỗi kết nối cơ sở dữ liệu: ${err.message}`,
       };
     }
+  },
+
+  // GRADE SCHEDULES (Cấu hình giờ học & lịch nghỉ theo khối)
+  async getGradeSchedules(requestingUserId?: string): Promise<{
+    schedules: GradeScheduleWithStatus[];
+    serverTimeVN: string;
+    serverDateVN: string;
+    dayOfWeekVN: number;
+  }> {
+    const state = readLocalDB();
+    const schedules = ensureGradeSchedules(state);
+    const vn = getVietnamDateParts();
+
+    let visibleDevices = state.devices.map((d) => enrichDevice(d, state));
+    if (requestingUserId) {
+      const user = state.users.find((u) => u.id === requestingUserId);
+      if (user) {
+        visibleDevices = visibleDevices.filter((d) => canUserAccessDevice(user, d));
+      }
+    }
+
+    const orderMap = new Map(STANDARD_GRADES.map((g, i) => [g, i]));
+    const sorted = [...schedules].sort((a, b) => {
+      const ia = orderMap.has(a.grade) ? orderMap.get(a.grade)! : 999;
+      const ib = orderMap.has(b.grade) ? orderMap.get(b.grade)! : 999;
+      if (ia !== ib) return ia - ib;
+      return a.grade.localeCompare(b.grade);
+    });
+
+    const enriched: GradeScheduleWithStatus[] = sorted.map((s) => {
+      const evalRes = evaluateGradeInClassHours(state, s.grade);
+      const deviceCount = visibleDevices.filter(
+        (d) => resolveGradeName(d.grade, d.className) === s.grade
+      ).length;
+      return {
+        ...s,
+        isCurrentlyInClass: evalRes.inClass,
+        statusReason: evalRes.reason,
+        deviceCount,
+      };
+    });
+
+    return {
+      schedules: enriched,
+      serverTimeVN: vn.timeFormatted,
+      serverDateVN: vn.dateFormatted,
+      dayOfWeekVN: vn.dayOfWeek,
+    };
+  },
+
+  async updateGradeSchedule(
+    grade: string,
+    updates: {
+      isDayOff?: boolean;
+      dayOffReason?: string;
+      activeDays?: number[];
+      shifts?: GradeScheduleShift[];
+    },
+    actorName: string
+  ): Promise<GradeScheduleWithStatus | null> {
+    const state = readLocalDB();
+    const schedules = ensureGradeSchedules(state);
+    const normalizedGrade = resolveGradeName(grade);
+    let idx = schedules.findIndex((s) => s.grade.toLowerCase() === normalizedGrade.toLowerCase());
+    const nowIso = new Date().toISOString();
+
+    if (idx === -1) {
+      schedules.push(createDefaultGradeSchedule(normalizedGrade));
+      idx = schedules.length - 1;
+    }
+
+    const current = schedules[idx];
+    const nextSchedule: GradeScheduleConfig = {
+      ...current,
+      grade: normalizedGrade,
+      isDayOff: updates.isDayOff !== undefined ? Boolean(updates.isDayOff) : current.isDayOff,
+      dayOffReason:
+        updates.dayOffReason !== undefined ? String(updates.dayOffReason).trim() : current.dayOffReason || '',
+      activeDays: Array.isArray(updates.activeDays)
+        ? Array.from(new Set(updates.activeDays.map(Number).filter((d) => d >= 0 && d <= 6))).sort()
+        : current.activeDays,
+      shifts: Array.isArray(updates.shifts)
+        ? updates.shifts.map((sh) => ({
+            label: (sh.label || '').trim() || 'Ca học',
+            start: String(sh.start || '07:00').trim(),
+            end: String(sh.end || '11:30').trim(),
+            enabled: Boolean(sh.enabled),
+          }))
+        : current.shifts,
+      updatedAt: nowIso,
+      updatedBy: actorName,
+    };
+
+    schedules[idx] = nextSchedule;
+
+    // Immediately re-evaluate inClassAlert on all devices belonging to this grade
+    for (const dev of state.devices) {
+      const devGrade = resolveGradeName(dev.grade, dev.className);
+      if (devGrade === normalizedGrade) {
+        const evalRes = evaluateGradeInClassHours(state, devGrade, dev.className);
+        if (!evalRes.inClass) {
+          dev.inClassAlert = false;
+        }
+      }
+    }
+
+    writeLocalDB(state, true);
+
+    if (pgPool) {
+      pgPool
+        .query(
+          `INSERT INTO grade_schedules (grade, "isDayOff", "dayOffReason", "activeDays", shifts, "updatedAt", "updatedBy")
+           VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7)
+           ON CONFLICT (grade) DO UPDATE SET
+             "isDayOff" = EXCLUDED."isDayOff",
+             "dayOffReason" = EXCLUDED."dayOffReason",
+             "activeDays" = EXCLUDED."activeDays",
+             shifts = EXCLUDED.shifts,
+             "updatedAt" = EXCLUDED."updatedAt",
+             "updatedBy" = EXCLUDED."updatedBy"`,
+          [
+            nextSchedule.grade,
+            nextSchedule.isDayOff,
+            nextSchedule.dayOffReason || '',
+            JSON.stringify(nextSchedule.activeDays),
+            JSON.stringify(nextSchedule.shifts),
+            nextSchedule.updatedAt,
+            nextSchedule.updatedBy || actorName,
+          ]
+        )
+        .catch((e: any) => console.warn('Neon updateGradeSchedule warning:', e.message));
+
+      const evalAfter = evaluateGradeInClassHours(state, normalizedGrade);
+      if (!evalAfter.inClass) {
+        pgPool
+          .query(`UPDATE devices SET "inClassAlert" = false WHERE grade = $1`, [normalizedGrade])
+          .catch(() => {});
+      }
+    }
+
+    const evalRes = evaluateGradeInClassHours(state, nextSchedule.grade);
+    const deviceCount = state.devices.filter(
+      (d) => resolveGradeName(d.grade, d.className) === nextSchedule.grade
+    ).length;
+
+    return {
+      ...nextSchedule,
+      isCurrentlyInClass: evalRes.inClass,
+      statusReason: evalRes.reason,
+      deviceCount,
+    };
+  },
+
+  async toggleGradesDayOff(
+    grades: string[] | 'ALL',
+    isDayOff: boolean,
+    dayOffReason: string | undefined,
+    actorName: string
+  ): Promise<GradeScheduleWithStatus[]> {
+    const state = readLocalDB();
+    const schedules = ensureGradeSchedules(state);
+    const targetGrades =
+      grades === 'ALL'
+        ? schedules.map((s) => s.grade)
+        : grades.map((g) => resolveGradeName(g));
+
+    for (const g of targetGrades) {
+      await this.updateGradeSchedule(
+        g,
+        {
+          isDayOff,
+          dayOffReason: isDayOff ? (dayOffReason !== undefined ? dayOffReason : undefined) : '',
+        },
+        actorName
+      );
+    }
+
+    const res = await this.getGradeSchedules();
+    return res.schedules;
+  },
+
+  async applyScheduleToAllGrades(
+    payload: {
+      activeDays: number[];
+      shifts: GradeScheduleShift[];
+      isDayOff?: boolean;
+      dayOffReason?: string;
+    },
+    actorName: string
+  ): Promise<GradeScheduleWithStatus[]> {
+    const state = readLocalDB();
+    const schedules = ensureGradeSchedules(state);
+    for (const s of schedules) {
+      await this.updateGradeSchedule(
+        s.grade,
+        {
+          activeDays: payload.activeDays,
+          shifts: payload.shifts,
+          isDayOff: payload.isDayOff !== undefined ? payload.isDayOff : s.isDayOff,
+          dayOffReason: payload.dayOffReason !== undefined ? payload.dayOffReason : s.dayOffReason,
+        },
+        actorName
+      );
+    }
+    const res = await this.getGradeSchedules();
+    return res.schedules;
+  },
+
+  async resetGradeSchedules(actorName: string): Promise<GradeScheduleWithStatus[]> {
+    const state = readLocalDB();
+    state.gradeSchedules = createDefaultGradeSchedules().map((s) => ({
+      ...s,
+      updatedBy: actorName,
+      updatedAt: new Date().toISOString(),
+    }));
+    writeLocalDB(state, true);
+
+    if (pgPool) {
+      for (const s of state.gradeSchedules) {
+        await pgPool
+          .query(
+            `INSERT INTO grade_schedules (grade, "isDayOff", "dayOffReason", "activeDays", shifts, "updatedAt", "updatedBy")
+             VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7)
+             ON CONFLICT (grade) DO UPDATE SET
+               "isDayOff" = EXCLUDED."isDayOff",
+               "dayOffReason" = EXCLUDED."dayOffReason",
+               "activeDays" = EXCLUDED."activeDays",
+               shifts = EXCLUDED.shifts,
+               "updatedAt" = EXCLUDED."updatedAt",
+               "updatedBy" = EXCLUDED."updatedBy"`,
+            [
+              s.grade,
+              s.isDayOff,
+              s.dayOffReason || '',
+              JSON.stringify(s.activeDays),
+              JSON.stringify(s.shifts),
+              s.updatedAt,
+              s.updatedBy || actorName,
+            ]
+          )
+          .catch(() => {});
+      }
+    }
+
+    const res = await this.getGradeSchedules();
+    return res.schedules;
   },
 };

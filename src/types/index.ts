@@ -164,3 +164,34 @@ export interface ApiResponse<T = any> {
   data?: T;
   errors?: Record<string, string>;
 }
+
+export interface GradeScheduleShift {
+  label?: string;
+  start: string;
+  end: string;
+  enabled: boolean;
+}
+
+export interface GradeScheduleConfig {
+  grade: string;
+  isDayOff: boolean;
+  dayOffReason?: string;
+  activeDays: number[];
+  shifts: GradeScheduleShift[];
+  updatedAt: string;
+  updatedBy?: string;
+}
+
+export interface GradeScheduleWithStatus extends GradeScheduleConfig {
+  isCurrentlyInClass: boolean;
+  statusReason: string;
+  deviceCount: number;
+}
+
+export interface GradeScheduleListData {
+  schedules: GradeScheduleWithStatus[];
+  serverTimeVN: string;
+  serverDateVN: string;
+  dayOfWeekVN: number;
+}
+

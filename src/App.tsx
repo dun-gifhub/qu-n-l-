@@ -18,6 +18,7 @@ import { AppWebMonitorPage } from './pages/AppWebMonitorPage.tsx';
 import { AccountsManagementPage } from './pages/AccountsManagementPage.tsx';
 import { AddDeviceModal } from './components/Device/AddDeviceModal.tsx';
 import { PhoneReportPage } from './pages/PhoneReportPage.tsx';
+import { SchedulesPage } from './pages/SchedulesPage.tsx';
 
 // Teacher Pages
 import { TeacherDashboardPage } from './pages/teacher/TeacherDashboardPage.tsx';
@@ -251,6 +252,8 @@ function AppContent() {
           <AccountsManagementPage navigate={navigate} />
         )}
 
+        {currentPath === '/schedules' && <SchedulesPage />}
+
         {currentPath === '/settings' && <SettingsPage />}
 
         <AddDeviceModal
@@ -303,6 +306,8 @@ function AppContent() {
           <AppWebMonitorPage navigate={navigate} />
         )}
 
+        {currentPath === '/schedules' && <SchedulesPage />}
+
         {currentPath === '/activity' && <ActivityPage />}
 
         {(currentPath === '/profile' || currentPath === '/settings') && (
@@ -347,6 +352,8 @@ function AppContent() {
       {currentPath === '/map' && (
         <MapOverviewPage navigate={navigate} />
       )}
+
+      {currentPath === '/schedules' && <SchedulesPage />}
 
       {currentPath === '/activity' && <ActivityPage />}
 

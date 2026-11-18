@@ -3,11 +3,13 @@ import { api } from '../../services/api.ts';
 import { Device } from '../../types/index.ts';
 import { EducationButton } from '../../components/education/EducationButton.tsx';
 import { EducationBadge } from '../../components/education/EducationBadge.tsx';
+import { GradeScheduleManager } from '../../components/Schedule/GradeScheduleManager.tsx';
 import {
   BookOpen,
   ArrowRight,
   Plus,
   Search,
+  Clock,
 } from 'lucide-react';
 
 interface TeacherClassesPageProps {
@@ -18,14 +20,19 @@ export const TeacherClassesPage: React.FC<TeacherClassesPageProps> = ({ navigate
   const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'classes' | 'schedules'>('classes');
 
-  useEffect(() => {
+  const loadDevices = () => {
     api.getDevices().then((res) => {
       if (res.success && res.data) {
         setDevices(res.data);
       }
       setIsLoading(false);
     });
+  };
+
+  useEffect(() => {
+    loadDevices();
   }, []);
 
   // Group devices by class
@@ -86,6 +93,39 @@ export const TeacherClassesPage: React.FC<TeacherClassesPageProps> = ({ navigate
         </EducationButton>
       </div>
 
+      {/* Section Switcher */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('classes')}
+          className={`h-9 px-3.5 rounded-[var(--radius-control)] text-xs font-medium inline-flex items-center gap-2 border transition-colors duration-[var(--duration-fast)] cursor-pointer ${
+            activeTab === 'classes'
+              ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+              : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--surface-muted)]'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" strokeWidth={1.5} />
+          <span>Danh sách lớp học</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('schedules')}
+          className={`h-9 px-3.5 rounded-[var(--radius-control)] text-xs font-medium inline-flex items-center gap-2 border transition-colors duration-[var(--duration-fast)] cursor-pointer ${
+            activeTab === 'schedules'
+              ? 'bg-[var(--accent-soft)] text-[var(--accent-ink)] border-[var(--accent-border)]'
+              : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--surface-muted)]'
+          }`}
+        >
+          <Clock className="w-4 h-4" strokeWidth={1.5} />
+          <span>Giờ học & lịch nghỉ theo khối</span>
+        </button>
+      </div>
+
+      {activeTab === 'schedules' ? (
+        <GradeScheduleManager onSchedulesChanged={loadDevices} />
+      ) : (
+        <>
       {/* Search Bar */}
       <div className="relative">
         <Search
@@ -174,6 +214,8 @@ export const TeacherClassesPage: React.FC<TeacherClassesPageProps> = ({ navigate
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
     </div>
   );

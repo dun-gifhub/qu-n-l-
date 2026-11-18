@@ -137,6 +137,14 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
           >
             Mở trang báo cáo trên điện thoại
           </EducationButton>
+
+          <EducationButton
+            variant="outline"
+            icon={<Clock className="w-4 h-4" strokeWidth={1.5} />}
+            onClick={() => navigate('/schedules')}
+          >
+            Giờ học & lịch nghỉ theo khối
+          </EducationButton>
         </div>
       </div>
 
@@ -159,9 +167,21 @@ export const TeacherDashboardPage: React.FC<TeacherDashboardPageProps> = ({
               </p>
             </div>
           </div>
-          <span className="text-xs font-medium text-[var(--warning)] shrink-0 hover:underline">
-            Lọc xem ngay
-          </span>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/schedules');
+              }}
+              className="text-xs font-medium text-[var(--text-primary)] hover:underline cursor-pointer"
+            >
+              Báo nghỉ / Đổi giờ
+            </button>
+            <span className="text-xs font-medium text-[var(--warning)] hover:underline">
+              Lọc xem ngay
+            </span>
+          </div>
         </div>
       )}
 

@@ -10,6 +10,9 @@ import {
   UserRole,
   ApprovalStatus,
   PhoneContact,
+  GradeScheduleListData,
+  GradeScheduleShift,
+  GradeScheduleWithStatus,
 } from '../types/index.ts';
 
 const API_BASE = '/api';
@@ -192,6 +195,7 @@ export const api = {
     deviceUuid?: string;
     studentName?: string;
     schoolName?: string;
+    grade?: string;
     className?: string;
   }) => request<Device>('/devices', { method: 'POST', body: JSON.stringify(body) }),
 
@@ -346,5 +350,51 @@ export const api = {
   clearAllDeviceContacts: (deviceId: string) =>
     request<PhoneContact[]>(`/devices/${deviceId}/contacts`, {
       method: 'DELETE',
+    }),
+
+  // Grade Schedules (Giờ học & lịch nghỉ theo khối)
+  getGradeSchedules: () => request<GradeScheduleListData>('/schedules'),
+
+  updateGradeSchedule: (
+    grade: string,
+    body: {
+      isDayOff?: boolean;
+      dayOffReason?: string;
+      activeDays?: number[];
+      shifts?: GradeScheduleShift[];
+    }
+  ) =>
+    request<GradeScheduleListData & { updated: GradeScheduleWithStatus }>(
+      `/schedules/${encodeURIComponent(grade)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }
+    ),
+
+  toggleGradesDayOff: (body: {
+    grades: string[] | 'ALL';
+    isDayOff: boolean;
+    dayOffReason?: string;
+  }) =>
+    request<GradeScheduleListData>('/schedules/toggle-day-off', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  applyScheduleToAllGrades: (body: {
+    activeDays: number[];
+    shifts: GradeScheduleShift[];
+    isDayOff?: boolean;
+    dayOffReason?: string;
+  }) =>
+    request<GradeScheduleListData>('/schedules/apply-all', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  resetGradeSchedules: () =>
+    request<GradeScheduleListData>('/schedules/reset', {
+      method: 'POST',
     }),
 };
